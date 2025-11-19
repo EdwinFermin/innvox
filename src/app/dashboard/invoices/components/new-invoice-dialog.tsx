@@ -22,7 +22,7 @@ import { FirebaseError } from "firebase/app";
 import { useClients } from "@/hooks/useClients";
 import { useAuthStore } from "@/store/auth";
 import { ClientsCombobox } from "./clients-combobox";
-import { generateInvoiceNumber } from "@/utils/tools";
+import { generateInvoiceNumber, generateNCF } from "@/utils/tools";
 
 const newInvoiceSchema = z.object({
   id: z.string().optional(),
@@ -62,12 +62,14 @@ export function NewInvoiceDialog() {
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewInvoiceValues) => {
       const ref = doc(db, "invoices", generateInvoiceNumber());
+      const NCF = await generateNCF();
+
       await setDoc(
         ref,
         {
           ...data,
           id: ref.id,
-          NCF: "B02000000021",
+          NCF: NCF,
           client: doc(db, "clients", data.client),
           user: doc(db, "users", user?.id || ""),
           createdAt: new Date(),
