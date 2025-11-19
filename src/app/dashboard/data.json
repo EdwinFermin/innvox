@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "time": "09:00 AM",
+    "patient": "Juan Pérez",
+    "procedure": "Limpieza dental",
+    "status": "Pendiente",
+    "notes": "Alergia a penicilina"
+  },
+  {
+    "id": 2,
+    "time": "10:30 AM",
+    "patient": "María López",
+    "procedure": "Endodoncia",
+    "status": "Confirmada",
+    "notes": "Dolor leve desde ayer"
+  },
+  {
+    "id": 3,
+    "time": "01:00 PM",
+    "patient": "Carlos Díaz",
+    "procedure": "Evaluación inicial",
+    "status": "En espera",
+    "notes": "Nuevo paciente"
+  },
+  {
+    "id": 4,
+    "time": "03:00 PM",
+    "patient": "Ana Torres",
+    "procedure": "Restauración",
+    "status": "Cancelada",
+    "notes": ""
+  },
+  {
+    "id": 5,
+    "time": "04:30 PM",
+    "patient": "Pedro Gómez",
+    "procedure": "Por definir",
+    "status": "Pendiente",
+    "notes": "Primera visita"
+  }
+]
