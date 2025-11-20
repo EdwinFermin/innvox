@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useClients } from "@/hooks/useClients";
+import { useClients } from "@/hooks/use-clients";
 import { useAuthStore } from "@/store/auth";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";

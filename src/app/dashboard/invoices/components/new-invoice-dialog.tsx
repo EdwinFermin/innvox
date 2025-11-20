@@ -19,7 +19,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
-import { useClients } from "@/hooks/useClients";
+import { useClients } from "@/hooks/use-clients";
 import { useAuthStore } from "@/store/auth";
 import { ClientsCombobox } from "./clients-combobox";
 import { generateInvoiceNumber, generateNCF } from "@/utils/tools";

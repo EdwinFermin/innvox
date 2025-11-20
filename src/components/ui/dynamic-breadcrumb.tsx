@@ -10,12 +10,28 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+function translateSegment(segment: string): string {
+  const map: Record<string, string> = {
+    dashboard: "Dashboard",
+    invoices: "Facturas",
+    settings: "Configuración",
+    clients: "Clientes",
+    users: "Usuarios",
+    profile: "Perfil",
+  };
+
+  return (
+    map[segment.toLowerCase()] ||
+    segment.charAt(0).toUpperCase() + segment.slice(1)
+  );
+}
+
 export function DynamicBreadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
 
   const paths = segments.map((segment, index) => ({
-    name: segment.charAt(0).toUpperCase() + segment.slice(1),
+    name: translateSegment(segment),
     href: "/" + segments.slice(0, index + 1).join("/"),
   }));
 
