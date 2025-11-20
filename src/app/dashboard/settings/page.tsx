@@ -11,6 +11,8 @@ import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 import z from "zod";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth";
+import { useRouter } from "next/navigation";
 
 const settingsSchema = z.object({
   rangeStart: z.string().nonempty("El rango inicial es obligatorio"),
@@ -20,6 +22,15 @@ const settingsSchema = z.object({
 type SettingsValues = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
+  const { user } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.type !== "ADMIN") {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
+
   const queryClient = useQueryClient();
 
   const { data: ncfConfig, isLoading } = useQuery({

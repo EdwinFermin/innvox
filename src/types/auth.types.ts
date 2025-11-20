@@ -4,6 +4,7 @@ export interface User {
   email: string;
   avatar: string;
   createdAt: ISODateString;
+  type: "ADMIN" | "USER";
 }
 
 export type ISODateString = string;

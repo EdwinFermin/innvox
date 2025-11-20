@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import {
   Users,
@@ -26,7 +24,7 @@ import { NavUser } from "./nav-user";
 import { useAuthStore } from "@/store/auth";
 
 const data = {
-  navMain: [
+  navAdmin: [
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -45,7 +43,6 @@ const data = {
       icon: Users,
       isActive: true,
     },
-
     {
       title: "Configuración",
       url: "#",
@@ -56,6 +53,26 @@ const data = {
           url: "/dashboard/settings",
         },
       ],
+    },
+  ],
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
+      isActive: true,
+    },
+    {
+      title: "Facturas",
+      url: "/dashboard/invoices",
+      icon: FileSpreadsheet,
+      isActive: true,
+    },
+    {
+      title: "Clientes",
+      url: "/dashboard/clients",
+      icon: Users,
+      isActive: true,
     },
   ],
   navSecondary: [
@@ -96,7 +113,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain
+          items={user?.type === "ADMIN" ? data.navAdmin : data.navMain}
+        />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

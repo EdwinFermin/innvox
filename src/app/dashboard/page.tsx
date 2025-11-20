@@ -1,11 +1,10 @@
-"use client";
-
-// Components
-// import { DataTable } from "@/components/dashboard/data-table";
 import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
 import { SectionCards } from "@/components/dashboard/section-cards";
-// Dummy data for the DataTable component
-// import data from "./data.json";
+
+export const metadata = {
+  title: "Innvox Dashboard",
+  description: "Sistema de gestion de facturacion Innvox.",
+};
 
 export default function DashboardPage() {
   return (
@@ -15,7 +14,6 @@ export default function DashboardPage() {
         <div className="px-4 lg:px-6">
           <ChartAreaInteractive />
         </div>
-        {/* <DataTable data={data} /> */}
       </div>
     </div>
   );
