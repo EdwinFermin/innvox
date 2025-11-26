@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { db } from "@/lib/firebase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 import z from "zod";
@@ -15,8 +15,10 @@ import { useAuthStore } from "@/store/auth";
 import { useRouter } from "next/navigation";
 
 const settingsSchema = z.object({
-  rangeStart: z.string().nonempty("El rango inicial es obligatorio"),
-  rangeEnd: z.string().nonempty("El rango final es obligatorio"),
+  NCFRangeStart: z.string().nonempty("El numero de comprobante fiscal inicial es obligatorio"),
+  NCFRangeEnd: z.string().nonempty("El numero de comprobante fiscal final es obligatorio"),
+  CFRangeStart: z.string().nonempty("El numero de consumidor final inicial es obligatorio"),
+  CFRangeEnd: z.string().nonempty("El numero de consumidor final final es obligatorio"),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -33,9 +35,23 @@ export default function SettingsPage() {
 
   const queryClient = useQueryClient();
 
-  const { data: ncfConfig, isLoading } = useQuery({
-    queryKey: ["ncf-config"],
-    queryFn: () => getDoc(doc(db, "configs", "NCF")).then((s) => s.data()),
+  type ConfigRange = {
+    rangeStart?: string;
+    rangeEnd?: string;
+  };
+
+  const { data: configs, isLoading } = useQuery({
+    queryKey: ["configs"],
+    queryFn: async (): Promise<Record<string, ConfigRange>> => {
+      const snapshot = await getDocs(collection(db, "configs"));
+      const result: Record<string, ConfigRange> = {};
+
+      snapshot.forEach((docSnap) => {
+        result[docSnap.id] = docSnap.data() as ConfigRange;
+      });
+
+      return result;
+    },
   });
 
   const {
@@ -49,28 +65,43 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (ncfConfig) {
+    if (configs) {
       reset({
-        rangeStart: ncfConfig.rangeStart || "",
-        rangeEnd: ncfConfig.rangeEnd || "",
+        NCFRangeStart: configs.NCF?.rangeStart || "",
+        NCFRangeEnd: configs.NCF?.rangeEnd || "",
+        CFRangeStart: configs.CF?.rangeStart || "",
+        CFRangeEnd: configs.CF?.rangeEnd || "",
       });
     }
-  }, [ncfConfig, reset]);
+  }, [configs, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: SettingsValues) => {
-      await setDoc(
+      const batch = writeBatch(db);
+
+      batch.set(
         doc(db, "configs", "NCF"),
         {
-          rangeStart: values.rangeStart,
-          rangeEnd: values.rangeEnd,
+          rangeStart: values.NCFRangeStart,
+          rangeEnd: values.NCFRangeEnd,
         },
         { merge: true }
       );
+
+      batch.set(
+        doc(db, "configs", "CF"),
+        {
+          rangeStart: values.CFRangeStart,
+          rangeEnd: values.CFRangeEnd,
+        },
+        { merge: true }
+      );
+
+      await batch.commit();
     },
     onSuccess: () => {
       toast.success("Configuración guardada");
-      queryClient.invalidateQueries({ queryKey: ["ncf-config"] });
+      queryClient.invalidateQueries({ queryKey: ["configs"] });
     },
   });
 
@@ -92,47 +123,97 @@ export default function SettingsPage() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className={`grid gap-6`}>
             <h3 className="text-lg font-semibold">
-              Rango de numeros de comprobantes fiscales
+              Rango de numeros para comprobantes fiscales
             </h3>
 
             <div className="grid gap-2">
               <label
-                htmlFor="rangeStart"
+                htmlFor="NCFRangeStart"
                 className="text-sm font-medium text-start"
               >
                 Numero inicial
               </label>
               <Input
-                id="rangeStart"
+                id="NCFRangeStart"
                 disabled={isLoading}
                 placeholder="Ingresa el numero inicial del rango"
                 className="w-sm"
-                {...register("rangeStart")}
+                {...register("NCFRangeStart")}
               />
-              {errors.rangeStart && (
+              {errors.NCFRangeStart && (
                 <p className="text-red-500 text-xs">
-                  {errors.rangeStart.message}
+                  {errors.NCFRangeStart.message}
                 </p>
               )}
             </div>
 
             <div className="grid gap-2">
               <label
-                htmlFor="rangeEnd"
+                htmlFor="NCFRangeEnd"
                 className="text-sm font-medium text-start"
               >
                 Numero final
               </label>
               <Input
-                id="rangeEnd"
+                id="NCFRangeEnd"
                 disabled={isLoading}
                 placeholder="Ingresa el numero final del rango"
                 className="w-sm"
-                {...register("rangeEnd")}
+                {...register("NCFRangeEnd")}
               />
-              {errors.rangeEnd && (
+              {errors.NCFRangeEnd && (
                 <p className="text-red-500 text-xs">
-                  {errors.rangeEnd.message}
+                  {errors.NCFRangeEnd.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className={`grid gap-6`}>
+            <h3 className="text-lg font-semibold">
+              Rango de numeros para consumidor final
+            </h3>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="CFRangeStart"
+                className="text-sm font-medium text-start"
+              >
+                Numero inicial
+              </label>
+              <Input
+                id="CFRangeStart"
+                disabled={isLoading}
+                placeholder="Ingresa el numero inicial del rango"
+                className="w-sm"
+                {...register("CFRangeStart")}
+              />
+              {errors.CFRangeStart && (
+                <p className="text-red-500 text-xs">
+                  {errors.CFRangeStart.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="CFRangeEnd"
+                className="text-sm font-medium text-start"
+              >
+                Numero final
+              </label>
+              <Input
+                id="CFRangeEnd"
+                disabled={isLoading}
+                placeholder="Ingresa el numero final del rango"
+                className="w-sm"
+                {...register("CFRangeEnd")}
+              />
+              {errors.CFRangeEnd && (
+                <p className="text-red-500 text-xs">
+                  {errors.CFRangeEnd.message}
                 </p>
               )}
             </div>

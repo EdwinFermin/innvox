@@ -1,6 +1,6 @@
 import { doc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { NCFConfig } from "@/types/ncf.types";
+import { CFConfig, NCFConfig } from "@/types/ncf.types";
 
 /**
  * Generates a unique invoice number based on the current date and time.
@@ -30,6 +30,22 @@ export function generateInvoiceNumber() {
 export function incrementNCF(ncf: string): string {
   const prefix = ncf.slice(0, 3);
   const numberPart = ncf.slice(3);
+
+  const next = (parseInt(numberPart) + 1)
+    .toString()
+    .padStart(numberPart.length, "0");
+
+  return prefix + next;
+}
+
+/**
+ * Increments the given CF string to the next sequential value.
+ * @param cf The current CF string.
+ * @returns The next sequential CF string.
+ */
+export function incrementCF(cf: string): string {
+  const prefix = cf.slice(0, 3);
+  const numberPart = cf.slice(3);
 
   const next = (parseInt(numberPart) + 1)
     .toString()
@@ -74,3 +90,41 @@ export async function generateNCF(): Promise<string> {
 
   return newNCF;
 }
+
+/**
+ * Generates the next CF (Consumidor Final) in a transactional manner.
+ * @returns A promise that resolves to the newly generated CF string.
+ */
+export async function generateCF(): Promise<string> {
+  const configRef = doc(db, "configs", "CF");
+
+  const newCF = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(configRef);
+
+    if (!snap.exists()) {
+      throw new Error("CF configuration not found.");
+    }
+
+    const data = snap.data() as CFConfig;
+    const { rangeStart, rangeEnd, lastAssigned: lastAssignedCF } = data;
+
+    let nextCF = lastAssignedCF ?? rangeStart;
+
+    if (lastAssignedCF) {
+      nextCF = incrementCF(lastAssignedCF);
+
+      if (nextCF > rangeEnd) {
+        throw new Error("CF range has been fully consumed.");
+      }
+    }
+
+    tx.update(configRef, {
+      lastAssigned: nextCF,
+    });
+
+    return nextCF;
+  });
+
+  return newCF;
+}
+

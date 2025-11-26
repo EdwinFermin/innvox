@@ -4,6 +4,7 @@ import { Client } from "./client.types";
 
 export interface Invoice {
   id: string;
+  isFiscalReceipt: boolean;
   NCF: string;
   client: Client;
   description: string;

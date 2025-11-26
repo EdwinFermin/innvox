@@ -22,13 +22,15 @@ import { FirebaseError } from "firebase/app";
 import { useClients } from "@/hooks/use-clients";
 import { useAuthStore } from "@/store/auth";
 import { ClientsCombobox } from "./clients-combobox";
-import { generateInvoiceNumber, generateNCF } from "@/utils/tools";
+import { generateCF, generateInvoiceNumber, generateNCF } from "@/utils/tools";
+import { CustomSwitch } from "@/components/ui/custom-switch";
 
 const newInvoiceSchema = z.object({
   id: z.string().optional(),
   user: z.string().optional(),
   client: z.string().nonempty("El cliente es obligatorio"),
   createdAt: z.date().optional(),
+  isFiscalReceipt: z.boolean(),
   NCF: z.string().min(1, "El NCF es obligatorio").optional(),
   description: z
     .string()
@@ -57,19 +59,21 @@ export function NewInvoiceDialog() {
   } = useForm<NewInvoiceValues>({
     resolver: zodResolver(newInvoiceSchema),
     mode: "onChange",
+    defaultValues: {
+      isFiscalReceipt: false,
+    },
   });
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewInvoiceValues) => {
       const ref = doc(db, "invoices", generateInvoiceNumber());
-      const NCF = await generateNCF();
 
       await setDoc(
         ref,
         {
           ...data,
           id: ref.id,
-          NCF: NCF,
+          NCF: data.isFiscalReceipt ? await generateNCF() : await generateCF(),
           client: doc(db, "clients", data.client),
           user: doc(db, "users", user?.id || ""),
           createdAt: new Date(),
@@ -116,6 +120,13 @@ export function NewInvoiceDialog() {
 
         <form onSubmit={onSubmit}>
           <div className={`grid gap-6`}>
+
+            <CustomSwitch
+              control={control}
+              name="isFiscalReceipt"
+              label="Incluir Valor Fiscal"
+            />
+            
             <div className="grid gap-2">
               <label
                 htmlFor="client"
