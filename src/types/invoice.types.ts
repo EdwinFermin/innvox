@@ -4,12 +4,14 @@ import { Client } from "./client.types";
 
 export interface Invoice {
   id: string;
-  isFiscalReceipt: boolean;
-  NCF: string;
-  client: Client;
+  invoiceType: "FINAL" | "RECEIPT" | "FISCAL";
+  NCF: string | null;
+  clientId: string;
+  client: Client | null;
   description: string;
   amount: number;
   ITBIS: number;
   createdAt: Timestamp;
-  user: User;
+  userId: string;
+  user: User | null;
 }

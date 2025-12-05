@@ -41,8 +41,10 @@ import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NewInvoiceDialog } from "./components/new-invoice-dialog";
 import { Invoice } from "@/types/invoice.types";
+import { Client } from "@/types/client.types";
+import { User } from "@/types/auth.types";
 import { useInvoices } from "@/hooks/use-invoices";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/react-query";
@@ -78,6 +80,54 @@ export default function InvoicesPage() {
   const { print, PrintContainer } = usePrintInvoice();
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(
     null
+  );
+  const [invoiceToEdit, setInvoiceToEdit] = React.useState<Invoice | null>(
+    null
+  );
+
+  const fetchInvoiceWithRelations = React.useCallback(
+    async (invoiceId: string): Promise<Invoice | null> => {
+      const invoiceRef = doc(db, "invoices", invoiceId);
+      const snapshot = await getDoc(invoiceRef);
+
+      if (!snapshot.exists()) {
+        return null;
+      }
+
+      const data = snapshot.data();
+
+      const [clientSnap, userSnap] = await Promise.all([
+        data.client ? getDoc(data.client) : Promise.resolve(null),
+        data.user ? getDoc(data.user) : Promise.resolve(null),
+      ]);
+
+      const clientData = clientSnap?.data();
+      const userData = userSnap?.data();
+
+      const client =
+        clientSnap && clientSnap.exists()
+          ? ({ id: clientSnap.id, ...(clientData ?? {}) } as Client)
+          : null;
+      const user =
+        userSnap && userSnap.exists()
+          ? ({ id: userSnap.id, ...(userData ?? {}) } as User)
+          : null;
+
+      return {
+        id: snapshot.id,
+        invoiceType: data.invoiceType,
+        NCF: data.NCF ?? null,
+        clientId: data.client?.id ?? "",
+        client,
+        description: data.description,
+        amount: data.amount,
+        ITBIS: data.ITBIS,
+        createdAt: data.createdAt,
+        userId: data.user?.id ?? "",
+        user,
+      };
+    },
+    []
   );
 
   const columns: ColumnDef<Invoice>[] = [
@@ -175,7 +225,7 @@ export default function InvoicesPage() {
       cell: ({ row }) => {
         async function deleteInvoice(id: string): Promise<void> {
           try {
-            await deleteDoc(doc(db, "invoices", row.original.id));
+            await deleteDoc(doc(db, "invoices", id));
             toast.success("Factura eliminada");
             queryClient.invalidateQueries({ queryKey: ["invoices"] });
           } catch (error) {
@@ -195,6 +245,9 @@ export default function InvoicesPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setInvoiceToEdit(row.original)}>
+                Editar
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedInvoice(row.original);
@@ -287,7 +340,19 @@ export default function InvoicesPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <NewInvoiceDialog />
+          <NewInvoiceDialog
+            invoice={invoiceToEdit}
+            onEditDone={() => setInvoiceToEdit(null)}
+            onSuccess={async ({ id, mode }) => {
+              if (mode === "create") {
+                const printableInvoice = await fetchInvoiceWithRelations(id);
+                if (printableInvoice) {
+                  setSelectedInvoice(printableInvoice);
+                  setTimeout(() => print(), 200);
+                }
+              }
+            }}
+          />
         </div>
       </div>
       <div className="overflow-hidden rounded-md border">

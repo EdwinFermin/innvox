@@ -38,7 +38,13 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
         <br />
         <hr />
         <div style={{ textAlign: "center" }}>
-          <p style={{ margin: "4px 0" }}>FACTURA {invoice.isFiscalReceipt ? "CON VALOR FISCAL" : "PARA CONSUMIDOR FINAL"}</p>
+          <p style={{ margin: "4px 0" }}>
+            {invoice.invoiceType === "FISCAL"
+              ? "FACTURA CON VALOR FISCAL"
+              : invoice.invoiceType === "FINAL"
+              ? "FACTURA PARA CONSUMIDOR FINAL"
+              : "PRE-CUENTA"}
+          </p>
         </div>
         <hr />
         <table style={{ width: "100%" }}>
