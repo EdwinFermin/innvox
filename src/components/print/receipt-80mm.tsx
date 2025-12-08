@@ -5,6 +5,18 @@ import React, { forwardRef } from "react";
 
 export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
   ({ invoice }, ref) => {
+    const items = invoice.items ?? [];
+    const subtotal = items.reduce(
+      (sum, item) => sum + (item.unitPrice ?? 0),
+      0
+    );
+    const totalWeight = items.reduce((sum, item) => {
+      const weightValue = item.weight?.replace(/[^\d.]/g, "");
+      const numericWeight = weightValue ? Number(weightValue) : 0;
+      return sum + (Number.isFinite(numericWeight) ? numericWeight : 0);
+    }, 0);
+    const total = subtotal + invoice.ITBIS;
+
     return (
       <div
         ref={ref}
@@ -47,35 +59,59 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
           </p>
         </div>
         <hr />
-        <table style={{ width: "100%" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left" }}>Item</th>
-              <th style={{ textAlign: "right" }}>Qty</th>
-              <th style={{ textAlign: "right" }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{invoice.description}</td>
-              <td style={{ textAlign: "right" }}>1</td>
-              <td style={{ textAlign: "right" }}>
-                {invoice.amount.toFixed(2)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div style={{ marginTop: "8px" }}>
+          {items.length ? (
+            items.map((item, index) => (
+              <div
+                key={item.itemId || index}
+                style={{
+                  borderBottom: "1px dashed #ccc",
+                  paddingBottom: "6px",
+                  marginBottom: "6px",
+                }}
+              >
+                <p style={{ margin: "0 0 4px 0" }}>
+                  <b>Item #{index + 1}</b>
+                </p>
+                <p style={{ margin: "0 0 2px 0" }}>
+                  <b>Descripción:</b> {item.description}
+                </p>
+                <p style={{ margin: "0 0 2px 0" }}>
+                  <b>Guía:</b> {item.itemId || "-"}
+                </p>
+                <p style={{ margin: "0 0 2px 0" }}>
+                  <b>Tracking:</b> {item.tracking || "-"}
+                </p>
+                <p style={{ margin: "0 0 2px 0" }}>
+                  <b>Peso:</b> {item.weight || "-"}
+                </p>
+                <p style={{ margin: 0 }}>
+                  <b>Precio:</b> {item.unitPrice.toFixed(2)}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p style={{ textAlign: "center", margin: "8px 0" }}>
+              Sin items registrados
+            </p>
+          )}
+        </div>
         <hr />
-        <br />
         <div style={{ textAlign: "right" }}>
           <p>
-            <b>Subtotal:</b> {invoice.amount.toFixed(2)}
+            <b>Total Items:</b> {items.length}
+          </p>
+          <p>
+            <b>Total Libras:</b> {totalWeight.toFixed(2)}
+          </p>
+          <p>
+            <b>Subtotal:</b> {subtotal.toFixed(2)}
           </p>
           <p>
             <b>ITBIS:</b> {invoice.ITBIS.toFixed(2)}
           </p>
           <p>
-            <b>Total:</b> {(invoice.amount + invoice.ITBIS).toFixed(2)}
+            <b>Total:</b> {total.toFixed(2)}
           </p>
         </div>
         <hr />

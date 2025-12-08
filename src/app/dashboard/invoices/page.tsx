@@ -56,7 +56,7 @@ const getColumnLabel = (id: string): string => {
     id: "No. Factura",
     NCF: "NCF",
     client: "Cliente",
-    description: "Descripción",
+    items: "Items",
     amount: "Monto",
     ITBIS: "ITBIS",
     createdAt: "Fecha de Creación",
@@ -103,6 +103,27 @@ export default function InvoicesPage() {
 
       const clientData = clientSnap?.data();
       const userData = userSnap?.data();
+      const itemsArray =
+        Array.isArray(data.items) && data.items.length > 0 ? data.items : null;
+      const items = itemsArray
+        ? itemsArray.map((item) => ({
+            itemId: item.itemId ?? "",
+            description: item.description ?? "",
+            weight: item.weight ?? "",
+            tracking: item.tracking ?? "",
+            unitPrice: Number(item.unitPrice ?? 0),
+          }))
+        : data.description
+        ? [
+            {
+              itemId: snapshot.id,
+              description: data.description,
+              weight: "",
+              tracking: "",
+              unitPrice: Number(data.amount ?? 0),
+            },
+          ]
+        : [];
 
       const client =
         clientSnap && clientSnap.exists()
@@ -119,7 +140,7 @@ export default function InvoicesPage() {
         NCF: data.NCF ?? null,
         clientId: data.client?.id ?? "",
         client,
-        description: data.description,
+        items,
         amount: data.amount,
         ITBIS: data.ITBIS,
         createdAt: data.createdAt,
@@ -173,11 +194,21 @@ export default function InvoicesPage() {
       ),
     },
     {
-      accessorKey: "description",
-      header: "Descripción",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.original.description}</div>
-      ),
+      accessorKey: "items",
+      header: "Items",
+      cell: ({ row }) => {
+        const items = row.original.items ?? [];
+        if (!items.length) {
+          return <div className="text-muted-foreground">Sin items</div>;
+        }
+        const [first, ...rest] = items;
+        return (
+          <div className="capitalize">
+            {first.description}
+            {rest.length ? ` (+${rest.length} más)` : ""}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "ITBIS",

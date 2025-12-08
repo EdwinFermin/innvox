@@ -5,20 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { db } from "@/lib/firebase";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { doc, writeBatch } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 import z from "zod";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
 import { useRouter } from "next/navigation";
+import { useConfigs } from "@/hooks/use-configs";
 
 const settingsSchema = z.object({
-  NCFRangeStart: z.string().nonempty("El numero de comprobante fiscal inicial es obligatorio"),
-  NCFRangeEnd: z.string().nonempty("El numero de comprobante fiscal final es obligatorio"),
-  CFRangeStart: z.string().nonempty("El numero de consumidor final inicial es obligatorio"),
-  CFRangeEnd: z.string().nonempty("El numero de consumidor final final es obligatorio"),
+  NCFRangeStart: z
+    .string()
+    .nonempty("El numero de comprobante fiscal inicial es obligatorio"),
+  NCFRangeEnd: z
+    .string()
+    .nonempty("El numero de comprobante fiscal final es obligatorio"),
+  CFRangeStart: z
+    .string()
+    .nonempty("El numero de consumidor final inicial es obligatorio"),
+  CFRangeEnd: z
+    .string()
+    .nonempty("El numero de consumidor final final es obligatorio"),
+  ITBISPercentage: z.string().nonempty("El porcentaje de ITBIS es obligatorio"),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -34,25 +44,7 @@ export default function SettingsPage() {
   }, [user, router]);
 
   const queryClient = useQueryClient();
-
-  type ConfigRange = {
-    rangeStart?: string;
-    rangeEnd?: string;
-  };
-
-  const { data: configs, isLoading } = useQuery({
-    queryKey: ["configs"],
-    queryFn: async (): Promise<Record<string, ConfigRange>> => {
-      const snapshot = await getDocs(collection(db, "configs"));
-      const result: Record<string, ConfigRange> = {};
-
-      snapshot.forEach((docSnap) => {
-        result[docSnap.id] = docSnap.data() as ConfigRange;
-      });
-
-      return result;
-    },
-  });
+  const { data: configs, isLoading } = useConfigs();
 
   const {
     register,
@@ -71,6 +63,7 @@ export default function SettingsPage() {
         NCFRangeEnd: configs.NCF?.rangeEnd || "",
         CFRangeStart: configs.CF?.rangeStart || "",
         CFRangeEnd: configs.CF?.rangeEnd || "",
+        ITBISPercentage: configs.ITBIS?.percentage || "",
       });
     }
   }, [configs, reset]);
@@ -93,6 +86,14 @@ export default function SettingsPage() {
         {
           rangeStart: values.CFRangeStart,
           rangeEnd: values.CFRangeEnd,
+        },
+        { merge: true }
+      );
+
+      batch.set(
+        doc(db, "configs", "ITBIS"),
+        {
+          percentage: values.ITBISPercentage,
         },
         { merge: true }
       );
@@ -214,6 +215,35 @@ export default function SettingsPage() {
               {errors.CFRangeEnd && (
                 <p className="text-red-500 text-xs">
                   {errors.CFRangeEnd.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="grid gap-6">
+            <h3 className="text-lg font-semibold">ITBIS</h3>
+            <div className="grid gap-2">
+              <label
+                htmlFor="ITBISPercentage"
+                className="text-sm font-medium text-start"
+              >
+                Porcentaje de ITBIS
+              </label>
+              <Input
+                id="ITBISPercentage"
+                type="number"
+                step="0.01"
+                min="0"
+                disabled={isLoading}
+                placeholder="Ej: 18"
+                className="w-sm"
+                {...register("ITBISPercentage")}
+              />{" "}
+              {errors.ITBISPercentage && (
+                <p className="text-red-500 text-xs">
+                  {errors.ITBISPercentage.message}
                 </p>
               )}
             </div>

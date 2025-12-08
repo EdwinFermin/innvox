@@ -8,11 +8,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useFieldArray, useWatch } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -28,6 +28,7 @@ import { useClients } from "@/hooks/use-clients";
 import { useAuthStore } from "@/store/auth";
 import { ClientsCombobox } from "./clients-combobox";
 import { generateCF, generateInvoiceNumber, generateNCF } from "@/utils/tools";
+import { useConfigs } from "@/hooks/use-configs";
 import {
   Select,
   SelectContent,
@@ -35,9 +36,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Invoice } from "@/types/invoice.types";
+import { Invoice, InvoiceItem } from "@/types/invoice.types";
 import { Client } from "@/types/client.types";
 import { User } from "@/types/auth.types";
+
+const invoiceItemSchema = z.object({
+  itemId: z.string().min(1, "El ID es obligatorio"),
+  description: z
+    .string()
+    .min(1, "La descripción del item es obligatoria")
+    .max(500, "Máximo 500 caracteres"),
+  weight: z.string().default(""),
+  tracking: z.string().default(""),
+  unitPrice: z.number().min(0, "El precio debe ser mayor o igual a 0"),
+});
 
 const newInvoiceSchema = z.object({
   id: z.string().optional(),
@@ -45,17 +57,25 @@ const newInvoiceSchema = z.object({
   client: z.string().nonempty("El cliente es obligatorio"),
   createdAt: z.date().optional(),
   invoiceType: z.enum(["FINAL", "RECEIPT", "FISCAL"]),
-  NCF: z.string().min(1, "El NCF es obligatorio").optional(),
-  description: z
-    .string()
-    .nonempty("La descripción es obligatoria")
-    .min(1, "La descripción es obligatoria"),
+  NCF: z.string().min(1, "El NCF es obligatorio").optional().or(z.literal("")),
+  items: z
+    .array(invoiceItemSchema)
+    .min(1, "Debes agregar al menos un item a la factura"),
   ITBIS: z.number().min(0, "El ITBIS no puede ser negativo"),
-  amount: z.number().min(1, "El monto no puede ser negativo ni cero"),
+  amount: z.number().min(0, "El monto no puede ser negativo"),
 });
 
-type NewInvoiceValues = z.infer<typeof newInvoiceSchema>;
+type InvoiceItemFormValues = z.input<typeof invoiceItemSchema>;
+type NewInvoiceFormValues = z.input<typeof newInvoiceSchema>;
 type DialogMode = "create" | "edit";
+
+const createEmptyItem = (): InvoiceItemFormValues => ({
+  itemId: "",
+  description: "",
+  weight: "",
+  tracking: "",
+  unitPrice: 0,
+});
 
 interface NewInvoiceDialogProps {
   onSuccess: (payload: { id: string; mode: DialogMode }) => void;
@@ -68,35 +88,72 @@ export function NewInvoiceDialog({
   invoice,
   onEditDone,
 }: NewInvoiceDialogProps) {
-  const defaultValues = React.useMemo<NewInvoiceValues>(
-    () => ({
+  const buildDefaultValues = React.useCallback(
+    (): NewInvoiceFormValues => ({
       id: "",
       user: "",
       client: "",
       createdAt: undefined,
       invoiceType: "RECEIPT",
       NCF: "",
-      description: "",
+      items: [createEmptyItem()],
       ITBIS: 0,
       amount: 0,
     }),
     []
   );
+  const defaultValues = React.useMemo<NewInvoiceFormValues>(
+    () => buildDefaultValues(),
+    [buildDefaultValues]
+  );
 
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const { data: clients } = useClients(user?.id || "");
+  const { data: configs } = useConfigs();
   const {
     control,
     register,
     handleSubmit,
     formState: { errors, isValid },
     reset,
-  } = useForm<NewInvoiceValues>({
+    setValue,
+  } = useForm<NewInvoiceFormValues>({
     resolver: zodResolver(newInvoiceSchema),
     mode: "onChange",
     defaultValues,
   });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+  const watchedItems = useWatch({
+    control,
+    name: "items",
+  });
+  const itbisPercentage = React.useMemo(() => {
+    const rawPercentage = configs?.ITBIS?.percentage;
+    const parsed = Number(rawPercentage);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [configs]);
+  const itemsTotal = React.useMemo(() => {
+    const currentItems = watchedItems ?? [];
+    return currentItems.reduce(
+      (sum, item) => sum + (Number(item?.unitPrice ?? 0) || 0),
+      0
+    );
+  }, [watchedItems]);
+  const itemsErrorMessage = (
+    errors.items as { root?: { message?: string } } | undefined
+  )?.root?.message;
+
+  React.useEffect(() => {
+    setValue("amount", itemsTotal, { shouldValidate: true });
+    const computedITBIS = Number(
+      (itemsTotal * (itbisPercentage / 100)).toFixed(2)
+    );
+    setValue("ITBIS", computedITBIS, { shouldValidate: true });
+  }, [itemsTotal, itbisPercentage, setValue]);
   // State for the dialog
   const [open, setOpen] = React.useState(false);
   const isEditMode = Boolean(invoice);
@@ -112,10 +169,13 @@ export function NewInvoiceDialog({
           id: currentInvoiceId,
           client: invoice.clientId,
           invoiceType: invoice.invoiceType,
-          description: invoice.description,
           ITBIS: invoice.ITBIS,
           amount: invoice.amount,
           NCF: invoice.NCF ?? "",
+          items:
+            invoice.items && invoice.items.length > 0
+              ? invoice.items.map((item) => ({ ...item }))
+              : [createEmptyItem()],
         });
         setOpen(true);
         lastInvoiceIdRef.current = currentInvoiceId;
@@ -127,19 +187,19 @@ export function NewInvoiceDialog({
       lastInvoiceIdRef.current = null;
     }
 
-    reset(defaultValues);
-  }, [invoice, reset, defaultValues]);
+    reset(buildDefaultValues());
+  }, [invoice, reset, buildDefaultValues]);
 
   const handleClose = React.useCallback(() => {
-    reset(defaultValues);
+    reset(buildDefaultValues());
     setOpen(false);
     if (invoice) {
       onEditDone?.();
     }
-  }, [invoice, onEditDone, reset, defaultValues]);
+  }, [invoice, onEditDone, reset, buildDefaultValues]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: NewInvoiceValues) => {
+    mutationFn: async (data: NewInvoiceFormValues) => {
       const isEditing = Boolean(invoice);
       const ref = doc(
         db,
@@ -175,14 +235,27 @@ export function NewInvoiceDialog({
           : "N/A"
         : invoice?.NCF ?? null;
 
+      const normalizedItems: InvoiceItem[] = data.items.map((item) => ({
+        itemId: item.itemId,
+        description: item.description,
+        weight: item.weight ?? "",
+        tracking: item.tracking ?? "",
+        unitPrice: Number(item.unitPrice) || 0,
+      }));
+
+      const itemsAmount = normalizedItems.reduce(
+        (sum, item) => sum + item.unitPrice,
+        0
+      );
+
       const payload = {
         id: ref.id,
         invoiceType: data.invoiceType,
         NCF: resolvedNCF,
         client: clientRef,
         clientId: data.client,
-        description: data.description,
-        amount: data.amount,
+        items: normalizedItems,
+        amount: itemsAmount,
         ITBIS: data.ITBIS,
         createdAt: invoice?.createdAt ?? Timestamp.fromDate(new Date()),
         user: userRef,
@@ -232,7 +305,7 @@ export function NewInvoiceDialog({
             if (invoice) {
               onEditDone?.();
             }
-            reset();
+            reset(buildDefaultValues());
           }}
         >
           <PlusCircle className="mr-1" />
@@ -240,7 +313,7 @@ export function NewInvoiceDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className={"max-w-sm"}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-bold text-2xl">
             {isEditMode ? "Editar factura" : "Nueva Factura"}
@@ -299,30 +372,16 @@ export function NewInvoiceDialog({
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="name" className="text-sm font-medium text-start">
-                Descripción <span className="text-red-500">*</span>
-              </label>
-              <Textarea
-                id="description"
-                placeholder="Descripción de la factura"
-                className="w-full"
-                {...register("description")}
-              />
-              {errors.description && (
-                <p className="text-red-500 text-xs">
-                  {errors.description.message}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
               <label htmlFor="ITBIS" className="text-sm font-medium text-start">
-                ITBIS <span className="text-red-500">*</span>
+                ITBIS ({itbisPercentage || 0}%)
               </label>
               <Input
                 id="ITBIS"
                 type="number"
-                placeholder="50.00"
+                placeholder="Calculado automáticamente"
                 className="w-full"
+                readOnly
+                tabIndex={-1}
                 {...register("ITBIS", {
                   setValueAs: (v) => (v === "" ? 0 : Number(v)),
                 })}
@@ -330,25 +389,148 @@ export function NewInvoiceDialog({
               {errors.ITBIS && (
                 <p className="text-red-500 text-xs">{errors.ITBIS.message}</p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Calculado usando el porcentaje configurado en ajustes.
+              </p>
             </div>
             <div className="grid gap-2">
-              <label
-                htmlFor="amount"
-                className="text-sm font-medium text-start"
-              >
-                Monto <span className="text-red-500">*</span>
+              <label className="text-sm font-medium text-start">
+                Total de items
               </label>
               <Input
-                id="amount"
-                type="number"
-                placeholder="250.00"
+                value={itemsTotal.toFixed(2)}
+                readOnly
                 className="w-full"
-                {...register("amount", {
-                  setValueAs: (v) => (v === "" ? 0 : Number(v)),
-                })}
               />
               {errors.amount && (
                 <p className="text-red-500 text-xs">{errors.amount.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Calculado usando los items agregados.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-start">
+                  Items <span className="text-red-500">*</span>
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append(createEmptyItem())}
+                >
+                  Agregar item
+                </Button>
+              </div>
+              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                {fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="border rounded-md p-4 space-y-4 relative"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-muted-foreground">
+                        Item #{index + 1}
+                      </p>
+                      {fields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-600"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="grid gap-1">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">
+                          Guia <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          placeholder="RD1234567890"
+                          {...register(`items.${index}.itemId` as const)}
+                        />
+                        {errors.items?.[index]?.itemId && (
+                          <p className="text-red-500 text-xs">
+                            {errors.items[index]?.itemId?.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-1">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">
+                          Tracking
+                        </label>
+                        <Input
+                          placeholder="Tracking"
+                          {...register(`items.${index}.tracking` as const)}
+                        />
+                        {errors.items?.[index]?.tracking && (
+                          <p className="text-red-500 text-xs">
+                            {errors.items[index]?.tracking?.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="grid gap-1">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">
+                          Peso
+                        </label>
+                        <Input
+                          placeholder="Ej: 2.5kg"
+                          {...register(`items.${index}.weight` as const)}
+                        />
+                        {errors.items?.[index]?.weight && (
+                          <p className="text-red-500 text-xs">
+                            {errors.items[index]?.weight?.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-1">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">
+                          Precio unitario{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...register(`items.${index}.unitPrice` as const, {
+                            setValueAs: (v) => (v === "" ? 0 : Number(v)),
+                          })}
+                        />
+                        {errors.items?.[index]?.unitPrice && (
+                          <p className="text-red-500 text-xs">
+                            {errors.items[index]?.unitPrice?.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="text-xs font-medium uppercase text-muted-foreground">
+                        Descripción <span className="text-red-500">*</span>
+                      </label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Describe el item"
+                        {...register(`items.${index}.description` as const)}
+                      />
+                      {errors.items?.[index]?.description && (
+                        <p className="text-red-500 text-xs">
+                          {errors.items[index]?.description?.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {itemsErrorMessage && (
+                <p className="text-red-500 text-xs">{itemsErrorMessage}</p>
               )}
             </div>
           </div>
