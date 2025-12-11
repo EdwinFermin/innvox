@@ -334,7 +334,10 @@ export function NewInvoiceDialog({
                 name="invoiceType"
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger
+                      className="w-full"
+                      disabled={field.value != "RECEIPT" && isEditMode}
+                    >
                       <SelectValue placeholder="Seleccione un tipo de factura" />
                     </SelectTrigger>
                     <SelectContent>
