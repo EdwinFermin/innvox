@@ -141,6 +141,7 @@ export default function InvoicesPage() {
         clientId: data.client?.id ?? "",
         client,
         items,
+        pricePerPound: data.pricePerPound ?? 0,
         amount: data.amount,
         ITBIS: data.ITBIS,
         createdAt: data.createdAt,

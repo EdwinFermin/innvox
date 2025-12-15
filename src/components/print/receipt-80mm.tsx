@@ -102,6 +102,9 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
             <b>Total Items:</b> {items.length}
           </p>
           <p>
+            <b>Costo por libra:</b> {invoice.pricePerPound?.toFixed(2)}
+          </p>
+          <p>
             <b>Total Libras:</b> {totalWeight.toFixed(2)}
           </p>
           <p>

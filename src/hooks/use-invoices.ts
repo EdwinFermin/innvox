@@ -65,6 +65,7 @@ export function useInvoices() {
             clientId: clientRef?.id ?? "",
             client,
             items,
+            pricePerPound: data.pricePerPound ?? 0,
             amount: data.amount ?? 0,
             ITBIS: data.ITBIS,
             createdAt: data.createdAt,

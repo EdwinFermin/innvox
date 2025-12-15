@@ -63,6 +63,9 @@ const newInvoiceSchema = z.object({
     .min(1, "Debes agregar al menos un item a la factura"),
   ITBIS: z.number().min(0, "El ITBIS no puede ser negativo"),
   amount: z.number().min(0, "El monto no puede ser negativo"),
+  pricePerPound: z
+    .number()
+    .min(0, "El precio por libra no puede ser negativo"),
 });
 
 type InvoiceItemFormValues = z.input<typeof invoiceItemSchema>;
@@ -99,6 +102,7 @@ export function NewInvoiceDialog({
       items: [createEmptyItem()],
       ITBIS: 0,
       amount: 0,
+      pricePerPound: 0,
     }),
     []
   );
@@ -131,6 +135,14 @@ export function NewInvoiceDialog({
     control,
     name: "items",
   });
+  const watchedITBIS = useWatch({
+    control,
+    name: "ITBIS",
+  });
+  const watchedPricePerPound = useWatch({
+    control,
+    name: "pricePerPound",
+  });
   const itbisPercentage = React.useMemo(() => {
     const rawPercentage = configs?.ITBIS?.percentage;
     const parsed = Number(rawPercentage);
@@ -143,21 +155,41 @@ export function NewInvoiceDialog({
       0
     );
   }, [watchedItems]);
+  const totalWithITBIS = React.useMemo(() => {
+    const numericITBIS = Number(watchedITBIS ?? 0) || 0;
+    return Number((itemsTotal + numericITBIS).toFixed(2));
+  }, [itemsTotal, watchedITBIS]);
   const itemsErrorMessage = (
     errors.items as { root?: { message?: string } } | undefined
   )?.root?.message;
+  const [itbisMode, setItbisMode] = React.useState<"auto" | "manual">("auto");
+  const isAutomaticITBIS = itbisMode === "auto";
 
   React.useEffect(() => {
     setValue("amount", itemsTotal, { shouldValidate: true });
+    if (!isAutomaticITBIS) {
+      return;
+    }
     const computedITBIS = Number(
       (itemsTotal * (itbisPercentage / 100)).toFixed(2)
     );
-    setValue("ITBIS", computedITBIS, { shouldValidate: true });
-  }, [itemsTotal, itbisPercentage, setValue]);
+    setValue("ITBIS", computedITBIS, {
+      shouldValidate: true,
+      shouldDirty: false,
+    });
+  }, [itemsTotal, itbisPercentage, setValue, isAutomaticITBIS]);
   // State for the dialog
   const [open, setOpen] = React.useState(false);
   const isEditMode = Boolean(invoice);
   const lastInvoiceIdRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (invoice) {
+      setItbisMode("manual");
+      return;
+    }
+    setItbisMode("auto");
+  }, [invoice]);
 
   React.useEffect(() => {
     const currentInvoiceId = invoice?.id ?? null;
@@ -172,6 +204,7 @@ export function NewInvoiceDialog({
           ITBIS: invoice.ITBIS,
           amount: invoice.amount,
           NCF: invoice.NCF ?? "",
+          pricePerPound: invoice.pricePerPound ?? 0,
           items:
             invoice.items && invoice.items.length > 0
               ? invoice.items.map((item) => ({ ...item }))
@@ -192,6 +225,7 @@ export function NewInvoiceDialog({
 
   const handleClose = React.useCallback(() => {
     reset(buildDefaultValues());
+    setItbisMode("auto");
     setOpen(false);
     if (invoice) {
       onEditDone?.();
@@ -255,6 +289,7 @@ export function NewInvoiceDialog({
         client: clientRef,
         clientId: data.client,
         items: normalizedItems,
+        pricePerPound: data.pricePerPound,
         amount: itemsAmount,
         ITBIS: data.ITBIS,
         createdAt: invoice?.createdAt ?? Timestamp.fromDate(new Date()),
@@ -286,6 +321,93 @@ export function NewInvoiceDialog({
 
   const onSubmit = handleSubmit((values) => mutate(values));
 
+  const handleWeightChange = React.useCallback(
+    (index: number, rawValue: string) => {
+      setValue(`items.${index}.weight`, rawValue, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      const numericWeight = Number(rawValue);
+      const pricePerPound = Number(watchedPricePerPound ?? 0);
+      if (
+        !Number.isFinite(numericWeight) ||
+        numericWeight <= 0 ||
+        !Number.isFinite(pricePerPound) ||
+        pricePerPound <= 0
+      ) {
+        return;
+      }
+      const computedUnitPrice = Number(
+        (numericWeight * pricePerPound).toFixed(2)
+      );
+      setValue(`items.${index}.unitPrice`, computedUnitPrice, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [setValue, watchedPricePerPound]
+  );
+
+  const handleUnitPriceChange = React.useCallback(
+    (index: number, rawValue: string) => {
+      const parsedValue = rawValue === "" ? 0 : Number(rawValue);
+      setValue(`items.${index}.unitPrice`, parsedValue, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      const pricePerPound = Number(watchedPricePerPound ?? 0);
+      if (
+        !Number.isFinite(parsedValue) ||
+        parsedValue <= 0 ||
+        !Number.isFinite(pricePerPound) ||
+        pricePerPound <= 0
+      ) {
+        return;
+      }
+      const computedWeight = Number((parsedValue / pricePerPound).toFixed(2));
+      setValue(`items.${index}.weight`, computedWeight.toString(), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [setValue, watchedPricePerPound]
+  );
+
+  React.useEffect(() => {
+    const pricePerPound = Number(watchedPricePerPound ?? 0);
+    if (!Number.isFinite(pricePerPound) || pricePerPound <= 0) {
+      return;
+    }
+    const currentItems = watchedItems ?? [];
+    currentItems.forEach((item, index) => {
+      const weightValue = Number(item?.weight ?? 0);
+      const unitPriceValue = Number(item?.unitPrice ?? 0);
+      if (Number.isFinite(weightValue) && weightValue > 0) {
+        const computedUnitPrice = Number(
+          (weightValue * pricePerPound).toFixed(2)
+        );
+        if (computedUnitPrice !== unitPriceValue) {
+          setValue(`items.${index}.unitPrice`, computedUnitPrice, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+        return;
+      }
+      if (Number.isFinite(unitPriceValue) && unitPriceValue > 0) {
+        const computedWeight = Number(
+          (unitPriceValue / pricePerPound).toFixed(2)
+        );
+        if (computedWeight.toString() !== (item?.weight ?? "")) {
+          setValue(`items.${index}.weight`, computedWeight.toString(), {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+      }
+    });
+  }, [setValue, watchedItems, watchedPricePerPound]);
+
   return (
     <Dialog
       open={open}
@@ -306,6 +428,7 @@ export function NewInvoiceDialog({
               onEditDone?.();
             }
             reset(buildDefaultValues());
+            setItbisMode("auto");
           }}
         >
           <PlusCircle className="mr-1" />
@@ -375,25 +498,85 @@ export function NewInvoiceDialog({
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="ITBIS" className="text-sm font-medium text-start">
-                ITBIS ({itbisPercentage || 0}%)
+              <label
+                htmlFor="pricePerPound"
+                className="text-sm font-medium text-start"
+              >
+                Precio por libra
               </label>
               <Input
-                id="ITBIS"
+                id="pricePerPound"
                 type="number"
-                placeholder="Calculado automáticamente"
+                step="0.01"
+                placeholder="0.00"
                 className="w-full"
-                readOnly
-                tabIndex={-1}
-                {...register("ITBIS", {
+                {...register("pricePerPound", {
                   setValueAs: (v) => (v === "" ? 0 : Number(v)),
                 })}
+              />
+              {errors.pricePerPound && (
+                <p className="text-red-500 text-xs">
+                  {errors.pricePerPound.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Este valor se usa para calcular el precio de cada item.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="ITBIS"
+                  className="text-sm font-medium text-start"
+                >
+                  ITBIS
+                  {` (por defecto ${itbisPercentage || 0}%)`}
+                </label>
+                {itbisMode === "manual" && (
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => setItbisMode("auto")}
+                  >
+                    Usar cálculo automático
+                  </Button>
+                )}
+              </div>
+              <Controller
+                control={control}
+                name="ITBIS"
+                render={({ field }) => (
+                  <Input
+                    id="ITBIS"
+                    type="number"
+                    step="0.01"
+                    placeholder={`Calculado con ${itbisPercentage || 0}%`}
+                    className="w-full"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? 0
+                        : field.value
+                    }
+                    onChange={(event) => {
+                      const rawValue = event.target.value;
+                      const parsedValue =
+                        rawValue === "" ? 0 : Number(rawValue);
+                      setItbisMode("manual");
+                      field.onChange(parsedValue);
+                    }}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {errors.ITBIS && (
                 <p className="text-red-500 text-xs">{errors.ITBIS.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Calculado usando el porcentaje configurado en ajustes.
+                {isAutomaticITBIS
+                  ? "Calculado usando el porcentaje configurado en ajustes."
+                  : "Editado manualmente. Vuelve al cálculo automático si deseas usar el porcentaje configurado."}
               </p>
             </div>
             <div className="grid gap-2">
@@ -412,6 +595,19 @@ export function NewInvoiceDialog({
                 Calculado usando los items agregados.
               </p>
             </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-start">
+                Total con ITBIS
+              </label>
+              <Input
+                value={totalWithITBIS.toFixed(2)}
+                readOnly
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Suma del total de items más el ITBIS indicado.
+              </p>
+            </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -420,117 +616,135 @@ export function NewInvoiceDialog({
                 </label>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   onClick={() => append(createEmptyItem())}
                 >
+                  <PlusCircle className="mr-1" />
                   Agregar item
                 </Button>
               </div>
               <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-                {fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="border rounded-md p-4 space-y-4 relative"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-muted-foreground">
-                        Item #{index + 1}
-                      </p>
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-600"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="grid gap-1">
-                        <label className="text-xs font-medium uppercase text-muted-foreground">
-                          Guia <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          placeholder="RD1234567890"
-                          {...register(`items.${index}.itemId` as const)}
-                        />
-                        {errors.items?.[index]?.itemId && (
-                          <p className="text-red-500 text-xs">
-                            {errors.items[index]?.itemId?.message}
-                          </p>
-                        )}
-                      </div>
-                      <div className="grid gap-1">
-                        <label className="text-xs font-medium uppercase text-muted-foreground">
-                          Tracking
-                        </label>
-                        <Input
-                          placeholder="Tracking"
-                          {...register(`items.${index}.tracking` as const)}
-                        />
-                        {errors.items?.[index]?.tracking && (
-                          <p className="text-red-500 text-xs">
-                            {errors.items[index]?.tracking?.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="grid gap-1">
-                        <label className="text-xs font-medium uppercase text-muted-foreground">
-                          Peso
-                        </label>
-                        <Input
-                          placeholder="Ej: 2.5kg"
-                          {...register(`items.${index}.weight` as const)}
-                        />
-                        {errors.items?.[index]?.weight && (
-                          <p className="text-red-500 text-xs">
-                            {errors.items[index]?.weight?.message}
-                          </p>
-                        )}
-                      </div>
-                      <div className="grid gap-1">
-                        <label className="text-xs font-medium uppercase text-muted-foreground">
-                          Precio unitario{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...register(`items.${index}.unitPrice` as const, {
-                            setValueAs: (v) => (v === "" ? 0 : Number(v)),
-                          })}
-                        />
-                        {errors.items?.[index]?.unitPrice && (
-                          <p className="text-red-500 text-xs">
-                            {errors.items[index]?.unitPrice?.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid gap-1">
-                      <label className="text-xs font-medium uppercase text-muted-foreground">
-                        Descripción <span className="text-red-500">*</span>
-                      </label>
-                      <Textarea
-                        rows={3}
-                        placeholder="Describe el item"
-                        {...register(`items.${index}.description` as const)}
-                      />
-                      {errors.items?.[index]?.description && (
-                        <p className="text-red-500 text-xs">
-                          {errors.items[index]?.description?.message}
+                {fields.map((field, index) => {
+                  const currentItem = watchedItems?.[index];
+                  const weightField = register(`items.${index}.weight` as const);
+                  const unitPriceField = register(
+                    `items.${index}.unitPrice` as const,
+                    { setValueAs: (v) => (v === "" ? 0 : Number(v)) }
+                  );
+
+                  return (
+                    <div
+                      key={field.id}
+                      className="border rounded-md p-4 space-y-4 relative"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-muted-foreground">
+                          Item #{index + 1}
                         </p>
-                      )}
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="grid gap-1">
+                          <label className="text-xs font-medium uppercase text-muted-foreground">
+                            Guia <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            placeholder="RD1234567890"
+                            {...register(`items.${index}.itemId` as const)}
+                          />
+                          {errors.items?.[index]?.itemId && (
+                            <p className="text-red-500 text-xs">
+                              {errors.items[index]?.itemId?.message}
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="text-xs font-medium uppercase text-muted-foreground">
+                            Tracking
+                          </label>
+                          <Input
+                            placeholder="Tracking"
+                            {...register(`items.${index}.tracking` as const)}
+                          />
+                          {errors.items?.[index]?.tracking && (
+                            <p className="text-red-500 text-xs">
+                              {errors.items[index]?.tracking?.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="grid gap-1">
+                          <label className="text-xs font-medium uppercase text-muted-foreground">
+                            Peso (lbs)
+                          </label>
+                          <Input
+                            placeholder="Ej: 2.5"
+                            value={currentItem?.weight ?? ""}
+                            {...weightField}
+                            onChange={(event) => {
+                              weightField.onChange(event);
+                              handleWeightChange(index, event.target.value);
+                            }}
+                          />
+                          {errors.items?.[index]?.weight && (
+                            <p className="text-red-500 text-xs">
+                              {errors.items[index]?.weight?.message}
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="text-xs font-medium uppercase text-muted-foreground">
+                            Precio unitario{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={currentItem?.unitPrice ?? 0}
+                            {...unitPriceField}
+                            onChange={(event) => {
+                              unitPriceField.onChange(event);
+                              handleUnitPriceChange(index, event.target.value);
+                            }}
+                          />
+                          {errors.items?.[index]?.unitPrice && (
+                            <p className="text-red-500 text-xs">
+                              {errors.items[index]?.unitPrice?.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid gap-1">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">
+                          Descripción <span className="text-red-500">*</span>
+                        </label>
+                        <Textarea
+                          rows={3}
+                          placeholder="Describe el item"
+                          {...register(`items.${index}.description` as const)}
+                        />
+                        {errors.items?.[index]?.description && (
+                          <p className="text-red-500 text-xs">
+                            {errors.items[index]?.description?.message}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               {itemsErrorMessage && (
                 <p className="text-red-500 text-xs">{itemsErrorMessage}</p>
