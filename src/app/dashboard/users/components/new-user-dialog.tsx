@@ -9,20 +9,28 @@ import {
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const newUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   email: z.string().email("Correo inválido"),
   type: z.enum(["ADMIN", "USER"]),
+  password: z.string().min(6, "Mínimo 6 caracteres"),
 });
 
 type NewUserValues = z.infer<typeof newUserSchema>;
@@ -48,8 +56,17 @@ export function NewUserDialog() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewUserValues) => {
-      await addDoc(collection(db, "users"), {
-        ...data,
+      // Crear usuario en Auth y luego persistir perfil en Firestore
+      const credential = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password
+      );
+
+      await setDoc(doc(db, "users", credential.user.uid), {
+        name: data.name,
+        email: data.email,
+        type: data.type,
         avatar: "",
         createdAt: new Date(),
       });
@@ -111,7 +128,11 @@ export function NewUserDialog() {
             <label className="text-sm font-medium text-start">Rol</label>
             <Select
               value={watch("type")}
-              onValueChange={(val) => setValue("type", val as NewUserValues["type"], { shouldValidate: true })}
+              onValueChange={(val) =>
+                setValue("type", val as NewUserValues["type"], {
+                  shouldValidate: true,
+                })
+              }
               disabled={isPending}
             >
               <SelectTrigger>
@@ -124,6 +145,23 @@ export function NewUserDialog() {
             </Select>
             {errors.type && (
               <p className="text-red-500 text-xs">{errors.type.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-start">
+              Contraseña inicial
+            </label>
+            <Input
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              {...register("password")}
+              disabled={isPending}
+            />
+            {errors.password && (
+              <p className="text-red-500 text-xs">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
