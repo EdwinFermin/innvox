@@ -4,6 +4,10 @@ import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useInvoices } from "@/hooks/use-invoices";
+import { useIncomes } from "@/hooks/use-incomes";
+import { useExpenses } from "@/hooks/use-expenses";
+import { useAuthStore } from "@/store/auth";
 import {
   Card,
   CardAction,
@@ -29,116 +33,27 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const description = "An interactive area chart";
 
-const chartData = [
-  { date: "2024-04-01", desktop: 222, mobile: 150 },
-  { date: "2024-04-02", desktop: 97, mobile: 180 },
-  { date: "2024-04-03", desktop: 167, mobile: 120 },
-  { date: "2024-04-04", desktop: 242, mobile: 260 },
-  { date: "2024-04-05", desktop: 373, mobile: 290 },
-  { date: "2024-04-06", desktop: 301, mobile: 340 },
-  { date: "2024-04-07", desktop: 245, mobile: 180 },
-  { date: "2024-04-08", desktop: 409, mobile: 320 },
-  { date: "2024-04-09", desktop: 59, mobile: 110 },
-  { date: "2024-04-10", desktop: 261, mobile: 190 },
-  { date: "2024-04-11", desktop: 327, mobile: 350 },
-  { date: "2024-04-12", desktop: 292, mobile: 210 },
-  { date: "2024-04-13", desktop: 342, mobile: 380 },
-  { date: "2024-04-14", desktop: 137, mobile: 220 },
-  { date: "2024-04-15", desktop: 120, mobile: 170 },
-  { date: "2024-04-16", desktop: 138, mobile: 190 },
-  { date: "2024-04-17", desktop: 446, mobile: 360 },
-  { date: "2024-04-18", desktop: 364, mobile: 410 },
-  { date: "2024-04-19", desktop: 243, mobile: 180 },
-  { date: "2024-04-20", desktop: 89, mobile: 150 },
-  { date: "2024-04-21", desktop: 137, mobile: 200 },
-  { date: "2024-04-22", desktop: 224, mobile: 170 },
-  { date: "2024-04-23", desktop: 138, mobile: 230 },
-  { date: "2024-04-24", desktop: 387, mobile: 290 },
-  { date: "2024-04-25", desktop: 215, mobile: 250 },
-  { date: "2024-04-26", desktop: 75, mobile: 130 },
-  { date: "2024-04-27", desktop: 383, mobile: 420 },
-  { date: "2024-04-28", desktop: 122, mobile: 180 },
-  { date: "2024-04-29", desktop: 315, mobile: 240 },
-  { date: "2024-04-30", desktop: 454, mobile: 380 },
-  { date: "2024-05-01", desktop: 165, mobile: 220 },
-  { date: "2024-05-02", desktop: 293, mobile: 310 },
-  { date: "2024-05-03", desktop: 247, mobile: 190 },
-  { date: "2024-05-04", desktop: 385, mobile: 420 },
-  { date: "2024-05-05", desktop: 481, mobile: 390 },
-  { date: "2024-05-06", desktop: 498, mobile: 520 },
-  { date: "2024-05-07", desktop: 388, mobile: 300 },
-  { date: "2024-05-08", desktop: 149, mobile: 210 },
-  { date: "2024-05-09", desktop: 227, mobile: 180 },
-  { date: "2024-05-10", desktop: 293, mobile: 330 },
-  { date: "2024-05-11", desktop: 335, mobile: 270 },
-  { date: "2024-05-12", desktop: 197, mobile: 240 },
-  { date: "2024-05-13", desktop: 197, mobile: 160 },
-  { date: "2024-05-14", desktop: 448, mobile: 490 },
-  { date: "2024-05-15", desktop: 473, mobile: 380 },
-  { date: "2024-05-16", desktop: 338, mobile: 400 },
-  { date: "2024-05-17", desktop: 499, mobile: 420 },
-  { date: "2024-05-18", desktop: 315, mobile: 350 },
-  { date: "2024-05-19", desktop: 235, mobile: 180 },
-  { date: "2024-05-20", desktop: 177, mobile: 230 },
-  { date: "2024-05-21", desktop: 82, mobile: 140 },
-  { date: "2024-05-22", desktop: 81, mobile: 120 },
-  { date: "2024-05-23", desktop: 252, mobile: 290 },
-  { date: "2024-05-24", desktop: 294, mobile: 220 },
-  { date: "2024-05-25", desktop: 201, mobile: 250 },
-  { date: "2024-05-26", desktop: 213, mobile: 170 },
-  { date: "2024-05-27", desktop: 420, mobile: 460 },
-  { date: "2024-05-28", desktop: 233, mobile: 190 },
-  { date: "2024-05-29", desktop: 78, mobile: 130 },
-  { date: "2024-05-30", desktop: 340, mobile: 280 },
-  { date: "2024-05-31", desktop: 178, mobile: 230 },
-  { date: "2024-06-01", desktop: 178, mobile: 200 },
-  { date: "2024-06-02", desktop: 470, mobile: 410 },
-  { date: "2024-06-03", desktop: 103, mobile: 160 },
-  { date: "2024-06-04", desktop: 439, mobile: 380 },
-  { date: "2024-06-05", desktop: 88, mobile: 140 },
-  { date: "2024-06-06", desktop: 294, mobile: 250 },
-  { date: "2024-06-07", desktop: 323, mobile: 370 },
-  { date: "2024-06-08", desktop: 385, mobile: 320 },
-  { date: "2024-06-09", desktop: 438, mobile: 480 },
-  { date: "2024-06-10", desktop: 155, mobile: 200 },
-  { date: "2024-06-11", desktop: 92, mobile: 150 },
-  { date: "2024-06-12", desktop: 492, mobile: 420 },
-  { date: "2024-06-13", desktop: 81, mobile: 130 },
-  { date: "2024-06-14", desktop: 426, mobile: 380 },
-  { date: "2024-06-15", desktop: 307, mobile: 350 },
-  { date: "2024-06-16", desktop: 371, mobile: 310 },
-  { date: "2024-06-17", desktop: 475, mobile: 520 },
-  { date: "2024-06-18", desktop: 107, mobile: 170 },
-  { date: "2024-06-19", desktop: 341, mobile: 290 },
-  { date: "2024-06-20", desktop: 408, mobile: 450 },
-  { date: "2024-06-21", desktop: 169, mobile: 210 },
-  { date: "2024-06-22", desktop: 317, mobile: 270 },
-  { date: "2024-06-23", desktop: 480, mobile: 530 },
-  { date: "2024-06-24", desktop: 132, mobile: 180 },
-  { date: "2024-06-25", desktop: 141, mobile: 190 },
-  { date: "2024-06-26", desktop: 434, mobile: 380 },
-  { date: "2024-06-27", desktop: 448, mobile: 490 },
-  { date: "2024-06-28", desktop: 149, mobile: 200 },
-  { date: "2024-06-29", desktop: 103, mobile: 160 },
-  { date: "2024-06-30", desktop: 446, mobile: 400 },
-];
-
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
-  },
-  desktop: {
-    label: "Desktop",
+  growth: {
+    label: "Crecimiento neto",
     color: "var(--primary)",
   },
-  mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
+  income: {
+    label: "Ingresos acumulados",
+    color: "var(--chart-income, #0ea5e9)",
+  },
+  expense: {
+    label: "Gastos acumulados",
+    color: "var(--chart-expense, #ef4444)",
   },
 } satisfies ChartConfig;
 
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
+  const userId = useAuthStore((state) => state.user?.id ?? "");
+  const { data: invoices } = useInvoices();
+  const { data: incomes } = useIncomes(userId);
+  const { data: expenses } = useExpenses(userId);
   const [timeRange, setTimeRange] = React.useState("90d");
 
   React.useEffect(() => {
@@ -147,29 +62,110 @@ export function ChartAreaInteractive() {
     }
   }, [isMobile]);
 
-  const filteredData = chartData.filter((item) => {
-    const date = new Date(item.date);
-    const referenceDate = new Date("2024-06-30");
+  const dailyRollups = React.useMemo(() => {
+    const incomeTotals = new Map<string, number>();
+    const expenseTotals = new Map<string, number>();
+
+    const normalizeDate = (value: unknown) => {
+      if (!value) return null;
+      const date =
+        typeof (value as { toDate?: () => Date }).toDate === "function"
+          ? (value as { toDate: () => Date }).toDate()
+          : new Date(value as string | number | Date);
+      if (Number.isNaN(date.getTime())) return null;
+      return date.toISOString().slice(0, 10);
+    };
+
+    invoices?.forEach((invoice) => {
+      const key = normalizeDate(invoice.createdAt);
+      if (!key) return;
+      incomeTotals.set(
+        key,
+        (incomeTotals.get(key) ?? 0) + Number(invoice.amount ?? 0)
+      );
+    });
+
+    incomes?.forEach((income) => {
+      const key = normalizeDate(income.date ?? income.createdAt);
+      if (!key) return;
+      incomeTotals.set(
+        key,
+        (incomeTotals.get(key) ?? 0) + Number(income.amount ?? 0)
+      );
+    });
+
+    expenses?.forEach((expense) => {
+      const key = normalizeDate(expense.date ?? expense.createdAt);
+      if (!key) return;
+      expenseTotals.set(
+        key,
+        (expenseTotals.get(key) ?? 0) + Number(expense.amount ?? 0)
+      );
+    });
+
+    const allDates = Array.from(
+      new Set([...incomeTotals.keys(), ...expenseTotals.keys()])
+    ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    return allDates.map((date) => ({
+      date,
+      income: incomeTotals.get(date) ?? 0,
+      expense: expenseTotals.get(date) ?? 0,
+      net: (incomeTotals.get(date) ?? 0) - (expenseTotals.get(date) ?? 0),
+    }));
+  }, [expenses, incomes, invoices]);
+
+  const referenceDate = React.useMemo(() => {
+    if (!dailyRollups.length) return new Date();
+    return new Date(dailyRollups[dailyRollups.length - 1].date);
+  }, [dailyRollups]);
+
+  const filteredData = React.useMemo(() => {
     let daysToSubtract = 90;
     if (timeRange === "30d") {
       daysToSubtract = 30;
     } else if (timeRange === "7d") {
       daysToSubtract = 7;
     }
+
     const startDate = new Date(referenceDate);
     startDate.setDate(startDate.getDate() - daysToSubtract);
-    return date >= startDate;
-  });
+
+    return dailyRollups.filter((item) => new Date(item.date) >= startDate);
+  }, [dailyRollups, referenceDate, timeRange]);
+
+  const growthData = React.useMemo(() => {
+    return filteredData.reduce<
+      Array<
+        (typeof filteredData)[number] & {
+          growth: number;
+        }
+      >
+    >((acc, item) => {
+      const prev = acc.at(-1);
+      const incomeRunning = (prev?.income ?? 0) + item.income;
+      const expenseRunning = (prev?.expense ?? 0) + item.expense;
+      const netRunning = (prev?.growth ?? 0) + item.net;
+
+      acc.push({
+        ...item,
+        income: incomeRunning,
+        expense: expenseRunning,
+        growth: netRunning,
+      });
+      return acc;
+    }, []);
+  }, [filteredData]);
 
   return (
     <Card className="@container/card mt-6">
       <CardHeader>
-        <CardTitle>Facturas Generadas</CardTitle>
+        <CardTitle>Crecimiento del negocio</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Total para los últimos 3 meses
+            Ingresos acumulados menos gastos en el periodo seleccionado
           </span>
-          <span className="@[540px]/card:hidden">Últimos 3 meses</span>
+          <span className="@[540px]/card:hidden">Crecimiento neto</span>
         </CardDescription>
         <CardAction>
           <ToggleGroup
@@ -210,30 +206,18 @@ export function ChartAreaInteractive() {
           config={chartConfig}
           className="aspect-auto h-[250px] w-full"
         >
-          <AreaChart data={filteredData}>
+          <AreaChart data={growthData}>
             <defs>
-              <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="fillGrowth" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-desktop)"
-                  stopOpacity={1.0}
+                  stopColor="var(--color-growth)"
+                  stopOpacity={1}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-desktop)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-mobile)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-mobile)"
-                  stopOpacity={0.1}
+                  stopColor="var(--color-growth)"
+                  stopOpacity={0.05}
                 />
               </linearGradient>
             </defs>
@@ -263,22 +247,35 @@ export function ChartAreaInteractive() {
                     });
                   }}
                   indicator="dot"
+                  formatter={(value) =>
+                    new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 0,
+                    }).format(Number(value))
+                  }
                 />
               }
             />
             <Area
-              dataKey="mobile"
+              dataKey="growth"
               type="natural"
-              fill="url(#fillMobile)"
-              stroke="var(--color-mobile)"
-              stackId="a"
+              fill="url(#fillGrowth)"
+              stroke="var(--color-growth)"
             />
             <Area
-              dataKey="desktop"
+              dataKey="income"
               type="natural"
-              fill="url(#fillDesktop)"
-              stroke="var(--color-desktop)"
-              stackId="a"
+              fill="none"
+              stroke="var(--color-income)"
+              strokeWidth={2}
+            />
+            <Area
+              dataKey="expense"
+              type="natural"
+              fill="none"
+              stroke="var(--color-expense)"
+              strokeWidth={2}
             />
           </AreaChart>
         </ChartContainer>
