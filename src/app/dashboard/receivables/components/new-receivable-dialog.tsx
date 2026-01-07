@@ -10,7 +10,13 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,17 +31,14 @@ import { useAuthStore } from "@/store/auth";
 const newReceivableSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
   name: z.string().min(1, "El nombre es obligatorio"),
-  amount: z
-    .string()
-    .min(1, "El monto es obligatorio")
-    .transform((val) => Number(val))
-    .refine((val) => !Number.isNaN(val) && val > 0, "Monto inválido"),
+  amount: z.coerce.number().positive("Monto inválido"),
   dueDate: z.string().min(1, "La fecha de vencimiento es obligatoria"),
   status: z.string().min(1, "El estado es obligatorio"),
   description: z.string().min(1, "La descripción es obligatoria"),
 });
 
 type NewReceivableValues = z.infer<typeof newReceivableSchema>;
+type NewReceivableFormValues = z.input<typeof newReceivableSchema>;
 
 export function NewReceivableDialog() {
   const [open, setOpen] = React.useState(false);
@@ -50,7 +53,7 @@ export function NewReceivableDialog() {
     reset,
     setValue,
     watch,
-  } = useForm<NewReceivableValues>({
+  } = useForm<NewReceivableFormValues>({
     resolver: zodResolver(newReceivableSchema),
     mode: "onChange",
     defaultValues: {
@@ -80,7 +83,9 @@ export function NewReceivableDialog() {
     },
   });
 
-  const onSubmit = handleSubmit((values) => mutate(values));
+  const onSubmit = handleSubmit((values) =>
+    mutate(values as NewReceivableValues)
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -97,7 +102,9 @@ export function NewReceivableDialog() {
 
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">Nueva cuenta por cobrar</DialogTitle>
+          <DialogTitle className="font-bold text-2xl">
+            Nueva cuenta por cobrar
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -106,7 +113,9 @@ export function NewReceivableDialog() {
               <label className="text-sm font-medium">Sucursal</label>
               <Select
                 value={watch("branchId")}
-                onValueChange={(val) => setValue("branchId", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("branchId", val, { shouldValidate: true })
+                }
                 disabled={isPending}
               >
                 <SelectTrigger>
@@ -121,7 +130,9 @@ export function NewReceivableDialog() {
                 </SelectContent>
               </Select>
               {errors.branchId && (
-                <p className="text-xs text-red-500">{errors.branchId.message}</p>
+                <p className="text-xs text-red-500">
+                  {errors.branchId.message}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -154,7 +165,11 @@ export function NewReceivableDialog() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Vencimiento</label>
-              <Input type="date" {...register("dueDate")} disabled={isPending} />
+              <Input
+                type="date"
+                {...register("dueDate")}
+                disabled={isPending}
+              />
               {errors.dueDate && (
                 <p className="text-xs text-red-500">{errors.dueDate.message}</p>
               )}
@@ -163,7 +178,9 @@ export function NewReceivableDialog() {
               <label className="text-sm font-medium">Estado</label>
               <Select
                 value={watch("status")}
-                onValueChange={(val) => setValue("status", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("status", val, { shouldValidate: true })
+                }
                 disabled={isPending}
               >
                 <SelectTrigger>
@@ -190,7 +207,9 @@ export function NewReceivableDialog() {
               disabled={isPending}
             />
             {errors.description && (
-              <p className="text-xs text-red-500">{errors.description.message}</p>
+              <p className="text-xs text-red-500">
+                {errors.description.message}
+              </p>
             )}
           </div>
 

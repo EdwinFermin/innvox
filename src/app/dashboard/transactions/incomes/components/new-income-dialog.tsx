@@ -10,7 +10,13 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,15 +33,12 @@ const newIncomeSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
   incomeTypeId: z.string().min(1, "El tipo de ingreso es obligatorio"),
   date: z.string().min(1, "La fecha es obligatoria"),
-  amount: z
-    .string()
-    .min(1, "El monto es obligatorio")
-    .transform((val) => Number(val))
-    .refine((val) => !Number.isNaN(val) && val > 0, "Monto inválido"),
+  amount: z.coerce.number().positive("Monto inválido"),
   description: z.string().min(1, "La descripción es obligatoria"),
 });
 
 type NewIncomeValues = z.infer<typeof newIncomeSchema>;
+type NewIncomeFormValues = z.input<typeof newIncomeSchema>;
 
 export function NewIncomeDialog() {
   const [open, setOpen] = React.useState(false);
@@ -51,7 +54,7 @@ export function NewIncomeDialog() {
     reset,
     setValue,
     watch,
-  } = useForm<NewIncomeValues>({
+  } = useForm<NewIncomeFormValues>({
     resolver: zodResolver(newIncomeSchema),
     mode: "onChange",
   });
@@ -77,7 +80,7 @@ export function NewIncomeDialog() {
     },
   });
 
-  const onSubmit = handleSubmit((values) => mutate(values));
+  const onSubmit = handleSubmit((values) => mutate(values as NewIncomeValues));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -90,7 +93,9 @@ export function NewIncomeDialog() {
 
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">Nuevo ingreso</DialogTitle>
+          <DialogTitle className="font-bold text-2xl">
+            Nuevo ingreso
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -99,7 +104,9 @@ export function NewIncomeDialog() {
               <label className="text-sm font-medium">Sucursal</label>
               <Select
                 value={watch("branchId")}
-                onValueChange={(val) => setValue("branchId", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("branchId", val, { shouldValidate: true })
+                }
                 disabled={isPending}
               >
                 <SelectTrigger>
@@ -114,7 +121,9 @@ export function NewIncomeDialog() {
                 </SelectContent>
               </Select>
               {errors.branchId && (
-                <p className="text-xs text-red-500">{errors.branchId.message}</p>
+                <p className="text-xs text-red-500">
+                  {errors.branchId.message}
+                </p>
               )}
             </div>
 
@@ -122,7 +131,9 @@ export function NewIncomeDialog() {
               <label className="text-sm font-medium">Tipo de ingreso</label>
               <Select
                 value={watch("incomeTypeId")}
-                onValueChange={(val) => setValue("incomeTypeId", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("incomeTypeId", val, { shouldValidate: true })
+                }
                 disabled={isPending}
               >
                 <SelectTrigger>
@@ -137,7 +148,9 @@ export function NewIncomeDialog() {
                 </SelectContent>
               </Select>
               {errors.incomeTypeId && (
-                <p className="text-xs text-red-500">{errors.incomeTypeId.message}</p>
+                <p className="text-xs text-red-500">
+                  {errors.incomeTypeId.message}
+                </p>
               )}
             </div>
           </div>
@@ -175,7 +188,9 @@ export function NewIncomeDialog() {
               disabled={isPending}
             />
             {errors.description && (
-              <p className="text-xs text-red-500">{errors.description.message}</p>
+              <p className="text-xs text-red-500">
+                {errors.description.message}
+              </p>
             )}
           </div>
 

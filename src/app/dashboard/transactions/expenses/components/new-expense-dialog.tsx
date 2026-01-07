@@ -10,7 +10,13 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,15 +33,12 @@ const newExpenseSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
   expenseTypeId: z.string().min(1, "El tipo de gasto es obligatorio"),
   date: z.string().min(1, "La fecha es obligatoria"),
-  amount: z
-    .string()
-    .min(1, "El monto es obligatorio")
-    .transform((val) => Number(val))
-    .refine((val) => !Number.isNaN(val) && val > 0, "Monto inválido"),
+  amount: z.coerce.number().positive("Monto inválido"),
   description: z.string().min(1, "La descripción es obligatoria"),
 });
 
 type NewExpenseValues = z.infer<typeof newExpenseSchema>;
+type NewExpenseFormValues = z.input<typeof newExpenseSchema>;
 
 export function NewExpenseDialog() {
   const [open, setOpen] = React.useState(false);
@@ -51,7 +54,7 @@ export function NewExpenseDialog() {
     reset,
     setValue,
     watch,
-  } = useForm<NewExpenseValues>({
+  } = useForm<NewExpenseFormValues>({
     resolver: zodResolver(newExpenseSchema),
     mode: "onChange",
   });
@@ -77,7 +80,7 @@ export function NewExpenseDialog() {
     },
   });
 
-  const onSubmit = handleSubmit((values) => mutate(values));
+  const onSubmit = handleSubmit((values) => mutate(values as NewExpenseValues));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -99,7 +102,9 @@ export function NewExpenseDialog() {
               <label className="text-sm font-medium">Sucursal</label>
               <Select
                 value={watch("branchId")}
-                onValueChange={(val) => setValue("branchId", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("branchId", val, { shouldValidate: true })
+                }
                 disabled={isPending}
               >
                 <SelectTrigger>
@@ -114,7 +119,9 @@ export function NewExpenseDialog() {
                 </SelectContent>
               </Select>
               {errors.branchId && (
-                <p className="text-xs text-red-500">{errors.branchId.message}</p>
+                <p className="text-xs text-red-500">
+                  {errors.branchId.message}
+                </p>
               )}
             </div>
 
@@ -122,7 +129,9 @@ export function NewExpenseDialog() {
               <label className="text-sm font-medium">Tipo de gasto</label>
               <Select
                 value={watch("expenseTypeId")}
-                onValueChange={(val) => setValue("expenseTypeId", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("expenseTypeId", val, { shouldValidate: true })
+                }
                 disabled={isPending}
               >
                 <SelectTrigger>
@@ -137,7 +146,9 @@ export function NewExpenseDialog() {
                 </SelectContent>
               </Select>
               {errors.expenseTypeId && (
-                <p className="text-xs text-red-500">{errors.expenseTypeId.message}</p>
+                <p className="text-xs text-red-500">
+                  {errors.expenseTypeId.message}
+                </p>
               )}
             </div>
           </div>
@@ -175,7 +186,9 @@ export function NewExpenseDialog() {
               disabled={isPending}
             />
             {errors.description && (
-              <p className="text-xs text-red-500">{errors.description.message}</p>
+              <p className="text-xs text-red-500">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
