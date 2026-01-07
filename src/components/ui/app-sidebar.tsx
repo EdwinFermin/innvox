@@ -7,6 +7,9 @@ import {
   LayoutDashboard,
   ScrollText,
   FileSpreadsheet,
+  BarChart,
+  HandCoins,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -32,7 +35,29 @@ const data = {
       isActive: true,
     },
     {
-      title: "Facturas",
+      title: "Transacciones",
+      icon: HandCoins,
+      items: [
+        {
+          title: "Ingresos",
+          url: "/dashboard/transactions/incomes",
+        },
+        {
+          title: "Gastos",
+          url: "/dashboard/transactions/expenses",
+        },
+        {
+          title: "Cuentas por cobrar",
+          url: "/dashboard/receivables",
+        },
+        {
+          title: "Cuentas por pagar",
+          url: "/dashboard/payables",
+        },
+      ],
+    },
+    {
+      title: "Facturación",
       url: "/dashboard/invoices",
       icon: FileSpreadsheet,
       isActive: true,
@@ -44,13 +69,44 @@ const data = {
       isActive: true,
     },
     {
-      title: "Configuración",
-      url: "#",
+      title: "Reportes",
+      icon: BarChart,
+      items: [
+        {
+          title: "Utilidades",
+          url: "/dashboard/reports/profit",
+        },
+      ],
+    },
+    {
+      title: "Parametros",
       icon: Settings2,
+      items: [
+        {
+          title: "Tipos de ingresos",
+          url: "/dashboard/parameters/income-types",
+        },
+        {
+          title: "Tipos de gastos",
+          url: "/dashboard/parameters/expense-types",
+        },
+      ],
+    },
+    {
+      title: "Configuración",
+      icon: Settings,
       items: [
         {
           title: "General",
           url: "/dashboard/settings",
+        },
+        {
+          title: "Usuarios",
+          url: "/dashboard/users",
+        },
+        {
+          title: "Sucursales",
+          url: "/dashboard/branches",
         },
       ],
     },

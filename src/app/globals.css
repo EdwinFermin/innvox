@@ -149,3 +149,61 @@
   --normal-border: #2563eb !important;
   --normal-text: white !important;
 }
+
+/* Estilos de impresión */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0 !important;
+  }
+
+  /* Oculta navegación y elementos marcados como print-hidden */
+  aside,
+  header,
+  nav,
+  footer,
+  [data-sidebar],
+  .print-hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .profit-print-area {
+    padding: 0 !important;
+    font-size: 12px;
+  }
+
+  .profit-print-area table {
+    font-size: 12px;
+  }
+}
+
+/* Control de visibilidad para impresión */
+.print-only {
+  display: none;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media print {
+  .print-only {
+    display: block !important;
+    width: 100vw !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+}

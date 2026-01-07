@@ -1,7 +1,7 @@
 "use client";
 
 import { Invoice } from "@/types/invoice.types";
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
 
 export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
   ({ invoice }, ref) => {
