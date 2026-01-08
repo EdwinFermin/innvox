@@ -24,11 +24,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         return;
       }
 
-      const ref = doc(db, "users", u.uid);
-      const snap = await getDoc(ref);
+      try {
+        const ref = doc(db, "users", u.uid);
+        const snap = await getDoc(ref);
 
-      setUser(snap.data() as User);
-      setLoading(false);
+        const data = snap.data();
+        if (data) {
+          setUser({ id: u.uid, ...(data as Omit<User, "id">) });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Error loading user profile", err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     });
 
     return () => unsub();
