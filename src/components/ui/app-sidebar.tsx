@@ -119,11 +119,33 @@ const data = {
       isActive: true,
     },
     {
-      title: "Facturas",
-      url: "/dashboard/invoices",
-      icon: FileSpreadsheet,
-      isActive: true,
+      title: "Transacciones",
+      icon: HandCoins,
+      items: [
+        {
+          title: "Ingresos",
+          url: "/dashboard/transactions/incomes",
+        },
+        {
+          title: "Gastos",
+          url: "/dashboard/transactions/expenses",
+        },
+        {
+          title: "Cuentas por cobrar",
+          url: "/dashboard/receivables",
+        },
+        {
+          title: "Cuentas por pagar",
+          url: "/dashboard/payables",
+        },
+      ],
     },
+    // {
+    //   title: "Facturas",
+    //   url: "/dashboard/invoices",
+    //   icon: FileSpreadsheet,
+    //   isActive: true,
+    // },
     {
       title: "Clientes",
       url: "/dashboard/clients",
