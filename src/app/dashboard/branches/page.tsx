@@ -57,7 +57,10 @@ const getColumnLabel = (id: string): string => {
   return map[id] || id;
 };
 
-export const getColumns = (queryClient: QueryClient): ColumnDef<Branch>[] => [
+export const getColumns = (
+  queryClient: QueryClient,
+  canDelete: boolean
+): ColumnDef<Branch>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -117,20 +120,22 @@ export const getColumns = (queryClient: QueryClient): ColumnDef<Branch>[] => [
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={async () => {
-              try {
-                await deleteDoc(doc(db, "branches", row.row.original.code));
-                toast.success("Sucursal eliminada");
-                queryClient.invalidateQueries({ queryKey: ["branches"] });
-              } catch {
-                toast.error("Error al eliminar la sucursal");
-              }
-            }}
-          >
-            Eliminar
-          </DropdownMenuItem>
+          {canDelete && (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={async () => {
+                try {
+                  await deleteDoc(doc(db, "branches", row.row.original.code));
+                  toast.success("Sucursal eliminada");
+                  queryClient.invalidateQueries({ queryKey: ["branches"] });
+                } catch {
+                  toast.error("Error al eliminar la sucursal");
+                }
+              }}
+            >
+              Eliminar
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -143,7 +148,10 @@ export default function BranchesPage() {
   const { data: branches, isLoading } = useBranches(user?.id || "", user?.branchIds);
   const queryClient = useQueryClient();
 
-  const columns = React.useMemo(() => getColumns(queryClient), [queryClient]);
+  const columns = React.useMemo(
+    () => getColumns(queryClient, user?.type === "ADMIN"),
+    [queryClient, user?.type]
+  );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(

@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import { queryClient } from "@/lib/react-query";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePrintInvoice } from "@/hooks/use-print-invoice";
+import { useAuthStore } from "@/store/auth";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -66,6 +67,8 @@ const getColumnLabel = (id: string): string => {
 };
 
 export default function InvoicesPage() {
+  const { user: currentUser } = useAuthStore();
+  const canDelete = currentUser?.type === "ADMIN";
   const isMobile = useIsMobile();
   const { data: invoices, isLoading } = useInvoices();
 
@@ -289,15 +292,17 @@ export default function InvoicesPage() {
                 Imprimir
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <ConfirmDialog
-                title="Eliminar factura"
-                description="Esta acción no se puede deshacer."
-                onConfirm={() => deleteInvoice(row.original.id)}
-              >
-                <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer">
-                  Eliminar
-                </div>
-              </ConfirmDialog>
+              {canDelete && (
+                <ConfirmDialog
+                  title="Eliminar factura"
+                  description="Esta acción no se puede deshacer."
+                  onConfirm={() => deleteInvoice(row.original.id)}
+                >
+                  <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer">
+                    Eliminar
+                  </div>
+                </ConfirmDialog>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );

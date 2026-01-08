@@ -70,7 +70,8 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
 export const getColumns = (
   queryClient: QueryClient,
   branchNameById: Record<string, string>,
-  expenseTypeNameById: Record<string, string>
+  expenseTypeNameById: Record<string, string>,
+  canDelete: boolean
 ): ColumnDef<Expense>[] => [
   {
     id: "select",
@@ -152,20 +153,22 @@ export const getColumns = (
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={async () => {
-              try {
-                await deleteDoc(doc(db, "expenses", row.row.original.id));
-                toast.success("Gasto eliminado");
-                queryClient.invalidateQueries({ queryKey: ["expenses"] });
-              } catch {
-                toast.error("Error al eliminar el gasto");
-              }
-            }}
-          >
-            Eliminar
-          </DropdownMenuItem>
+          {canDelete && (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={async () => {
+                try {
+                  await deleteDoc(doc(db, "expenses", row.row.original.id));
+                  toast.success("Gasto eliminado");
+                  queryClient.invalidateQueries({ queryKey: ["expenses"] });
+                } catch {
+                  toast.error("Error al eliminar el gasto");
+                }
+              }}
+            >
+              Eliminar
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -199,8 +202,14 @@ export default function ExpensesPage() {
   );
 
   const columns = React.useMemo(
-    () => getColumns(queryClient, branchNameById, expenseTypeNameById),
-    [queryClient, branchNameById, expenseTypeNameById]
+    () =>
+      getColumns(
+        queryClient,
+        branchNameById,
+        expenseTypeNameById,
+        user?.type === "ADMIN"
+      ),
+    [queryClient, branchNameById, expenseTypeNameById, user?.type]
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);

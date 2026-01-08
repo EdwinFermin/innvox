@@ -25,9 +25,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -46,6 +43,7 @@ import { NewUserDialog } from "./components/new-user-dialog";
 import { User } from "@/types/auth.types";
 import { db } from "@/lib/firebase";
 import { EditUserDialog } from "./components/edit-user-dialog";
+import { useAuthStore } from "@/store/auth";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -57,7 +55,7 @@ const getColumnLabel = (id: string): string => {
   return map[id] || id;
 };
 
-export const getColumns = (): ColumnDef<User>[] => [
+export const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -120,20 +118,22 @@ export const getColumns = (): ColumnDef<User>[] => [
     cell: (row) => (
       <div className="flex gap-2">
         <EditUserDialog user={row.row.original} />
-        <Button
-          variant="ghost"
-          className="h-8 px-2"
-          onClick={async () => {
-            try {
-              await deleteDoc(doc(db, "users", row.row.original.id));
-              toast.success("Usuario eliminado");
-            } catch {
-              toast.error("Error al eliminar el usuario");
-            }
-          }}
-        >
-          Eliminar
-        </Button>
+        {canDelete && (
+          <Button
+            variant="ghost"
+            className="h-8 px-2"
+            onClick={async () => {
+              try {
+                await deleteDoc(doc(db, "users", row.row.original.id));
+                toast.success("Usuario eliminado");
+              } catch {
+                toast.error("Error al eliminar el usuario");
+              }
+            }}
+          >
+            Eliminar
+          </Button>
+        )}
       </div>
     ),
   },
@@ -141,6 +141,7 @@ export const getColumns = (): ColumnDef<User>[] => [
 
 export default function UsersPage() {
   const isMobile = useIsMobile();
+  const { user: currentUser } = useAuthStore();
   const { data: users, isLoading } = useUsers();
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -151,7 +152,10 @@ export default function UsersPage() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const columns = React.useMemo(() => getColumns(), []);
+  const columns = React.useMemo(
+    () => getColumns(currentUser?.type === "ADMIN"),
+    [currentUser?.type]
+  );
 
   const table = useReactTable({
     data: users,
