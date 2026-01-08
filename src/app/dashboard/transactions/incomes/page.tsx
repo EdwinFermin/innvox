@@ -175,7 +175,7 @@ export default function IncomesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
   const { data: incomes, isLoading } = useIncomes(user?.id || "");
-  const { data: branches } = useBranches(user?.id || "");
+  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
   const { data: incomeTypes } = useIncomeTypes(user?.id || "");
   const queryClient = useQueryClient();
 

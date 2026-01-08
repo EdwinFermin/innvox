@@ -11,6 +11,7 @@ export function useUsers() {
       const snapshot = await getDocs(collection(db, "users"));
       return snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
+        branchIds: [],
         ...(docSnap.data() as Omit<User, "id">),
       }));
     },

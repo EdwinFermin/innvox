@@ -44,7 +44,7 @@ export function NewPayableDialog() {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { data: branches } = useBranches(user?.id || "");
+  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
 
   const {
     register,

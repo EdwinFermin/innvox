@@ -79,7 +79,7 @@ const typeColor: Record<RowType, string> = {
 
 export default function ProfitReportPage() {
   const { user } = useAuthStore();
-  const { data: branches } = useBranches(user?.id || "");
+  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
   const { data: incomes } = useIncomes(user?.id || "");
   const { data: expenses } = useExpenses(user?.id || "");
   const { data: receivables } = useReceivables(user?.id || "");

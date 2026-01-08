@@ -5,6 +5,7 @@ export interface User {
   avatar: string;
   createdAt: ISODateString;
   type: "ADMIN" | "USER";
+  branchIds?: string[];
 }
 
 export type ISODateString = string;

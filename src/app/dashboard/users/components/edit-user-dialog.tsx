@@ -4,10 +4,9 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,30 +15,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
-import { Checkbox } from "@/components/ui/checkbox";
+import { User } from "@/types/auth.types";
 
-const newUserSchema = z.object({
+const editUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
-  email: z.string().email("Correo inválido"),
   type: z.enum(["ADMIN", "USER"]),
-  password: z.string().min(6, "Mínimo 6 caracteres"),
   branchIds: z.array(z.string()).optional(),
 });
 
-type NewUserValues = z.infer<typeof newUserSchema>;
+type EditUserValues = z.infer<typeof editUserSchema>;
 
-export function NewUserDialog() {
+export function EditUserDialog({ user }: { user: User }) {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuthStore();
@@ -52,95 +49,101 @@ export function NewUserDialog() {
     register,
     handleSubmit,
     formState: { errors, isValid },
-    reset,
     setValue,
     watch,
-  } = useForm<NewUserValues>({
-    resolver: zodResolver(newUserSchema),
+    reset,
+  } = useForm<EditUserValues>({
+    resolver: zodResolver(editUserSchema),
     mode: "onChange",
     defaultValues: {
-      type: "USER",
-      branchIds: [],
+      name: user.name,
+      type: user.type,
+      branchIds: user.branchIds ?? [],
     },
   });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (data: NewUserValues) => {
-      // Crear usuario en Auth y luego persistir perfil en Firestore
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
+  React.useEffect(() => {
+    reset({
+      name: user.name,
+      type: user.type,
+      branchIds: user.branchIds ?? [],
+    });
+  }, [user, reset]);
 
-      await setDoc(doc(db, "users", credential.user.uid), {
-        name: data.name,
-        email: data.email,
-        type: data.type,
-        branchIds: data.branchIds ?? [],
-        avatar: "",
-        createdAt: new Date(),
-      });
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (values: EditUserValues) => {
+      await setDoc(
+        doc(db, "users", user.id),
+        {
+          name: values.name,
+          type: values.type,
+          branchIds: values.branchIds ?? [],
+        },
+        { merge: true }
+      );
     },
     onSuccess: () => {
-      toast.success("Usuario creado exitosamente");
+      toast.success("Usuario actualizado");
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      reset({ type: "USER", branchIds: [] });
       setOpen(false);
     },
     onError: (error: FirebaseError) => {
-      toast.error(error?.message || "Ocurrió un error inesperado.");
+      toast.error(error?.message || "Error al actualizar el usuario");
     },
   });
+
+  const selectedBranches = watch("branchIds") ?? [];
+
+  const toggleBranch = (id: string) => {
+    const current = new Set(selectedBranches);
+    if (current.has(id)) {
+      current.delete(id);
+    } else {
+      current.add(id);
+    }
+    setValue("branchIds", Array.from(current), { shouldValidate: true });
+  };
 
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="w-full" onClick={() => reset({ type: "USER" })}>
-          <PlusCircle className="mr-1" />
-          Nuevo usuario
+        <Button variant="ghost" className="w-full justify-start">
+          Editar
         </Button>
       </DialogTrigger>
-
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">Nuevo usuario</DialogTitle>
+          <DialogTitle>Editar usuario</DialogTitle>
         </DialogHeader>
-
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-start">Nombre</label>
+            <label className="text-sm font-medium">Nombre</label>
             <Input
               placeholder="Nombre completo"
               {...register("name")}
               disabled={isPending}
             />
             {errors.name && (
-              <p className="text-red-500 text-xs">{errors.name.message}</p>
+              <p className="text-xs text-red-500">{errors.name.message}</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-start">Correo</label>
-            <Input
-              type="email"
-              placeholder="usuario@correo.com"
-              {...register("email")}
-              disabled={isPending}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-xs">{errors.email.message}</p>
-            )}
+            <label className="text-sm font-medium">Correo</label>
+            <Input value={user.email} disabled />
+            <p className="text-xs text-muted-foreground">
+              El correo no se puede modificar desde aquí.
+            </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-start">Rol</label>
+            <label className="text-sm font-medium">Rol</label>
             <Select
               value={watch("type")}
               onValueChange={(val) =>
-                setValue("type", val as NewUserValues["type"], {
+                setValue("type", val as EditUserValues["type"], {
                   shouldValidate: true,
                 })
               }
@@ -155,33 +158,23 @@ export function NewUserDialog() {
               </SelectContent>
             </Select>
             {errors.type && (
-              <p className="text-red-500 text-xs">{errors.type.message}</p>
+              <p className="text-xs text-red-500">{errors.type.message}</p>
             )}
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm font-medium text-start">
+            <label className="text-sm font-medium">
               Sucursales permitidas
             </label>
-            <div className="grid gap-2 max-h-48 overflow-auto rounded-md border p-3">
+            <div className="grid gap-2 max-h-56 overflow-auto rounded-md border p-3">
               {branches.map((branch) => (
                 <label
                   key={branch.id}
                   className="flex items-center gap-2 text-sm"
                 >
                   <Checkbox
-                    checked={(watch("branchIds") ?? []).includes(branch.id)}
-                    onCheckedChange={() => {
-                      const current = new Set(watch("branchIds") ?? []);
-                      if (current.has(branch.id)) {
-                        current.delete(branch.id);
-                      } else {
-                        current.add(branch.id);
-                      }
-                      setValue("branchIds", Array.from(current), {
-                        shouldValidate: true,
-                      });
-                    }}
+                    checked={selectedBranches.includes(branch.id)}
+                    onCheckedChange={() => toggleBranch(branch.id)}
                     disabled={isPending}
                   />
                   <span>
@@ -196,30 +189,21 @@ export function NewUserDialog() {
               )}
             </div>
             {errors.branchIds && (
-              <p className="text-red-500 text-xs">
+              <p className="text-xs text-red-500">
                 {errors.branchIds.message as string}
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-start">
-              Contraseña inicial
-            </label>
-            <Input
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              {...register("password")}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
               disabled={isPending}
-            />
-            {errors.password && (
-              <p className="text-red-500 text-xs">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
+            >
+              Cancelar
+            </Button>
             <Button type="submit" disabled={!isValid || isPending}>
               {isPending ? "Guardando..." : "Guardar"}
             </Button>

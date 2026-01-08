@@ -176,7 +176,7 @@ export default function ExpensesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
   const { data: expenses, isLoading } = useExpenses(user?.id || "");
-  const { data: branches } = useBranches(user?.id || "");
+  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
   const { data: expenseTypes } = useExpenseTypes(user?.id || "");
   const queryClient = useQueryClient();
 

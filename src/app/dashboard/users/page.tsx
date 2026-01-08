@@ -13,7 +13,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { deleteDoc, doc } from "firebase/firestore";
@@ -45,6 +45,7 @@ import { useUsers } from "@/hooks/use-users";
 import { NewUserDialog } from "./components/new-user-dialog";
 import { User } from "@/types/auth.types";
 import { db } from "@/lib/firebase";
+import { EditUserDialog } from "./components/edit-user-dialog";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -117,31 +118,23 @@ export const getColumns = (): ColumnDef<User>[] => [
     id: "actions",
     enableHiding: false,
     cell: (row) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Abrir menu</span>
-            <MoreHorizontal />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={async () => {
-              try {
-                await deleteDoc(doc(db, "users", row.row.original.id));
-                toast.success("Usuario eliminado");
-              } catch {
-                toast.error("Error al eliminar el usuario");
-              }
-            }}
-          >
-            Eliminar
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex gap-2">
+        <EditUserDialog user={row.row.original} />
+        <Button
+          variant="ghost"
+          className="h-8 px-2"
+          onClick={async () => {
+            try {
+              await deleteDoc(doc(db, "users", row.row.original.id));
+              toast.success("Usuario eliminado");
+            } catch {
+              toast.error("Error al eliminar el usuario");
+            }
+          }}
+        >
+          Eliminar
+        </Button>
+      </div>
     ),
   },
 ];

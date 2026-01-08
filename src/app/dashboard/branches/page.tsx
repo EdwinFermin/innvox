@@ -140,7 +140,7 @@ export const getColumns = (queryClient: QueryClient): ColumnDef<Branch>[] => [
 export default function BranchesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
-  const { data: branches, isLoading } = useBranches(user?.id || "");
+  const { data: branches, isLoading } = useBranches(user?.id || "", user?.branchIds);
   const queryClient = useQueryClient();
 
   const columns = React.useMemo(() => getColumns(queryClient), [queryClient]);

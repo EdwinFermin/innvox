@@ -29,11 +29,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         const snap = await getDoc(ref);
 
         const data = snap.data();
-        if (data) {
-          setUser({ id: u.uid, ...(data as Omit<User, "id">) });
-        } else {
+        if (!data) {
           setUser(null);
+          return;
         }
+
+        const profile = {
+          id: u.uid,
+          branchIds: [],
+          ...(data as Omit<User, "id">),
+        };
+
+        setUser(profile);
       } catch (err) {
         console.error("Error loading user profile", err);
         setUser(null);
