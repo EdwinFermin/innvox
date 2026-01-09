@@ -152,7 +152,9 @@ export const getColumns = (
   {
     accessorKey: "description",
     header: "Descripción",
-    cell: ({ row }) => <div className="line-clamp-2">{row.original.description}</div>,
+    cell: ({ row }) => (
+      <div className="line-clamp-2">{row.original.description}</div>
+    ),
   },
   {
     id: "actions",
@@ -198,10 +200,7 @@ export default function ExpensesPage() {
   const { data: expenseTypes } = useExpenseTypes(user?.id || "");
   const queryClient = useQueryClient();
 
-  const today = React.useMemo(
-    () => new Date().toISOString().slice(0, 10),
-    []
-  );
+  const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [dateFilter, setDateFilter] = React.useState<string>(today);
   const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
   const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
@@ -300,7 +299,9 @@ export default function ExpensesPage() {
       >
         <Input
           placeholder="Buscar por descripción..."
-          value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+          value={
+            (table.getColumn("description")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) =>
             table.getColumn("description")?.setFilterValue(event.target.value)
           }
@@ -348,12 +349,14 @@ export default function ExpensesPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium text-foreground">Sucursal</label>
+          <label className="text-sm font-medium text-foreground">
+            Sucursal
+          </label>
           <Select
             value={branchFilter}
             onValueChange={(val) => setBranchFilter(val)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
@@ -370,8 +373,11 @@ export default function ExpensesPage() {
           <label className="text-sm font-medium text-foreground">
             Tipo de gasto
           </label>
-          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val)}>
-            <SelectTrigger>
+          <Select
+            value={typeFilter}
+            onValueChange={(val) => setTypeFilter(val)}
+          >
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>

@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -108,7 +110,7 @@ export function NewExpenseDialog() {
                 }
                 disabled={isPending}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona una sucursal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,7 +137,7 @@ export function NewExpenseDialog() {
                 }
                 disabled={isPending}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona un tipo" />
                 </SelectTrigger>
                 <SelectContent>

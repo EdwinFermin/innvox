@@ -122,10 +122,10 @@ export function LoginForm({
               <Field>
                 <Button type="submit">Iniciar</Button>
               </Field>
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+              {/* <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 O continúa con
-              </FieldSeparator>
-              <Field className="grid grid-cols-2 gap-4">
+              </FieldSeparator> */}
+              {/* <Field className="grid grid-cols-2 gap-4">
                 <Button variant="outline" type="button">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -144,7 +144,7 @@ export function LoginForm({
                   </svg>
                   <span className="sr-only">Iniciar sesión con Google</span>
                 </Button>
-              </Field>
+              </Field> */}
             </FieldGroup>
           </form>
           <div className="bg-muted relative hidden md:block">

@@ -110,7 +110,7 @@ export function NewIncomeDialog() {
                 }
                 disabled={isPending}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona una sucursal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,7 +137,7 @@ export function NewIncomeDialog() {
                 }
                 disabled={isPending}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona un tipo" />
                 </SelectTrigger>
                 <SelectContent>
