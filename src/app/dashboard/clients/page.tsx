@@ -84,6 +84,13 @@ export const getColumns = (
     enableHiding: false,
   },
   {
+    accessorKey: "poBox",
+    header: "ID",
+    cell: ({ row }) => (
+      <div className="text-xs text-muted-foreground">{row.original.poBox}</div>
+    ),
+  },
+  {
     accessorKey: "name",
     header: "Nombre",
     cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>,

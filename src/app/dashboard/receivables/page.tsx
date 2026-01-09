@@ -50,6 +50,7 @@ import { NewReceivableDialog } from "./components/new-receivable-dialog";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
+    id: "ID",
     name: "Nombre",
     amount: "Monto",
     dueDate: "Vencimiento",
@@ -90,6 +91,13 @@ export const getColumns = (
     ),
     enableSorting: false,
     enableHiding: false,
+  },
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => (
+      <div className="text-xs text-muted-foreground">{row.original.id}</div>
+    ),
   },
   {
     accessorKey: "name",

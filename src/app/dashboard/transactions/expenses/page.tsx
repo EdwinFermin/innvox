@@ -52,6 +52,7 @@ import { useExpenseTypes } from "@/hooks/use-expense-types";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
+    id: "ID",
     branchId: "Sucursal",
     expenseTypeId: "Tipo",
     amount: "Monto",
@@ -94,6 +95,13 @@ export const getColumns = (
     ),
     enableSorting: false,
     enableHiding: false,
+  },
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => (
+      <div className="text-xs text-muted-foreground">{row.original.id}</div>
+    ),
   },
   {
     accessorKey: "branchId",

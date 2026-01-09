@@ -47,6 +47,7 @@ import { useAuthStore } from "@/store/auth";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
+    id: "ID",
     name: "Nombre",
     email: "Correo",
     type: "Rol",
@@ -77,6 +78,13 @@ export const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     ),
     enableSorting: false,
     enableHiding: false,
+  },
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => (
+      <div className="text-xs text-muted-foreground">{row.original.id}</div>
+    ),
   },
   {
     accessorKey: "name",
