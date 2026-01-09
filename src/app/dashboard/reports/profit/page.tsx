@@ -103,8 +103,13 @@ export default function ProfitReportPage() {
     const toDate = (d: unknown) => {
       if (!d) return null;
       if (d instanceof Date) return d;
-      if (typeof (d as { toDate?: () => Date }).toDate === "function")
+      if (typeof (d as { toDate?: () => Date }).toDate === "function") {
         return (d as { toDate: () => Date }).toDate();
+      }
+      if (typeof d === "string" || typeof d === "number") {
+        const parsed = new Date(d);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
       return null;
     };
 
@@ -164,22 +169,28 @@ export default function ProfitReportPage() {
     return list;
   }, [incomes, expenses, receivables, payables]);
 
+  const toDateKeyUTC = React.useCallback((d: Date) => {
+    const y = d.getUTCFullYear();
+    const m = `${d.getUTCMonth() + 1}`.padStart(2, "0");
+    const day = `${d.getUTCDate()}`.padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  const parseInputDate = React.useCallback((value: string) => {
+    if (!value) return null;
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }, []);
+
   const filteredRows = React.useMemo(() => {
     return normalizedRows.filter((row) => {
+      const key = toDateKeyUTC(row.date);
       if (branchId !== "ALL" && row.branchId !== branchId) return false;
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (row.date < start) return false;
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        if (row.date > end) return false;
-      }
+      if (startDate && key < startDate) return false;
+      if (endDate && key > endDate) return false;
       return true;
     });
-  }, [normalizedRows, startDate, endDate, branchId]);
+  }, [normalizedRows, startDate, endDate, branchId, toDateKeyUTC]);
 
   const totals = React.useMemo(() => {
     let ingresos = 0;
@@ -207,7 +218,7 @@ export default function ProfitReportPage() {
       { ingresos: number; gastos: number; cxc: number; cxp: number }
     >();
     filteredRows.forEach((row) => {
-      const key = format(row.date, "yyyy-MM-dd");
+      const key = toDateKeyUTC(row.date);
       if (!map.has(key))
         map.set(key, { ingresos: 0, gastos: 0, cxc: 0, cxp: 0 });
       const entry = map.get(key)!;
@@ -219,12 +230,14 @@ export default function ProfitReportPage() {
     return Array.from(map.entries())
       .map(([key, val]) => ({
         key,
-        label: format(new Date(key), "d 'de' MMM yyyy", { locale: es }),
+        label: format(new Date(`${key}T00:00:00`), "d 'de' MMM yyyy", {
+          locale: es,
+        }),
         ...val,
         utilidad: val.ingresos + val.cxc - val.gastos - val.cxp,
       }))
       .sort((a, b) => (a.key < b.key ? -1 : 1));
-  }, [filteredRows]);
+  }, [filteredRows, toDateKeyUTC]);
 
   const columns: ColumnDef<ReportRow>[] = [
     {
@@ -302,8 +315,10 @@ export default function ProfitReportPage() {
   const { print, PrintContainer } = usePrintProfit();
 
   const dateRangeLabel = React.useMemo(() => {
-    const formatLabel = (value: string) =>
-      format(new Date(value), "d 'de' MMM yyyy", { locale: es });
+    const formatLabel = (value: string) => {
+      const d = parseInputDate(value);
+      return d ? format(d, "d 'de' MMM yyyy", { locale: es }) : value;
+    };
     if (startDate && endDate) {
       return `${formatLabel(startDate)} - ${formatLabel(endDate)}`;
     }
@@ -329,7 +344,7 @@ export default function ProfitReportPage() {
       transactions: filteredRows.map((row) => ({
         id: row.id,
         type: typeLabel[row.type],
-        date: row.date,
+        date: parseInputDate(toDateKeyUTC(row.date)) ?? row.date,
         branch: row.branchId
           ? branchNameById[row.branchId] ?? row.branchId
           : "Sin sucursal",
@@ -346,6 +361,8 @@ export default function ProfitReportPage() {
       branchNameById,
       dateRangeLabel,
       branchLabel,
+      parseInputDate,
+      toDateKeyUTC,
     ]
   );
 
