@@ -7,10 +7,30 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { DynamicBreadcrumb } from "@/components/ui/dynamic-breadcrumb";
+import { useAuthStore } from "@/store/auth";
+import { useRouter } from "next/navigation";
+import { AppLoading } from "@/components/ui/app-loading";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [loading, user, router]);
+
+  if (loading) {
+    return <AppLoading />;
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />
