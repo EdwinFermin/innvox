@@ -65,7 +65,8 @@ export function NewExpenseDialog() {
       await addDoc(ref, {
         ...data,
         amount: Number(data.amount),
-        date: new Date(data.date),
+        // Preserve selected calendar date in local time to avoid TZ shifts
+        date: new Date(`${data.date}T00:00:00`),
         createdAt: new Date(),
       });
     },
