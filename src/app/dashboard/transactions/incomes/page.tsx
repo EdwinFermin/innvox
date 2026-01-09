@@ -33,6 +33,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -190,6 +197,39 @@ export default function IncomesPage() {
   const { data: incomeTypes } = useIncomeTypes(user?.id || "");
   const queryClient = useQueryClient();
 
+  const today = React.useMemo(
+    () => new Date().toISOString().slice(0, 10),
+    []
+  );
+  const [dateFilter, setDateFilter] = React.useState<string>(today);
+  const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
+  const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
+
+  const normalizeDateKey = React.useCallback((value: Income["date"]) => {
+    if (!value) return null;
+    const date =
+      value instanceof Date
+        ? value
+        : typeof value === "object" &&
+          typeof (value as { toDate?: () => Date }).toDate === "function"
+        ? (value as { toDate: () => Date }).toDate()
+        : new Date(value as unknown as string | number | Date);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString().slice(0, 10);
+  }, []);
+
+  const filteredIncomes = React.useMemo(() => {
+    return incomes.filter((income) => {
+      const dateKey = normalizeDateKey(income.date);
+      if (dateFilter && dateKey !== dateFilter) return false;
+      if (branchFilter !== "ALL" && income.branchId !== branchFilter)
+        return false;
+      if (typeFilter !== "ALL" && income.incomeTypeId !== typeFilter)
+        return false;
+      return true;
+    });
+  }, [branchFilter, dateFilter, incomes, normalizeDateKey, typeFilter]);
+
   const branchNameById = React.useMemo(
     () =>
       branches.reduce<Record<string, string>>((acc, branch) => {
@@ -228,7 +268,7 @@ export default function IncomesPage() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
-    data: incomes,
+    data: filteredIncomes,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -295,6 +335,53 @@ export default function IncomesPage() {
           </DropdownMenu>
 
           <NewIncomeDialog />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3 mb-4">
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-foreground">Fecha</label>
+          <Input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-foreground">Sucursal</label>
+          <Select
+            value={branchFilter}
+            onValueChange={(val) => setBranchFilter(val)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todas</SelectItem>
+              {branches.map((branch) => (
+                <SelectItem key={branch.id} value={branch.id}>
+                  {branch.name} ({branch.code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-foreground">
+            Tipo de ingreso
+          </label>
+          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos</SelectItem>
+              {incomeTypes.map((type) => (
+                <SelectItem key={type.id} value={type.id}>
+                  {type.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="overflow-hidden rounded-md border">
