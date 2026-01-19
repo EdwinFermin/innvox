@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { deleteDoc, doc } from "firebase/firestore";
 import { toast } from "sonner";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -195,15 +196,27 @@ export const getColumns = (
 export default function IncomesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const { data: incomes, isLoading } = useIncomes(user?.id || "");
   const { data: branches } = useBranches(user?.id || "", user?.branchIds);
   const { data: incomeTypes } = useIncomeTypes(user?.id || "");
   const queryClient = useQueryClient();
 
   const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const [dateFilter, setDateFilter] = React.useState<string>(today);
+  const [startDate, setStartDate] = React.useState<string>(today);
+  const [endDate, setEndDate] = React.useState<string>(today);
   const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
   const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
+  const [openDialog, setOpenDialog] = React.useState(false);
+
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setOpenDialog(true);
+      router.replace(pathname);
+    }
+  }, [pathname, router, searchParams]);
 
   const normalizeDateKey = React.useCallback((value: Income["date"]) => {
     if (!value) return null;
@@ -215,20 +228,25 @@ export default function IncomesPage() {
         ? (value as { toDate: () => Date }).toDate()
         : new Date(value as unknown as string | number | Date);
     if (Number.isNaN(date.getTime())) return null;
-    return date.toISOString().slice(0, 10);
+    const y = date.getFullYear();
+    const m = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${day}`;
   }, []);
 
   const filteredIncomes = React.useMemo(() => {
     return incomes.filter((income) => {
       const dateKey = normalizeDateKey(income.date);
-      if (dateFilter && dateKey !== dateFilter) return false;
+      if (!dateKey) return false;
+      if (startDate && dateKey < startDate) return false;
+      if (endDate && dateKey > endDate) return false;
       if (branchFilter !== "ALL" && income.branchId !== branchFilter)
         return false;
       if (typeFilter !== "ALL" && income.incomeTypeId !== typeFilter)
         return false;
       return true;
     });
-  }, [branchFilter, dateFilter, incomes, normalizeDateKey, typeFilter]);
+  }, [branchFilter, endDate, incomes, normalizeDateKey, startDate, typeFilter]);
 
   const branchNameById = React.useMemo(
     () =>
@@ -336,16 +354,24 @@ export default function IncomesPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <NewIncomeDialog />
+          <NewIncomeDialog openOnMount={openDialog} />
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3 mb-4">
+      <div className="grid gap-3 sm:grid-cols-4 mb-4">
         <div className="space-y-1">
-          <label className="text-sm font-medium text-foreground">Fecha</label>
+          <label className="text-sm font-medium text-foreground">Desde</label>
           <Input
             type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-foreground">Hasta</label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
         <div className="space-y-1">

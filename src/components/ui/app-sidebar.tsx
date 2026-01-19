@@ -10,12 +10,17 @@ import {
   BarChart,
   HandCoins,
   Settings,
+  BanknoteArrowUp,
+  BanknoteArrowDown,
 } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -191,6 +196,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Acciones rápidas</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="grid grid-cols-2 gap-3">
+              <a
+                href="/dashboard/transactions/incomes?new=1"
+                className="flex flex-col items-center gap-2 rounded-lg border bg-card p-2 text-center shadow-sm transition hover:border-primary/50 hover:shadow"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <BanknoteArrowUp className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-medium text-foreground">
+                  Nuevo ingreso
+                </span>
+              </a>
+              <a
+                href="/dashboard/transactions/expenses?new=1"
+                className="flex flex-col items-center gap-2 rounded-lg border bg-card p-2 text-center shadow-sm transition hover:border-primary/50 hover:shadow"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                  <BanknoteArrowDown className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-medium text-foreground">
+                  Nuevo gasto
+                </span>
+              </a>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
         <NavMain
           items={user?.type === "ADMIN" ? data.navAdmin : data.navMain}
         />

@@ -18,6 +18,17 @@ function translateSegment(segment: string): string {
     clients: "Clientes",
     users: "Usuarios",
     profile: "Perfil",
+    transactions: "Transacciones",
+    incomes: "Ingresos",
+    expenses: "Gastos",
+    reports: "Reportes",
+    profit: "Utilidades",
+    receivables: "CxC",
+    payables: "CxP",
+    branches: "Sucursales",
+    parameters: "Parametros",
+    "Income-types": "Tipos de ingresos",
+    "Expense-types": "Tipos de gastos",
   };
 
   return (

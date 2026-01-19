@@ -582,7 +582,7 @@ export default function ProfitReportPage() {
               </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="overflow-hidden rounded-md border">
+          <CardContent className="overflow-hidden">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (

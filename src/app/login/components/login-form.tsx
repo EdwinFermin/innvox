@@ -8,7 +8,6 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
@@ -17,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
+import { useAuthStore } from "@/store/auth";
 
 export function LoginForm({
   className,
@@ -26,13 +26,16 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { setLoading } = useAuthStore();
 
   const signInEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/");
     } catch (err: unknown) {
+      setLoading(false);
       if (err instanceof FirebaseError) {
         switch (err.code) {
           case "auth/invalid-credential":
@@ -43,28 +46,6 @@ export function LoginForm({
             break;
           case "auth/wrong-password":
             setError("Incorrect password. Please try again.");
-            break;
-          default:
-            setError(err.message);
-        }
-      } else {
-        setError("An unknown error occurred");
-      }
-    }
-  };
-
-  const signInGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      router.push("/");
-    } catch (err: unknown) {
-      if (err instanceof FirebaseError) {
-        switch (err.code) {
-          case "auth/popup-closed-by-user":
-            setError("The popup was closed before completing the sign in.");
-            break;
-          case "auth/cancelled-popup-request":
-            setError("Only one popup request is allowed at one time.");
             break;
           default:
             setError(err.message);

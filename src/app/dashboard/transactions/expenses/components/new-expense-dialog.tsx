@@ -42,7 +42,7 @@ const newExpenseSchema = z.object({
 type NewExpenseValues = z.infer<typeof newExpenseSchema>;
 type NewExpenseFormValues = z.input<typeof newExpenseSchema>;
 
-export function NewExpenseDialog() {
+export function NewExpenseDialog({ openOnMount }: { openOnMount?: boolean } = {}) {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -85,6 +85,13 @@ export function NewExpenseDialog() {
 
   const onSubmit = handleSubmit((values) => mutate(values as NewExpenseValues));
 
+  React.useEffect(() => {
+    if (openOnMount) {
+      reset();
+      setOpen(true);
+    }
+  }, [openOnMount, reset]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -94,14 +101,14 @@ export function NewExpenseDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="font-bold text-2xl">Nuevo gasto</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-sm font-medium">Sucursal</label>
               <Select
                 value={watch("branchId")}
@@ -128,7 +135,7 @@ export function NewExpenseDialog() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-sm font-medium">Tipo de gasto</label>
               <Select
                 value={watch("expenseTypeId")}
@@ -157,14 +164,19 @@ export function NewExpenseDialog() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 mr-6 md:mr-0">
               <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" {...register("date")} disabled={isPending} />
+              <Input
+                type="date"
+                {...register("date")}
+                disabled={isPending}
+                className="w-full max-w-full min-w-0 text-sm"
+              />
               {errors.date && (
                 <p className="text-xs text-red-500">{errors.date.message}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-sm font-medium">Monto</label>
               <Input
                 type="number"

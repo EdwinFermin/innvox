@@ -122,6 +122,13 @@
   }
 }
 
+/* Evita desbordes en inputs tipo date (iOS) */
+input[data-slot="input"][type="date"] {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
 /* SUCCESS (verde) */
 [data-sonner-toast][data-type="success"] {
   --normal-bg: #15803d !important;
