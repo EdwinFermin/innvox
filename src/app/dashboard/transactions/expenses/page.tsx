@@ -156,6 +156,13 @@ export const getColumns = (
     cell: ({ row }) => (
       <div className="line-clamp-2">{row.original.description}</div>
     ),
+    filterFn: (row, columnId, value) => {
+      const search = String(value ?? "").toLowerCase().trim();
+      if (!search) return true;
+      const description = String(row.getValue(columnId) ?? "").toLowerCase();
+      const amount = String(row.original.amount ?? "").toLowerCase();
+      return description.includes(search) || amount.includes(search);
+    },
   },
   {
     id: "actions",
