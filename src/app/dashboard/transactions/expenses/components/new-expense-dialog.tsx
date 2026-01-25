@@ -63,12 +63,14 @@ export function NewExpenseDialog({ openOnMount }: { openOnMount?: boolean } = {}
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewExpenseValues) => {
+      const [year, month, day] = data.date.split("-").map(Number);
+      const utcDate = new Date(Date.UTC(year, month - 1, day));
       const ref = collection(db, "expenses");
       await addDoc(ref, {
         ...data,
         amount: Number(data.amount),
-        // Preserve selected calendar date in local time to avoid TZ shifts
-        date: new Date(`${data.date}T00:00:00`),
+        // Store as UTC midnight to keep a consistent calendar date
+        date: utcDate,
         createdAt: new Date(),
       });
     },

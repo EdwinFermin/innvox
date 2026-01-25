@@ -63,9 +63,7 @@ const newInvoiceSchema = z.object({
     .min(1, "Debes agregar al menos un item a la factura"),
   ITBIS: z.number().min(0, "El ITBIS no puede ser negativo"),
   amount: z.number().min(0, "El monto no puede ser negativo"),
-  pricePerPound: z
-    .number()
-    .min(0, "El precio por libra no puede ser negativo"),
+  pricePerPound: z.number().min(0, "El precio por libra no puede ser negativo"),
 });
 
 type InvoiceItemFormValues = z.input<typeof invoiceItemSchema>;
@@ -104,11 +102,11 @@ export function NewInvoiceDialog({
       amount: 0,
       pricePerPound: 0,
     }),
-    []
+    [],
   );
   const defaultValues = React.useMemo<NewInvoiceFormValues>(
     () => buildDefaultValues(),
-    [buildDefaultValues]
+    [buildDefaultValues],
   );
 
   const { user } = useAuthStore();
@@ -152,7 +150,7 @@ export function NewInvoiceDialog({
     const currentItems = watchedItems ?? [];
     return currentItems.reduce(
       (sum, item) => sum + (Number(item?.unitPrice ?? 0) || 0),
-      0
+      0,
     );
   }, [watchedItems]);
   const totalWithITBIS = React.useMemo(() => {
@@ -171,7 +169,7 @@ export function NewInvoiceDialog({
       return;
     }
     const computedITBIS = Number(
-      (itemsTotal * (itbisPercentage / 100)).toFixed(2)
+      (itemsTotal * (itbisPercentage / 100)).toFixed(2),
     );
     setValue("ITBIS", computedITBIS, {
       shouldValidate: true,
@@ -238,13 +236,13 @@ export function NewInvoiceDialog({
       const ref = doc(
         db,
         "invoices",
-        isEditing && invoice ? invoice.id : generateInvoiceNumber()
+        isEditing && invoice ? invoice.id : generateInvoiceNumber(),
       );
 
       const clientRef = doc(
         db,
         "clients",
-        data.client
+        data.client,
       ) as DocumentReference<Client>;
       const invoiceUserId = invoice?.userId || user?.id;
 
@@ -255,7 +253,7 @@ export function NewInvoiceDialog({
       const userRef = doc(
         db,
         "users",
-        invoiceUserId
+        invoiceUserId,
       ) as DocumentReference<User>;
 
       const shouldGenerateIdentifiers =
@@ -265,9 +263,9 @@ export function NewInvoiceDialog({
         ? data.invoiceType === "FISCAL"
           ? await generateNCF()
           : data.invoiceType === "FINAL"
-          ? await generateCF()
-          : "N/A"
-        : invoice?.NCF ?? null;
+            ? await generateCF()
+            : "N/A"
+        : (invoice?.NCF ?? null);
 
       const normalizedItems: InvoiceItem[] = data.items.map((item) => ({
         itemId: item.itemId,
@@ -279,7 +277,7 @@ export function NewInvoiceDialog({
 
       const itemsAmount = normalizedItems.reduce(
         (sum, item) => sum + item.unitPrice,
-        0
+        0,
       );
 
       const payload = {
@@ -308,7 +306,7 @@ export function NewInvoiceDialog({
       toast.success(
         mode === "edit"
           ? "Factura actualizada exitosamente"
-          : "Factura creada exitosamente"
+          : "Factura creada exitosamente",
       );
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       handleClose();
@@ -338,14 +336,14 @@ export function NewInvoiceDialog({
         return;
       }
       const computedUnitPrice = Number(
-        (numericWeight * pricePerPound).toFixed(2)
+        (numericWeight * pricePerPound).toFixed(2),
       );
       setValue(`items.${index}.unitPrice`, computedUnitPrice, {
         shouldDirty: true,
         shouldValidate: true,
       });
     },
-    [setValue, watchedPricePerPound]
+    [setValue, watchedPricePerPound],
   );
 
   const handleUnitPriceChange = React.useCallback(
@@ -370,7 +368,7 @@ export function NewInvoiceDialog({
         shouldValidate: true,
       });
     },
-    [setValue, watchedPricePerPound]
+    [setValue, watchedPricePerPound],
   );
 
   React.useEffect(() => {
@@ -384,7 +382,7 @@ export function NewInvoiceDialog({
       const unitPriceValue = Number(item?.unitPrice ?? 0);
       if (Number.isFinite(weightValue) && weightValue > 0) {
         const computedUnitPrice = Number(
-          (weightValue * pricePerPound).toFixed(2)
+          (weightValue * pricePerPound).toFixed(2),
         );
         if (computedUnitPrice !== unitPriceValue) {
           setValue(`items.${index}.unitPrice`, computedUnitPrice, {
@@ -396,7 +394,7 @@ export function NewInvoiceDialog({
       }
       if (Number.isFinite(unitPriceValue) && unitPriceValue > 0) {
         const computedWeight = Number(
-          (unitPriceValue / pricePerPound).toFixed(2)
+          (unitPriceValue / pricePerPound).toFixed(2),
         );
         if (computedWeight.toString() !== (item?.weight ?? "")) {
           setValue(`items.${index}.weight`, computedWeight.toString(), {
@@ -627,10 +625,12 @@ export function NewInvoiceDialog({
               <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
                 {fields.map((field, index) => {
                   const currentItem = watchedItems?.[index];
-                  const weightField = register(`items.${index}.weight` as const);
+                  const weightField = register(
+                    `items.${index}.weight` as const,
+                  );
                   const unitPriceField = register(
                     `items.${index}.unitPrice` as const,
-                    { setValueAs: (v) => (v === "" ? 0 : Number(v)) }
+                    { setValueAs: (v) => (v === "" ? 0 : Number(v)) },
                   );
 
                   return (
@@ -759,8 +759,8 @@ export function NewInvoiceDialog({
                   ? "Actualizando..."
                   : "Guardando..."
                 : isEditMode
-                ? "Guardar cambios"
-                : "Imprimir y Guardar"}
+                  ? "Guardar cambios"
+                  : "Imprimir y Guardar"}
             </Button>
           </div>
         </form>

@@ -80,7 +80,8 @@ export const getColumns = (
   queryClient: QueryClient,
   branchNameById: Record<string, string>,
   incomeTypeNameById: Record<string, string>,
-  canDelete: boolean
+  canDelete: boolean,
+  toLocalMidnight: (value: Income["date"]) => Date | null
 ): ColumnDef<Income>[] => [
   {
     id: "select",
@@ -142,13 +143,16 @@ export const getColumns = (
   {
     accessorKey: "date",
     header: () => <div className="text-right">Fecha</div>,
-    cell: ({ row }) => (
-      <div className="text-right font-medium">
-        {format(row.original.date.toDate(), "d 'de' MMMM yyyy", {
-          locale: es,
-        })}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const displayDate = toLocalMidnight(row.original.date);
+      return (
+        <div className="text-right font-medium">
+          {displayDate
+            ? format(displayDate, "d 'de' MMMM yyyy", { locale: es })
+            : "-"}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "description",
@@ -235,14 +239,32 @@ export default function IncomesPage() {
         ? (value as { toDate: () => Date }).toDate()
         : new Date(value as unknown as string | number | Date);
     if (Number.isNaN(date.getTime())) return null;
-    const y = date.getFullYear();
-    const m = `${date.getMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getDate()}`.padStart(2, "0");
+    const y = date.getUTCFullYear();
+    const m = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getUTCDate()}`.padStart(2, "0");
     return `${y}-${m}-${day}`;
   }, []);
 
+  const toLocalMidnight = React.useCallback((value: Income["date"]) => {
+    if (!value) return null;
+    const date =
+      value instanceof Date
+        ? value
+        : typeof value === "object" &&
+          typeof (value as { toDate?: () => Date }).toDate === "function"
+        ? (value as { toDate: () => Date }).toDate()
+        : new Date(value as unknown as string | number | Date);
+    if (Number.isNaN(date.getTime())) return null;
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  }, []);
+
   const filteredIncomes = React.useMemo(() => {
+    const allowedBranches =
+      user?.branchIds && user.branchIds.length > 0
+        ? new Set(user.branchIds)
+        : null;
     return incomes.filter((income) => {
+      if (allowedBranches && !allowedBranches.has(income.branchId)) return false;
       const dateKey = normalizeDateKey(income.date);
       if (!dateKey) return false;
       if (startDate && dateKey < startDate) return false;
@@ -253,7 +275,16 @@ export default function IncomesPage() {
         return false;
       return true;
     });
-  }, [branchFilter, endDate, incomes, normalizeDateKey, startDate, typeFilter]);
+  }, [
+    branchFilter,
+    endDate,
+    incomes,
+    normalizeDateKey,
+    startDate,
+    typeFilter,
+    user?.branchIds,
+    user?.type,
+  ]);
 
   const branchNameById = React.useMemo(
     () =>
@@ -279,9 +310,10 @@ export default function IncomesPage() {
         queryClient,
         branchNameById,
         incomeTypeNameById,
-        user?.type === "ADMIN"
+        user?.type === "ADMIN",
+        toLocalMidnight
       ),
-    [queryClient, branchNameById, incomeTypeNameById, user?.type]
+    [queryClient, branchNameById, incomeTypeNameById, user?.type, toLocalMidnight]
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);

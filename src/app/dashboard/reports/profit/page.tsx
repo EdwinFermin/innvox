@@ -43,7 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Printer } from "lucide-react";
+import { BrushCleaning, ChevronDown, Printer } from "lucide-react";
 import { usePrintProfit } from "@/hooks/use-print-profit";
 
 type RowType = "INGRESO" | "GASTO" | "CXC" | "CXP";
@@ -96,7 +96,7 @@ export default function ProfitReportPage() {
         acc[branch.id] = `${branch.name} (${branch.code})`;
         return acc;
       }, {}),
-    [branches]
+    [branches],
   );
 
   const normalizedRows: ReportRow[] = React.useMemo(() => {
@@ -267,7 +267,7 @@ export default function ProfitReportPage() {
       cell: ({ row }) => (
         <div className="text-sm">
           {row.original.branchId
-            ? branchNameById[row.original.branchId] ?? row.original.branchId
+            ? (branchNameById[row.original.branchId] ?? row.original.branchId)
             : "Sin sucursal"}
         </div>
       ),
@@ -346,7 +346,7 @@ export default function ProfitReportPage() {
         type: typeLabel[row.type],
         date: parseInputDate(toDateKeyUTC(row.date)) ?? row.date,
         branch: row.branchId
-          ? branchNameById[row.branchId] ?? row.branchId
+          ? (branchNameById[row.branchId] ?? row.branchId)
           : "Sin sucursal",
         name: row.name,
         description: row.description,
@@ -363,7 +363,7 @@ export default function ProfitReportPage() {
       branchLabel,
       parseInputDate,
       toDateKeyUTC,
-    ]
+    ],
   );
 
   return (
@@ -382,7 +382,11 @@ export default function ProfitReportPage() {
           </div>
         </div>
         <div className="flex justify-end print-hidden">
-          <Button variant="outline" onClick={() => print()}>
+          <Button
+            variant="outline"
+            onClick={() => print()}
+            className="bg-blue-500 text-white hover:bg-blue-600 hover:text-white"
+          >
             <Printer className="mr-2 h-4 w-4" />
             Imprimir
           </Button>
@@ -392,8 +396,8 @@ export default function ProfitReportPage() {
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
+          <CardContent className="grid gap-4 md:grid-cols-4 md:max-w-fit max-w-full">
+            <div className="space-y-2 md:max-w-xs max-w-full">
               <label className="text-sm font-medium">Desde</label>
               <Input
                 type="date"
@@ -401,7 +405,7 @@ export default function ProfitReportPage() {
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:max-w-xs max-w-full">
               <label className="text-sm font-medium">Hasta</label>
               <Input
                 type="date"
@@ -409,10 +413,10 @@ export default function ProfitReportPage() {
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:max-w-xs max-w-full">
               <label className="text-sm font-medium">Sucursal</label>
               <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full md:w-xs">
                   <SelectValue placeholder="Selecciona sucursal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -433,7 +437,9 @@ export default function ProfitReportPage() {
                   setEndDate("");
                   setBranchId("ALL");
                 }}
+                className="bg-red-500 text-white hover:bg-red-600 hover:text-white"
               >
+                <BrushCleaning className="mr-2 h-4 w-4" />
                 Limpiar
               </Button>
             </div>
@@ -593,7 +599,7 @@ export default function ProfitReportPage() {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                       </TableHead>
                     ))}
@@ -608,7 +614,7 @@ export default function ProfitReportPage() {
                         <TableCell key={cell.id}>
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext()
+                            cell.getContext(),
                           )}
                         </TableCell>
                       ))}
