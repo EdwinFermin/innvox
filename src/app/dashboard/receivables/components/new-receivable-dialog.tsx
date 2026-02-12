@@ -84,7 +84,7 @@ export function NewReceivableDialog() {
   });
 
   const onSubmit = handleSubmit((values) =>
-    mutate(values as NewReceivableValues)
+    mutate(values as NewReceivableValues),
   );
 
   return (
@@ -165,10 +165,11 @@ export function NewReceivableDialog() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Vencimiento</label>
-              <Input
+              <input
                 type="date"
                 {...register("dueDate")}
                 disabled={isPending}
+                className="w-full border border-input rounded-md pl-1 h-9"
               />
               {errors.dueDate && (
                 <p className="text-xs text-red-500">{errors.dueDate.message}</p>
