@@ -40,7 +40,9 @@ const newIncomeSchema = z.object({
 type NewIncomeValues = z.infer<typeof newIncomeSchema>;
 type NewIncomeFormValues = z.input<typeof newIncomeSchema>;
 
-export function NewIncomeDialog({ openOnMount }: { openOnMount?: boolean } = {}) {
+export function NewIncomeDialog({
+  openOnMount,
+}: { openOnMount?: boolean } = {}) {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -168,11 +170,11 @@ export function NewIncomeDialog({ openOnMount }: { openOnMount?: boolean } = {})
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 mr-6 md:mr-0">
               <label className="text-sm font-medium">Fecha</label>
-              <Input
+              <input
                 type="date"
                 {...register("date")}
                 disabled={isPending}
-                className="w-full max-w-full min-w-0 text-sm"
+                className="w-full border border-input rounded-md pl-1 h-9"
               />
               {errors.date && (
                 <p className="text-xs text-red-500">{errors.date.message}</p>

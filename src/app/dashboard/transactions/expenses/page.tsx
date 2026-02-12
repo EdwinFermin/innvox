@@ -81,7 +81,7 @@ export const getColumns = (
   branchNameById: Record<string, string>,
   expenseTypeNameById: Record<string, string>,
   canDelete: boolean,
-  toLocalMidnight: (value: Expense["date"]) => Date | null
+  toLocalMidnight: (value: Expense["date"]) => Date | null,
 ): ColumnDef<Expense>[] => [
   {
     id: "select",
@@ -161,7 +161,9 @@ export const getColumns = (
       <div className="line-clamp-2">{row.original.description}</div>
     ),
     filterFn: (row, columnId, value) => {
-      const search = String(value ?? "").toLowerCase().trim();
+      const search = String(value ?? "")
+        .toLowerCase()
+        .trim();
       if (!search) return true;
       const description = String(row.getValue(columnId) ?? "").toLowerCase();
       const amount = String(row.original.amount ?? "").toLowerCase();
@@ -235,9 +237,9 @@ export default function ExpensesPage() {
       value instanceof Date
         ? value
         : typeof value === "object" &&
-          typeof (value as { toDate?: () => Date }).toDate === "function"
-        ? (value as { toDate: () => Date }).toDate()
-        : new Date(value as unknown as string | number | Date);
+            typeof (value as { toDate?: () => Date }).toDate === "function"
+          ? (value as { toDate: () => Date }).toDate()
+          : new Date(value as unknown as string | number | Date);
     if (Number.isNaN(date.getTime())) return null;
     const y = date.getUTCFullYear();
     const m = `${date.getUTCMonth() + 1}`.padStart(2, "0");
@@ -251,11 +253,15 @@ export default function ExpensesPage() {
       value instanceof Date
         ? value
         : typeof value === "object" &&
-          typeof (value as { toDate?: () => Date }).toDate === "function"
-        ? (value as { toDate: () => Date }).toDate()
-        : new Date(value as unknown as string | number | Date);
+            typeof (value as { toDate?: () => Date }).toDate === "function"
+          ? (value as { toDate: () => Date }).toDate()
+          : new Date(value as unknown as string | number | Date);
     if (Number.isNaN(date.getTime())) return null;
-    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+    );
   }, []);
 
   const filteredExpenses = React.useMemo(() => {
@@ -293,7 +299,7 @@ export default function ExpensesPage() {
         acc[branch.id] = `${branch.name} (${branch.code})`;
         return acc;
       }, {}),
-    [branches]
+    [branches],
   );
 
   const expenseTypeNameById = React.useMemo(
@@ -302,7 +308,7 @@ export default function ExpensesPage() {
         acc[type.id] = type.name;
         return acc;
       }, {}),
-    [expenseTypes]
+    [expenseTypes],
   );
 
   const columns = React.useMemo(
@@ -312,14 +318,20 @@ export default function ExpensesPage() {
         branchNameById,
         expenseTypeNameById,
         user?.type === "ADMIN",
-        toLocalMidnight
+        toLocalMidnight,
       ),
-    [queryClient, branchNameById, expenseTypeNameById, user?.type, toLocalMidnight]
+    [
+      queryClient,
+      branchNameById,
+      expenseTypeNameById,
+      user?.type,
+      toLocalMidnight,
+    ],
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -400,18 +412,20 @@ export default function ExpensesPage() {
       <div className="grid gap-3 sm:grid-cols-4 mb-4">
         <div className="space-y-1">
           <label className="text-sm font-medium text-foreground">Desde</label>
-          <Input
+          <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            className="w-full border border-input rounded-md pl-1 h-9"
           />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium text-foreground">Hasta</label>
-          <Input
+          <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            className="w-full border border-input rounded-md pl-1 h-9"
           />
         </div>
         <div className="space-y-1">
@@ -469,7 +483,7 @@ export default function ExpensesPage() {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -496,7 +510,7 @@ export default function ExpensesPage() {
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}

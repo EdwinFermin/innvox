@@ -36,7 +36,7 @@ export function SectionCards() {
     items: T[] | undefined,
     ref: Date,
     getDate: (item: T) => Date | null,
-    getAmount: (item: T) => number
+    getAmount: (item: T) => number,
   ) =>
     (items ?? []).reduce((acc, item) => {
       const d = getDate(item);
@@ -62,13 +62,13 @@ export function SectionCards() {
     incomes,
     now,
     (i) => safeDate(i.date),
-    (i) => Number(i.amount || 0)
+    (i) => Number(i.amount || 0),
   );
   const gastosMes = sumForMonth(
     expenses,
     now,
     (e) => safeDate(e.date),
-    (e) => Number(e.amount || 0)
+    (e) => Number(e.amount || 0),
   );
   const utilidadMes = ingresosMes - gastosMes;
 
@@ -76,13 +76,13 @@ export function SectionCards() {
     incomes,
     prev,
     (i) => safeDate(i.date),
-    (i) => Number(i.amount || 0)
+    (i) => Number(i.amount || 0),
   );
   const gastosPrev = sumForMonth(
     expenses,
     prev,
     (e) => safeDate(e.date),
-    (e) => Number(e.amount || 0)
+    (e) => Number(e.amount || 0),
   );
   const utilidadPrev = ingresosPrev - gastosPrev;
 
@@ -117,7 +117,7 @@ export function SectionCards() {
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Ingresos del mes</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {formato.format(resumen.ingresosMes)}
           </CardTitle>
           <CardAction>
@@ -141,7 +141,7 @@ export function SectionCards() {
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Gastos del mes</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {formato.format(resumen.gastosMes)}
           </CardTitle>
           <CardAction>
@@ -165,7 +165,7 @@ export function SectionCards() {
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Utilidad neta</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {formato.format(resumen.utilidadMes)}
           </CardTitle>
           <CardAction>
@@ -190,7 +190,7 @@ export function SectionCards() {
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Cuentas por cobrar</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {formato.format(resumen.cuentasPorCobrar)}
           </CardTitle>
           <CardAction>

@@ -81,7 +81,7 @@ export const getColumns = (
   branchNameById: Record<string, string>,
   incomeTypeNameById: Record<string, string>,
   canDelete: boolean,
-  toLocalMidnight: (value: Income["date"]) => Date | null
+  toLocalMidnight: (value: Income["date"]) => Date | null,
 ): ColumnDef<Income>[] => [
   {
     id: "select",
@@ -161,7 +161,9 @@ export const getColumns = (
       <div className="line-clamp-2">{row.original.description}</div>
     ),
     filterFn: (row, columnId, value) => {
-      const search = String(value ?? "").toLowerCase().trim();
+      const search = String(value ?? "")
+        .toLowerCase()
+        .trim();
       if (!search) return true;
       const description = String(row.getValue(columnId) ?? "").toLowerCase();
       const amount = String(row.original.amount ?? "").toLowerCase();
@@ -235,9 +237,9 @@ export default function IncomesPage() {
       value instanceof Date
         ? value
         : typeof value === "object" &&
-          typeof (value as { toDate?: () => Date }).toDate === "function"
-        ? (value as { toDate: () => Date }).toDate()
-        : new Date(value as unknown as string | number | Date);
+            typeof (value as { toDate?: () => Date }).toDate === "function"
+          ? (value as { toDate: () => Date }).toDate()
+          : new Date(value as unknown as string | number | Date);
     if (Number.isNaN(date.getTime())) return null;
     const y = date.getUTCFullYear();
     const m = `${date.getUTCMonth() + 1}`.padStart(2, "0");
@@ -251,11 +253,15 @@ export default function IncomesPage() {
       value instanceof Date
         ? value
         : typeof value === "object" &&
-          typeof (value as { toDate?: () => Date }).toDate === "function"
-        ? (value as { toDate: () => Date }).toDate()
-        : new Date(value as unknown as string | number | Date);
+            typeof (value as { toDate?: () => Date }).toDate === "function"
+          ? (value as { toDate: () => Date }).toDate()
+          : new Date(value as unknown as string | number | Date);
     if (Number.isNaN(date.getTime())) return null;
-    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+    );
   }, []);
 
   const filteredIncomes = React.useMemo(() => {
@@ -264,7 +270,8 @@ export default function IncomesPage() {
         ? new Set(user.branchIds)
         : null;
     return incomes.filter((income) => {
-      if (allowedBranches && !allowedBranches.has(income.branchId)) return false;
+      if (allowedBranches && !allowedBranches.has(income.branchId))
+        return false;
       const dateKey = normalizeDateKey(income.date);
       if (!dateKey) return false;
       if (startDate && dateKey < startDate) return false;
@@ -275,6 +282,7 @@ export default function IncomesPage() {
         return false;
       return true;
     });
+    // Ensure that 'user' is not null before accessing 'user.branchIds'
   }, [
     branchFilter,
     endDate,
@@ -283,7 +291,6 @@ export default function IncomesPage() {
     startDate,
     typeFilter,
     user?.branchIds,
-    user?.type,
   ]);
 
   const branchNameById = React.useMemo(
@@ -292,7 +299,7 @@ export default function IncomesPage() {
         acc[branch.id] = `${branch.name} (${branch.code})`;
         return acc;
       }, {}),
-    [branches]
+    [branches],
   );
 
   const incomeTypeNameById = React.useMemo(
@@ -301,7 +308,7 @@ export default function IncomesPage() {
         acc[type.id] = type.name;
         return acc;
       }, {}),
-    [incomeTypes]
+    [incomeTypes],
   );
 
   const columns = React.useMemo(
@@ -311,14 +318,20 @@ export default function IncomesPage() {
         branchNameById,
         incomeTypeNameById,
         user?.type === "ADMIN",
-        toLocalMidnight
+        toLocalMidnight,
       ),
-    [queryClient, branchNameById, incomeTypeNameById, user?.type, toLocalMidnight]
+    [
+      queryClient,
+      branchNameById,
+      incomeTypeNameById,
+      user?.type,
+      toLocalMidnight,
+    ],
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -399,7 +412,8 @@ export default function IncomesPage() {
       <div className="grid gap-3 sm:grid-cols-4 mb-4">
         <div className="space-y-1">
           <label className="text-sm font-medium text-foreground">Desde</label>
-          <Input
+          <input
+            className="w-full border border-input rounded-md pl-1 h-9"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
@@ -407,7 +421,8 @@ export default function IncomesPage() {
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium text-foreground">Hasta</label>
-          <Input
+          <input
+            className="w-full border border-input rounded-md pl-1 h-9"
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
@@ -456,6 +471,7 @@ export default function IncomesPage() {
           </Select>
         </div>
       </div>
+
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
@@ -468,7 +484,7 @@ export default function IncomesPage() {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -495,7 +511,7 @@ export default function IncomesPage() {
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}

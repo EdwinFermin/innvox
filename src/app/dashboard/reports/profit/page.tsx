@@ -370,7 +370,9 @@ export default function ProfitReportPage() {
     <div className="w-full space-y-6 profit-print-area">
       <div className="space-y-6 print-hidden">
         <div>
-          <h3 className="text-2xl font-semibold">Reporte de utilidades</h3>
+          <h3 className="text-base font-semibold md:text-lg 2xl:text-2xl">
+            Reporte de utilidades
+          </h3>
           <div className="text-muted-foreground text-sm space-y-1">
             <p>
               Resumen de ingresos, gastos, cuentas por cobrar y cuentas por
@@ -397,26 +399,28 @@ export default function ProfitReportPage() {
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-4 md:max-w-fit max-w-full">
-            <div className="space-y-2 md:max-w-xs max-w-full">
+            <div className="space-y-1">
               <label className="text-sm font-medium">Desde</label>
-              <Input
+              <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="w-full border border-input rounded-md pl-1 h-9"
               />
             </div>
-            <div className="space-y-2 md:max-w-xs max-w-full">
+            <div className="space-y-1">
               <label className="text-sm font-medium">Hasta</label>
-              <Input
+              <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className="w-full border border-input rounded-md pl-1 h-9"
               />
             </div>
-            <div className="space-y-2 md:max-w-xs max-w-full">
+            <div className="space-y-1">
               <label className="text-sm font-medium">Sucursal</label>
               <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger className="w-full md:w-xs">
+                <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Selecciona sucursal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -429,7 +433,7 @@ export default function ProfitReportPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
+            <div className="space-y-1 flex items-end justify-baseline pb-1">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -453,7 +457,7 @@ export default function ProfitReportPage() {
                 Ingresos
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold text-emerald-700">
+            <CardContent className="min-w-0 text-base font-semibold text-emerald-700 md:text-lg 2xl:text-2xl">
               {currency.format(totals.ingresos)}
             </CardContent>
           </Card>
@@ -463,7 +467,7 @@ export default function ProfitReportPage() {
                 Gastos
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold text-red-700">
+            <CardContent className="min-w-0 text-base font-semibold text-red-700 md:text-lg 2xl:text-2xl">
               {currency.format(totals.gastos)}
             </CardContent>
           </Card>
@@ -473,7 +477,7 @@ export default function ProfitReportPage() {
                 CxC
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold text-blue-700">
+            <CardContent className="min-w-0 text-base font-semibold text-blue-700 md:text-lg 2xl:text-2xl">
               {currency.format(totals.cxc)}
             </CardContent>
           </Card>
@@ -483,7 +487,7 @@ export default function ProfitReportPage() {
                 CxP
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold text-amber-700">
+            <CardContent className="min-w-0 text-base font-semibold text-amber-700 md:text-lg 2xl:text-2xl">
               {currency.format(totals.cxp)}
             </CardContent>
           </Card>
@@ -494,7 +498,7 @@ export default function ProfitReportPage() {
               </CardTitle>
             </CardHeader>
             <CardContent
-              className={`text-2xl font-semibold ${
+              className={`min-w-0 text-base font-semibold md:text-lg 2xl:text-2xl ${
                 totals.utilidad >= 0 ? "text-emerald-700" : "text-red-700"
               }`}
             >

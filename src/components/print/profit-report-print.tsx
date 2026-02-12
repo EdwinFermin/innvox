@@ -85,6 +85,8 @@ export const ProfitReportPrint = forwardRef<
           maxWidth: "100%",
           margin: 0,
           boxSizing: "border-box",
+          WebkitPrintColorAdjust: "exact",
+          printColorAdjust: "exact",
         }}
       >
         <div style={{ marginBottom: "12px" }}>
