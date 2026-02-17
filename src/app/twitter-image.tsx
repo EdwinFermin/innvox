@@ -24,10 +24,17 @@ export default function TwitterImage() {
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
           <div style={{ fontSize: 34, fontWeight: 700, opacity: 0.95 }}>Innvox</div>
-          <div style={{ fontSize: 68, fontWeight: 800, lineHeight: 1.05 }}>
-            Smart Invoicing
-            <br />
-            and Operations
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: 68,
+              fontWeight: 800,
+              lineHeight: 1.05,
+            }}
+          >
+            <span>Smart Invoicing</span>
+            <span>and Operations</span>
           </div>
           <div style={{ fontSize: 30, opacity: 0.9 }}>
             Clients, branches, payables, receivables, and reports.

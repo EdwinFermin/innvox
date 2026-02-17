@@ -77,10 +77,17 @@ export default function OpenGraphImage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            <div style={{ fontSize: 78, fontWeight: 800, lineHeight: 1.05 }}>
-              Invoice and
-              <br />
-              Operations Dashboard
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                fontSize: 78,
+                fontWeight: 800,
+                lineHeight: 1.05,
+              }}
+            >
+              <span>Invoice and</span>
+              <span>Operations Dashboard</span>
             </div>
             <div style={{ fontSize: 30, opacity: 0.9 }}>
               Manage invoices, clients, branches, and finances in one place.
