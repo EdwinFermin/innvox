@@ -5,7 +5,6 @@ import {
   Send,
   Settings2,
   LayoutDashboard,
-  ScrollText,
   FileSpreadsheet,
   BarChart,
   HandCoins,
@@ -31,6 +30,7 @@ import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
 import { useAuthStore } from "@/store/auth";
 import Link from "next/link";
+import Image from "next/image";
 
 const data = {
   navAdmin: [
@@ -183,9 +183,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link href="/dashboard" className="flex items-center gap-3">
-                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                    <ScrollText className="size-4" />
-                  </div>
+                  <Image src="/icon.svg" alt="Innvox" width={32} height={32} />
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold text-2xl">
                       Innvox
