@@ -19,6 +19,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { IconType } from "react-icons/lib";
+import Link from "next/link";
 
 export function NavMain({
   items,
@@ -34,6 +35,8 @@ export function NavMain({
     }[];
   }[];
 }) {
+  const isInternalUrl = (url: string) => url.startsWith("/");
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
@@ -43,10 +46,17 @@ export function NavMain({
             <SidebarMenuItem>
               {Boolean(item.url) ? (
                 <SidebarMenuButton asChild tooltip={item.title}>
-                  <a href={item.url}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </a>
+                  {isInternalUrl(item.url!) ? (
+                    <Link href={item.url!}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  ) : (
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  )}
                 </SidebarMenuButton>
               ) : (
                 <CollapsibleTrigger asChild>
@@ -69,9 +79,15 @@ export function NavMain({
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </a>
+                            {isInternalUrl(subItem.url) ? (
+                              <Link href={subItem.url}>
+                                <span>{subItem.title}</span>
+                              </Link>
+                            ) : (
+                              <a href={subItem.url}>
+                                <span>{subItem.title}</span>
+                              </a>
+                            )}
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

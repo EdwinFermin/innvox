@@ -14,7 +14,7 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,6 +50,7 @@ import { toast } from "sonner";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
+    id: "ID",
     name: "Nombre",
     poBox: "ID de Casillero",
     createdAt: "Fecha de creación",
@@ -57,7 +58,17 @@ const getColumnLabel = (id: string): string => {
   return map[id] || id;
 };
 
-export const getColumns = (
+const getCreatedAtTime = (value: unknown): number => {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return new Date(value).getTime();
+  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+  return 0;
+};
+
+const getColumns = (
   queryClient: QueryClient,
   canDelete: boolean
 ): ColumnDef<Client>[] => [
@@ -84,15 +95,24 @@ export const getColumns = (
     enableHiding: false,
   },
   {
-    accessorKey: "poBox",
+    accessorKey: "id",
     header: "ID",
     cell: ({ row }) => (
-      <div className="text-xs text-muted-foreground">{row.original.poBox}</div>
+      <div className="text-xs text-muted-foreground">{row.original.id}</div>
     ),
   },
   {
     accessorKey: "name",
-    header: "Nombre",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Nombre
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>,
   },
   {
@@ -103,8 +123,18 @@ export const getColumns = (
     ),
   },
   {
-    accessorKey: "createdAt",
-    header: () => <div className="text-right">Fecha de Creación</div>,
+    id: "createdAt",
+    accessorFn: (row) => getCreatedAtTime(row.createdAt),
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="w-full justify-end px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Fecha de Creacion
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
         {format(row.original.createdAt.toDate(), "d 'de' MMMM yyyy hh:mm a", {
@@ -132,11 +162,11 @@ export const getColumns = (
               variant="destructive"
               onClick={async () => {
                 try {
-                  await deleteDoc(doc(db, "clients", row.row.original.poBox));
+                  await deleteDoc(doc(db, "clients", row.row.original.id));
                   toast.success("Cliente eliminado");
                   queryClient.invalidateQueries({ queryKey: ["clients"] });
                 } catch {
-                  toast.error("Error al eliminar el cliente");
+                   toast.error("Error al eliminar el cliente");
                 }
               }}
             >

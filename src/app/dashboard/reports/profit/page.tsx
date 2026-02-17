@@ -21,7 +21,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -325,7 +324,7 @@ export default function ProfitReportPage() {
     if (startDate) return `Desde ${formatLabel(startDate)}`;
     if (endDate) return `Hasta ${formatLabel(endDate)}`;
     return "Todas las fechas";
-  }, [startDate, endDate]);
+  }, [startDate, endDate, parseInputDate]);
 
   const branchLabel = React.useMemo(() => {
     if (branchId === "ALL") return "Todas las sucursales";

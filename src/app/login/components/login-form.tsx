@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { useAuthStore } from "@/store/auth";
 

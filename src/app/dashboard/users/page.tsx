@@ -13,7 +13,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
+import { ArrowUpDown, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { deleteDoc, doc } from "firebase/firestore";
@@ -44,6 +44,7 @@ import { User } from "@/types/auth.types";
 import { db } from "@/lib/firebase";
 import { EditUserDialog } from "./components/edit-user-dialog";
 import { useAuthStore } from "@/store/auth";
+import { useRouter } from "next/navigation";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -56,7 +57,17 @@ const getColumnLabel = (id: string): string => {
   return map[id] || id;
 };
 
-export const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
+const getCreatedAtTime = (value: unknown): number => {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return new Date(value).getTime();
+  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+  return 0;
+};
+
+const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -88,7 +99,16 @@ export const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
   },
   {
     accessorKey: "name",
-    header: "Nombre",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Nombre
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>,
   },
   {
@@ -104,8 +124,18 @@ export const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     ),
   },
   {
-    accessorKey: "createdAt",
-    header: () => <div className="text-right">Fecha de Creación</div>,
+    id: "createdAt",
+    accessorFn: (row) => getCreatedAtTime(row.createdAt),
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="w-full justify-end px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Fecha de Creacion
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
         {row.original.createdAt
@@ -150,7 +180,14 @@ export const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
 export default function UsersPage() {
   const isMobile = useIsMobile();
   const { user: currentUser } = useAuthStore();
+  const router = useRouter();
   const { data: users, isLoading } = useUsers();
+
+  React.useEffect(() => {
+    if (currentUser && currentUser.type !== "ADMIN") {
+      router.replace("/dashboard");
+    }
+  }, [currentUser, router]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -183,6 +220,10 @@ export default function UsersPage() {
       rowSelection,
     },
   });
+
+  if (currentUser && currentUser.type !== "ADMIN") {
+    return null;
+  }
 
   return (
     <div className="w-full">

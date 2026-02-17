@@ -6,7 +6,11 @@ import { Branch } from "@/types/branch.types";
 
 export function useBranches(userId: string, allowedBranchIds?: string[]) {
   const query = useQuery({
-    queryKey: ["branches", userId, (allowedBranchIds ?? []).sort().join(",")],
+    queryKey: [
+      "branches",
+      userId,
+      [...(allowedBranchIds ?? [])].sort().join(","),
+    ],
     queryFn: async (): Promise<Branch[]> => {
       const ref = collection(db, "branches");
       const snapshot = await getDocs(ref);

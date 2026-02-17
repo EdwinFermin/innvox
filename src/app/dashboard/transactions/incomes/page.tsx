@@ -14,7 +14,7 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { deleteDoc, doc } from "firebase/firestore";
@@ -133,7 +133,16 @@ export const getColumns = (
   },
   {
     accessorKey: "amount",
-    header: () => <div className="text-right">Monto</div>,
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="w-full justify-end px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Monto
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
         {currencyFormatter.format(Number(row.original.amount || 0))}
@@ -141,8 +150,21 @@ export const getColumns = (
     ),
   },
   {
-    accessorKey: "date",
-    header: () => <div className="text-right">Fecha</div>,
+    id: "date",
+    accessorFn: (row) => {
+      const date = toLocalMidnight(row.date);
+      return date ? date.getTime() : 0;
+    },
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="w-full justify-end px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Fecha
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => {
       const displayDate = toLocalMidnight(row.original.date);
       return (

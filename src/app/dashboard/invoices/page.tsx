@@ -13,7 +13,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,6 +64,16 @@ const getColumnLabel = (id: string): string => {
     user: "Usuario",
   };
   return map[id] || id;
+};
+
+const getDateTime = (value: unknown): number => {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return new Date(value).getTime();
+  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+  return 0;
 };
 
 export default function InvoicesPage() {
@@ -185,14 +195,33 @@ export default function InvoicesPage() {
     },
     {
       accessorKey: "NCF",
-      header: "NCF",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          className="px-0 hover:bg-transparent"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          NCF
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="capitalize font-bold">{row.getValue("NCF")}</div>
       ),
     },
     {
-      accessorKey: "client",
-      header: "Cliente",
+      id: "client",
+      accessorFn: (row) => row.client?.name?.toLowerCase() ?? "",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          className="px-0 hover:bg-transparent"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Cliente
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="capitalize">{row.original.client?.name}</div>
       ),
@@ -221,7 +250,16 @@ export default function InvoicesPage() {
     },
     {
       accessorKey: "amount",
-      header: "Monto",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          className="px-0 hover:bg-transparent"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Monto
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => {
         return (
           <div className="font-semibold">
@@ -238,8 +276,18 @@ export default function InvoicesPage() {
       ),
     },
     {
-      accessorKey: "createdAt",
-      header: "Fecha de Creación",
+      id: "createdAt",
+      accessorFn: (row) => getDateTime(row.createdAt),
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          className="px-0 hover:bg-transparent"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Fecha de Creacion
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => {
         return (
           <div className="font-medium">

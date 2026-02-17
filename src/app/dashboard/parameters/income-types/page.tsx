@@ -14,7 +14,7 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { deleteDoc, doc } from "firebase/firestore";
@@ -56,6 +56,16 @@ const getColumnLabel = (id: string): string => {
   return map[id] || id;
 };
 
+const getDateTime = (value: unknown): number => {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return new Date(value).getTime();
+  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+  return 0;
+};
+
 export const getColumns = (
   queryClient: QueryClient,
   canDelete: boolean
@@ -91,12 +101,31 @@ export const getColumns = (
   },
   {
     accessorKey: "name",
-    header: "Nombre",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Nombre
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>,
   },
   {
-    accessorKey: "createdAt",
-    header: () => <div className="text-right">Fecha de Creación</div>,
+    id: "createdAt",
+    accessorFn: (row) => getDateTime(row.createdAt),
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="w-full justify-end px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Fecha de Creacion
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
         {format(row.original.createdAt.toDate(), "d 'de' MMMM yyyy hh:mm a", {
