@@ -29,6 +29,12 @@ const settingsSchema = z.object({
     .string()
     .nonempty("El numero de consumidor final final es obligatorio"),
   ITBISPercentage: z.string().nonempty("El porcentaje de ITBIS es obligatorio"),
+  ExcentoPercentage: z
+    .string()
+    .nonempty("El porcentaje de Excento es obligatorio"),
+  GravadoPercentage: z
+    .string()
+    .nonempty("El porcentaje de Gravado es obligatorio"),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -64,6 +70,8 @@ export default function SettingsPage() {
         CFRangeStart: configs.CF?.rangeStart || "",
         CFRangeEnd: configs.CF?.rangeEnd || "",
         ITBISPercentage: configs.ITBIS?.percentage || "",
+        ExcentoPercentage: configs.EXCENTO?.percentage || "",
+        GravadoPercentage: configs.GRAVADO?.percentage || "",
       });
     }
   }, [configs, reset]);
@@ -94,6 +102,22 @@ export default function SettingsPage() {
         doc(db, "configs", "ITBIS"),
         {
           percentage: values.ITBISPercentage,
+        },
+        { merge: true }
+      );
+
+      batch.set(
+        doc(db, "configs", "EXCENTO"),
+        {
+          percentage: values.ExcentoPercentage,
+        },
+        { merge: true }
+      );
+
+      batch.set(
+        doc(db, "configs", "GRAVADO"),
+        {
+          percentage: values.GravadoPercentage,
         },
         { merge: true }
       );
@@ -223,7 +247,7 @@ export default function SettingsPage() {
           <Separator className="my-6" />
 
           <div className="grid gap-6">
-            <h3 className="text-lg font-semibold">ITBIS</h3>
+            <h3 className="text-lg font-semibold">Porcentajes de facturas</h3>
             <div className="grid gap-2">
               <label
                 htmlFor="ITBISPercentage"
@@ -240,10 +264,58 @@ export default function SettingsPage() {
                 placeholder="Ej: 18"
                 className="w-sm"
                 {...register("ITBISPercentage")}
-              />{" "}
+              />
               {errors.ITBISPercentage && (
                 <p className="text-red-500 text-xs">
                   {errors.ITBISPercentage.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="ExcentoPercentage"
+                className="text-sm font-medium text-start"
+              >
+                Porcentage de Monto Exento
+              </label>
+              <Input
+                id="ExcentoPercentage"
+                type="number"
+                step="0.01"
+                min="0"
+                disabled={isLoading}
+                placeholder="Ej: 0"
+                className="w-sm"
+                {...register("ExcentoPercentage")}
+              />
+              {errors.ExcentoPercentage && (
+                <p className="text-red-500 text-xs">
+                  {errors.ExcentoPercentage.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="GravadoPercentage"
+                className="text-sm font-medium text-start"
+              >
+                Porcentage de Monto Gravado
+              </label>
+              <Input
+                id="GravadoPercentage"
+                type="number"
+                step="0.01"
+                min="0"
+                disabled={isLoading}
+                placeholder="Ej: 100"
+                className="w-sm"
+                {...register("GravadoPercentage")}
+              />
+              {errors.GravadoPercentage && (
+                <p className="text-red-500 text-xs">
+                  {errors.GravadoPercentage.message}
                 </p>
               )}
             </div>

@@ -70,6 +70,19 @@ export async function generateNCF(): Promise<string> {
 
     const data = snap.data() as NCFConfig;
     const { rangeStart, rangeEnd, lastAssigned } = data;
+    const releasedNumbers = Array.isArray(data.releasedNumbers)
+      ? data.releasedNumbers.filter(
+          (value): value is string => typeof value === "string" && value.length > 0,
+        )
+      : [];
+
+    if (releasedNumbers.length > 0) {
+      const [reusedNCF, ...remainingReleasedNumbers] = releasedNumbers;
+      tx.update(configRef, {
+        releasedNumbers: remainingReleasedNumbers,
+      });
+      return reusedNCF;
+    }
 
     let nextNCF = lastAssigned ?? rangeStart;
 
@@ -127,4 +140,3 @@ export async function generateCF(): Promise<string> {
 
   return newCF;
 }
-

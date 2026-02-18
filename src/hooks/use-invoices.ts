@@ -34,40 +34,17 @@ export function useInvoices() {
               ? ({ id: userSnap.id, ...(userData ?? {}) } as User)
               : null;
 
-          const itemsArray =
-            Array.isArray(data.items) && data.items.length > 0
-              ? data.items
-              : null;
-          const items = itemsArray
-            ? itemsArray.map((item) => ({
-                itemId: item.itemId ?? "",
-                description: item.description ?? "",
-                weight: item.weight ?? "",
-                tracking: item.tracking ?? "",
-                unitPrice: Number(item.unitPrice ?? 0),
-              }))
-            : data.description
-            ? [
-                {
-                  itemId: d.id,
-                  description: data.description,
-                  weight: "",
-                  tracking: "",
-                  unitPrice: Number(data.amount ?? 0),
-                },
-              ]
-            : [];
-
           return {
             id: d.id,
-            invoiceType: data.invoiceType,
+            invoiceType: "FISCAL",
             NCF: data.NCF ?? null,
             clientId: clientRef?.id ?? "",
             client,
-            items,
-            pricePerPound: data.pricePerPound ?? 0,
-            amount: data.amount ?? 0,
-            ITBIS: data.ITBIS,
+            description: String(data.description ?? ""),
+            amount: Number(data.amount ?? 0),
+            montoExento: Number(data.montoExento ?? 0),
+            montoGravado: Number(data.montoGravado ?? 0),
+            ITBIS: Number(data.ITBIS ?? 0),
             createdAt: data.createdAt,
             userId: userRef?.id ?? "",
             user,

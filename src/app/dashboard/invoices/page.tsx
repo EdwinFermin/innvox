@@ -44,21 +44,24 @@ import { Invoice } from "@/types/invoice.types";
 import { Client } from "@/types/client.types";
 import { User } from "@/types/auth.types";
 import { useInvoices } from "@/hooks/use-invoices";
-import { deleteDoc, doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/react-query";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePrintInvoice } from "@/hooks/use-print-invoice";
 import { useAuthStore } from "@/store/auth";
+import { NCFConfig } from "@/types/ncf.types";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     id: "No. Factura",
     NCF: "NCF",
     client: "Cliente",
-    items: "Items",
+    description: "Descripción",
     amount: "Monto",
+    montoExento: "Monto Exento",
+    montoGravado: "Monto Gravado",
     ITBIS: "ITBIS",
     createdAt: "Fecha de Creación",
     user: "Usuario",
@@ -116,28 +119,6 @@ export default function InvoicesPage() {
 
       const clientData = clientSnap?.data();
       const userData = userSnap?.data();
-      const itemsArray =
-        Array.isArray(data.items) && data.items.length > 0 ? data.items : null;
-      const items = itemsArray
-        ? itemsArray.map((item) => ({
-            itemId: item.itemId ?? "",
-            description: item.description ?? "",
-            weight: item.weight ?? "",
-            tracking: item.tracking ?? "",
-            unitPrice: Number(item.unitPrice ?? 0),
-          }))
-        : data.description
-        ? [
-            {
-              itemId: snapshot.id,
-              description: data.description,
-              weight: "",
-              tracking: "",
-              unitPrice: Number(data.amount ?? 0),
-            },
-          ]
-        : [];
-
       const client =
         clientSnap && clientSnap.exists()
           ? ({ id: clientSnap.id, ...(clientData ?? {}) } as Client)
@@ -149,14 +130,15 @@ export default function InvoicesPage() {
 
       return {
         id: snapshot.id,
-        invoiceType: data.invoiceType,
+        invoiceType: "FISCAL",
         NCF: data.NCF ?? null,
         clientId: data.client?.id ?? "",
         client,
-        items,
-        pricePerPound: data.pricePerPound ?? 0,
-        amount: data.amount,
-        ITBIS: data.ITBIS,
+        description: String(data.description ?? ""),
+        amount: Number(data.amount ?? 0),
+        montoExento: Number(data.montoExento ?? 0),
+        montoGravado: Number(data.montoGravado ?? 0),
+        ITBIS: Number(data.ITBIS ?? 0),
         createdAt: data.createdAt,
         userId: data.user?.id ?? "",
         user,
@@ -227,26 +209,28 @@ export default function InvoicesPage() {
       ),
     },
     {
-      accessorKey: "items",
-      header: "Items",
-      cell: ({ row }) => {
-        const items = row.original.items ?? [];
-        if (!items.length) {
-          return <div className="text-muted-foreground">Sin items</div>;
-        }
-        const [first, ...rest] = items;
-        return (
-          <div className="capitalize">
-            {first.description}
-            {rest.length ? ` (+${rest.length} más)` : ""}
-          </div>
-        );
-      },
+      accessorKey: "description",
+      header: "Descripción",
+      cell: ({ row }) => <div>{row.getValue("description")}</div>,
     },
     {
       accessorKey: "ITBIS",
       header: "ITBIS",
       cell: ({ row }) => <div>{Number(row.getValue("ITBIS")).toFixed(2)}</div>,
+    },
+    {
+      accessorKey: "montoExento",
+      header: "Monto Exento",
+      cell: ({ row }) => (
+        <div>{Number(row.getValue("montoExento")).toFixed(2)}</div>
+      ),
+    },
+    {
+      accessorKey: "montoGravado",
+      header: "Monto Gravado",
+      cell: ({ row }) => (
+        <div>{Number(row.getValue("montoGravado")).toFixed(2)}</div>
+      ),
     },
     {
       accessorKey: "amount",
@@ -308,7 +292,52 @@ export default function InvoicesPage() {
       cell: ({ row }) => {
         async function deleteInvoice(id: string): Promise<void> {
           try {
-            await deleteDoc(doc(db, "invoices", id));
+            await runTransaction(db, async (tx) => {
+              const invoiceRef = doc(db, "invoices", id);
+              const ncfConfigRef = doc(db, "configs", "NCF");
+
+              const [invoiceSnap, ncfConfigSnap] = await Promise.all([
+                tx.get(invoiceRef),
+                tx.get(ncfConfigRef),
+              ]);
+
+              if (!invoiceSnap.exists()) {
+                throw new Error("La factura no existe o ya fue eliminada.");
+              }
+
+              const invoiceData = invoiceSnap.data();
+              const invoiceNCF =
+                typeof invoiceData.NCF === "string" && invoiceData.NCF.length > 0
+                  ? invoiceData.NCF
+                  : null;
+
+              if (invoiceNCF) {
+                const ncfConfigData = ncfConfigSnap.exists()
+                  ? (ncfConfigSnap.data() as NCFConfig)
+                  : null;
+                const releasedNumbers = Array.isArray(
+                  ncfConfigData?.releasedNumbers,
+                )
+                  ? ncfConfigData.releasedNumbers.filter(
+                      (value): value is string =>
+                        typeof value === "string" && value.length > 0,
+                    )
+                  : [];
+
+                if (!releasedNumbers.includes(invoiceNCF)) {
+                  tx.set(
+                    ncfConfigRef,
+                    {
+                      releasedNumbers: [...releasedNumbers, invoiceNCF],
+                    },
+                    { merge: true },
+                  );
+                }
+              }
+
+              tx.delete(invoiceRef);
+            });
+
             toast.success("Factura eliminada");
             queryClient.invalidateQueries({ queryKey: ["invoices"] });
           } catch (error) {

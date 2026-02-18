@@ -5,17 +5,7 @@ import { forwardRef } from "react";
 
 export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
   ({ invoice }, ref) => {
-    const items = invoice.items ?? [];
-    const subtotal = items.reduce(
-      (sum, item) => sum + (item.unitPrice ?? 0),
-      0
-    );
-    const totalWeight = items.reduce((sum, item) => {
-      const weightValue = item.weight?.replace(/[^\d.]/g, "");
-      const numericWeight = weightValue ? Number(weightValue) : 0;
-      return sum + (Number.isFinite(numericWeight) ? numericWeight : 0);
-    }, 0);
-    const total = subtotal + invoice.ITBIS;
+    const total = invoice.amount + invoice.ITBIS;
 
     return (
       <div
@@ -23,6 +13,8 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
         style={{
           width: "80mm",
           padding: "10px",
+          paddingTop: "10%",
+          paddingBottom: "10%",
           fontFamily: "monospace",
           fontSize: "12px",
         }}
@@ -50,65 +42,25 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
         <br />
         <hr />
         <div style={{ textAlign: "center" }}>
-          <p style={{ margin: "4px 0" }}>
-            {invoice.invoiceType === "FISCAL"
-              ? "FACTURA CON VALOR FISCAL"
-              : invoice.invoiceType === "FINAL"
-              ? "FACTURA PARA CONSUMIDOR FINAL"
-              : "PRE-CUENTA"}
-          </p>
+          <p style={{ margin: "4px 0" }}>FACTURA CON VALOR FISCAL</p>
         </div>
         <hr />
         <div style={{ marginTop: "8px" }}>
-          {items.length ? (
-            items.map((item, index) => (
-              <div
-                key={item.itemId || index}
-                style={{
-                  borderBottom: "1px dashed #ccc",
-                  paddingBottom: "6px",
-                  marginBottom: "6px",
-                }}
-              >
-                <p style={{ margin: "0 0 4px 0" }}>
-                  <b>Item #{index + 1}</b>
-                </p>
-                <p style={{ margin: "0 0 2px 0" }}>
-                  <b>Descripción:</b> {item.description}
-                </p>
-                <p style={{ margin: "0 0 2px 0" }}>
-                  <b>Guía:</b> {item.itemId || "-"}
-                </p>
-                <p style={{ margin: "0 0 2px 0" }}>
-                  <b>Tracking:</b> {item.tracking || "-"}
-                </p>
-                <p style={{ margin: "0 0 2px 0" }}>
-                  <b>Peso:</b> {item.weight || "-"}
-                </p>
-                <p style={{ margin: 0 }}>
-                  <b>Precio:</b> {item.unitPrice.toFixed(2)}
-                </p>
-              </div>
-            ))
-          ) : (
-            <p style={{ textAlign: "center", margin: "8px 0" }}>
-              Sin items registrados
-            </p>
-          )}
+          <p style={{ margin: "0 0 4px 0" }}>
+            <b>Descripción:</b>
+          </p>
+          <p style={{ margin: 0 }}>{invoice.description}</p>
         </div>
         <hr />
         <div style={{ textAlign: "right" }}>
           <p>
-            <b>Total Items:</b> {items.length}
+            <b>Monto:</b> {invoice.amount.toFixed(2)}
           </p>
           <p>
-            <b>Costo por libra:</b> {invoice.pricePerPound?.toFixed(2)}
+            <b>Monto Exento:</b> {invoice.montoExento.toFixed(2)}
           </p>
           <p>
-            <b>Total Libras:</b> {totalWeight.toFixed(2)}
-          </p>
-          <p>
-            <b>Subtotal:</b> {subtotal.toFixed(2)}
+            <b>Monto Gravado:</b> {invoice.montoGravado.toFixed(2)}
           </p>
           <p>
             <b>ITBIS:</b> {invoice.ITBIS.toFixed(2)}
