@@ -82,6 +82,10 @@ const data = {
           title: "Utilidades",
           url: "/dashboard/reports/profit",
         },
+        {
+          title: "Formulario DGII",
+          url: "/dashboard/reports/formulario-dgii",
+        },
       ],
     },
     {
