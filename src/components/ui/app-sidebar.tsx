@@ -13,6 +13,7 @@ import {
   Settings,
   BanknoteArrowUp,
   BanknoteArrowDown,
+  Landmark,
 } from "lucide-react";
 
 import {
@@ -121,6 +122,10 @@ const data = {
         {
           title: "Sucursales",
           url: "/dashboard/branches",
+        },
+        {
+          title: "Cuentas Bancarias",
+          url: "/dashboard/bank-accounts",
         },
       ],
     },
