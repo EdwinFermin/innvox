@@ -13,6 +13,7 @@ import {
 function translateSegment(segment: string): string {
   const map: Record<string, string> = {
     dashboard: "Dashboard",
+    account: "Cuenta",
     invoices: "Facturas",
     settings: "Configuración",
     clients: "Clientes",

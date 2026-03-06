@@ -5,6 +5,7 @@ import {
   ChevronsUpDown,
   LogOut,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -23,11 +24,17 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { User } from "@/types/auth.types";
-import { signOut } from "firebase/auth";
+import { signOut } from "next-auth/react";
+import { signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 export function NavUser({ user }: { user: User | null }) {
   const { isMobile } = useSidebar();
+
+  const handleSignOut = async () => {
+    await firebaseSignOut(auth).catch(() => undefined);
+    await signOut({ callbackUrl: "/login" });
+  };
 
   return (
     <SidebarMenu>
@@ -76,9 +83,11 @@ export function NavUser({ user }: { user: User | null }) {
             </DropdownMenuGroup> */}
             {/* <DropdownMenuSeparator /> */}
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/account">
+                  <BadgeCheck />
+                  Perfil
+                </Link>
               </DropdownMenuItem>
               {/* <DropdownMenuItem>
                 <CreditCard />
@@ -92,7 +101,7 @@ export function NavUser({ user }: { user: User | null }) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onClick={() => signOut(auth)}
+              onClick={handleSignOut}
             >
               <LogOut />
               Cerrar sesión

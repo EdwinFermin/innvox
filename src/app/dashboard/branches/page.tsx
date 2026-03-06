@@ -47,7 +47,9 @@ import { NewBranchDialog } from "./components/new-branch-dialog";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { TablePageSize } from "@/components/ui/table-page-size";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -182,19 +184,16 @@ const getColumns = (
 export default function BranchesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
-  const router = useRouter();
-  const { data: branches, isLoading } = useBranches(user?.id || "", user?.branchIds);
+  const { data: branches, isLoading } = useBranches(
+    user?.id || "",
+    user?.type === "USER" ? user?.branchIds : undefined,
+  );
   const queryClient = useQueryClient();
-
-  React.useEffect(() => {
-    if (user && user.type !== "ADMIN") {
-      router.replace("/dashboard");
-    }
-  }, [user, router]);
+  const canManageBranches = can(user?.type, PERMISSIONS.branchesManage);
 
   const columns = React.useMemo(
-    () => getColumns(queryClient, user?.type === "ADMIN"),
-    [queryClient, user?.type]
+    () => getColumns(queryClient, canManageBranches),
+    [queryClient, canManageBranches]
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -224,8 +223,15 @@ export default function BranchesPage() {
     },
   });
 
-  if (user && user.type !== "ADMIN") {
-    return null;
+  if (!canManageBranches) {
+    return (
+      <div className="w-full">
+        <h3 className="text-2xl font-semibold">Sucursales</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          No tienes permisos para acceder a esta sección.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -338,6 +344,7 @@ export default function BranchesPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

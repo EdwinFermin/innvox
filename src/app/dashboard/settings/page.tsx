@@ -12,8 +12,9 @@ import { useEffect } from "react";
 import z from "zod";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
-import { useRouter } from "next/navigation";
 import { useConfigs } from "@/hooks/use-configs";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 
 const settingsSchema = z.object({
   NCFRangeStart: z
@@ -41,13 +42,7 @@ type SettingsValues = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (user && user.type !== "ADMIN") {
-      router.push("/dashboard");
-    }
-  }, [user, router]);
+  const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
 
   const queryClient = useQueryClient();
   const { data: configs, isLoading } = useConfigs();
@@ -133,6 +128,17 @@ export default function SettingsPage() {
   const onSubmit = (values: SettingsValues) => {
     saveMutation.mutate(values);
   };
+
+  if (!canManageSettings) {
+    return (
+      <div className="w-full">
+        <h3 className="text-2xl font-semibold">Configuraciones Generales</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          No tienes permisos para acceder a esta sección.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 py-10">

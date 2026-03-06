@@ -1,15 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { Receivable } from "@/types/receivable.types";
 
-export function useReceivables(userId: string) {
-  const query = useQuery({
-    queryKey: ["receivables", userId],
+type UseReceivablesOptions = {
+  role?: "ADMIN" | "USER";
+};
+
+export function useReceivables(
+  userId: string,
+  options: UseReceivablesOptions = {},
+) {
+  const isUserRole = options.role === "USER";
+
+  const queryResult = useQuery({
+    queryKey: ["receivables", userId, isUserRole ? "mine" : "all"],
     queryFn: async (): Promise<Receivable[]> => {
       const ref = collection(db, "receivables");
-      const snapshot = await getDocs(ref);
+      const snapshot = isUserRole
+        ? await getDocs(query(ref, where("createdBy", "==", userId)))
+        : await getDocs(ref);
+
       return snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
         ...docSnap.data(),
@@ -19,7 +31,7 @@ export function useReceivables(userId: string) {
   });
 
   return {
-    ...query,
-    data: query.data ?? [],
+    ...queryResult,
+    data: queryResult.data ?? [],
   };
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import {
   Users,
@@ -29,6 +31,8 @@ import { NavMain } from "./nav-main";
 import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
 import { useAuthStore } from "@/store/auth";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -150,12 +154,12 @@ const data = {
         },
       ],
     },
-    // {
-    //   title: "Facturas",
-    //   url: "/dashboard/invoices",
-    //   icon: FileSpreadsheet,
-    //   isActive: true,
-    // },
+    {
+      title: "Facturación",
+      url: "/dashboard/invoices",
+      icon: FileSpreadsheet,
+      isActive: true,
+    },
     {
       title: "Clientes",
       url: "/dashboard/clients",
@@ -179,6 +183,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();
+  const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -228,9 +233,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
-        <NavMain
-          items={user?.type === "ADMIN" ? data.navAdmin : data.navMain}
-        />
+        <NavMain items={canManageSettings ? data.navAdmin : data.navMain} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePageSize } from "@/components/ui/table-page-size";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomes } from "@/hooks/use-incomes";
@@ -78,7 +79,10 @@ const typeColor: Record<RowType, string> = {
 
 export default function ProfitReportPage() {
   const { user } = useAuthStore();
-  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
+  const { data: branches } = useBranches(
+    user?.id || "",
+    user?.type === "USER" ? user?.branchIds : undefined,
+  );
   const { data: incomes } = useIncomes(user?.id || "");
   const { data: expenses } = useExpenses(user?.id || "");
   const { data: receivables } = useReceivables(user?.id || "");
@@ -633,6 +637,7 @@ export default function ProfitReportPage() {
               </TableBody>
             </Table>
             <div className="flex items-center justify-end space-x-2 py-4 print-hidden">
+              <TablePageSize table={table} />
               <Button
                 variant="outline"
                 size="sm"

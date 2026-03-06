@@ -45,7 +45,7 @@ export function NewUserDialog() {
   const { user: currentUser } = useAuthStore();
   const { data: branches } = useBranches(
     currentUser?.id || "",
-    currentUser?.branchIds
+    currentUser?.type === "USER" ? currentUser?.branchIds : undefined,
   );
 
   const {

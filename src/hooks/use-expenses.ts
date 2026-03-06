@@ -1,15 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { Expense } from "@/types/expense.types";
 
-export function useExpenses(userId: string) {
-  const query = useQuery({
-    queryKey: ["expenses", userId],
+type VisibilityScope = "all" | "mine";
+
+type UseExpensesOptions = {
+  role?: "ADMIN" | "USER";
+};
+
+export function useExpenses(userId: string, options: UseExpensesOptions = {}) {
+  const isUserRole = options.role === "USER";
+  const effectiveVisibility: VisibilityScope = isUserRole ? "mine" : "all";
+
+  const queryResult = useQuery({
+    queryKey: ["expenses", userId, effectiveVisibility],
     queryFn: async (): Promise<Expense[]> => {
       const ref = collection(db, "expenses");
-      const snapshot = await getDocs(ref);
+      const snapshot =
+        isUserRole
+          ? await getDocs(query(ref, where("createdBy", "==", userId)))
+          : await getDocs(ref);
+
       return snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
         ...docSnap.data(),
@@ -18,8 +31,10 @@ export function useExpenses(userId: string) {
     enabled: !!userId,
   });
 
+  const baseData = queryResult.data ?? [];
+
   return {
-    ...query,
-    data: query.data ?? [],
+    ...queryResult,
+    data: baseData,
   };
 }

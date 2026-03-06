@@ -47,6 +47,9 @@ import { db } from "@/lib/firebase";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { ExpenseType } from "@/types/expense-type.types";
 import { NewExpenseTypeDialog } from "./components/new-expense-type-dialog";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { TablePageSize } from "@/components/ui/table-page-size";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -66,7 +69,7 @@ const getDateTime = (value: unknown): number => {
   return 0;
 };
 
-export const getColumns = (
+const getColumns = (
   queryClient: QueryClient,
   canDelete: boolean
 ): ColumnDef<ExpenseType>[] => [
@@ -177,7 +180,7 @@ export default function ExpenseTypesPage() {
   const queryClient = useQueryClient();
 
   const columns = React.useMemo(
-    () => getColumns(queryClient, user?.type === "ADMIN"),
+    () => getColumns(queryClient, can(user?.type, PERMISSIONS.dataDelete)),
     [queryClient, user?.type]
   );
 
@@ -318,6 +321,7 @@ export default function ExpenseTypesPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

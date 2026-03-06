@@ -47,6 +47,14 @@ import { db } from "@/lib/firebase";
 import { useReceivables } from "@/hooks/use-receivables";
 import { Receivable } from "@/types/receivable.types";
 import { NewReceivableDialog } from "./components/new-receivable-dialog";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { TablePageSize } from "@/components/ui/table-page-size";
+import { useUsers } from "@/hooks/use-users";
+import {
+  ListVisibilityControl,
+  type VisibilityScope,
+} from "@/components/ui/list-visibility-control";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -56,6 +64,7 @@ const getColumnLabel = (id: string): string => {
     dueDate: "Vencimiento",
     status: "Estado",
     description: "Descripción",
+    createdBy: "Creado por",
     createdAt: "Fecha de creación",
   };
   return map[id] || id;
@@ -76,8 +85,9 @@ const getDateTime = (value: unknown): number => {
   return 0;
 };
 
-export const getColumns = (
+const getColumns = (
   queryClient: QueryClient,
+  userNameById: Record<string, string>,
   canDelete: boolean
 ): ColumnDef<Receivable>[] => [
   {
@@ -182,6 +192,15 @@ export const getColumns = (
     cell: ({ row }) => <div className="line-clamp-2">{row.original.description}</div>,
   },
   {
+    accessorKey: "createdBy",
+    header: "Creado por",
+    cell: ({ row }) => {
+      const userId = row.original.createdBy ?? "";
+      if (!userId) return <div>-</div>;
+      return <div>{userNameById[userId] ?? userId}</div>;
+    },
+  },
+  {
     id: "actions",
     enableHiding: false,
     cell: (row) => (
@@ -220,12 +239,48 @@ export const getColumns = (
 export default function ReceivablesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
-  const { data: receivables, isLoading } = useReceivables(user?.id || "");
+  const [visibilityScope, setVisibilityScope] =
+    React.useState<VisibilityScope>("all");
+  const { data: receivables, isLoading } = useReceivables(user?.id || "", {
+    role: user?.type,
+  });
+  const { data: users } = useUsers();
   const queryClient = useQueryClient();
 
+  React.useEffect(() => {
+    if (user?.type === "ADMIN") {
+      setVisibilityScope("all");
+      return;
+    }
+
+    setVisibilityScope("mine");
+  }, [user?.type]);
+
+  const userNameById = React.useMemo(
+    () =>
+      users.reduce<Record<string, string>>((acc, item) => {
+        acc[item.id] = item.name || item.email || item.id;
+        return acc;
+      }, {}),
+    [users],
+  );
+
+  const filteredReceivables = React.useMemo(() => {
+    if (visibilityScope !== "mine") {
+      return receivables;
+    }
+
+    return receivables.filter((receivable) => receivable.createdBy === user?.id);
+  }, [receivables, user?.id, visibilityScope]);
+
   const columns = React.useMemo(
-    () => getColumns(queryClient, user?.type === "ADMIN"),
-    [queryClient, user?.type]
+    () =>
+      getColumns(
+        queryClient,
+        userNameById,
+        can(user?.type, PERMISSIONS.dataDelete),
+      ),
+    [queryClient, userNameById, user?.type]
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -237,7 +292,7 @@ export default function ReceivablesPage() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
-    data: receivables,
+    data: filteredReceivables,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -365,6 +420,12 @@ export default function ReceivablesPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <ListVisibilityControl
+          role={user?.type}
+          value={visibilityScope}
+          onChange={setVisibilityScope}
+        />
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

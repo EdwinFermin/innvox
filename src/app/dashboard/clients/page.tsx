@@ -44,9 +44,12 @@ import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Client } from "@/types/client.types";
 import { NewClientDialog } from "./components/new-client-dialog";
+import { TablePageSize } from "@/components/ui/table-page-size";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -186,7 +189,7 @@ export default function ClientsPage() {
   const queryClient = useQueryClient();
 
   const columns = React.useMemo(
-    () => getColumns(queryClient, user?.type === "ADMIN"),
+    () => getColumns(queryClient, can(user?.type, PERMISSIONS.dataDelete)),
     [queryClient, user?.type]
   );
 
@@ -327,6 +330,7 @@ export default function ClientsPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

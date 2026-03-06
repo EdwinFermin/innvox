@@ -44,7 +44,9 @@ import { User } from "@/types/auth.types";
 import { db } from "@/lib/firebase";
 import { EditUserDialog } from "./components/edit-user-dialog";
 import { useAuthStore } from "@/store/auth";
-import { useRouter } from "next/navigation";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { TablePageSize } from "@/components/ui/table-page-size";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -180,14 +182,8 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
 export default function UsersPage() {
   const isMobile = useIsMobile();
   const { user: currentUser } = useAuthStore();
-  const router = useRouter();
   const { data: users, isLoading } = useUsers();
-
-  React.useEffect(() => {
-    if (currentUser && currentUser.type !== "ADMIN") {
-      router.replace("/dashboard");
-    }
-  }, [currentUser, router]);
+  const canManageUsers = can(currentUser?.type, PERMISSIONS.usersManage);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -198,8 +194,8 @@ export default function UsersPage() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   const columns = React.useMemo(
-    () => getColumns(currentUser?.type === "ADMIN"),
-    [currentUser?.type]
+    () => getColumns(canManageUsers),
+    [canManageUsers]
   );
 
   const table = useReactTable({
@@ -221,8 +217,15 @@ export default function UsersPage() {
     },
   });
 
-  if (currentUser && currentUser.type !== "ADMIN") {
-    return null;
+  if (!canManageUsers) {
+    return (
+      <div className="w-full">
+        <h3 className="text-2xl font-semibold">Usuarios</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          No tienes permisos para acceder a esta sección.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -335,6 +338,7 @@ export default function UsersPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

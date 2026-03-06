@@ -8,4 +8,5 @@ export interface Income {
   description: string;
   date: Timestamp;
   createdAt: Timestamp;
+  createdBy?: string;
 }

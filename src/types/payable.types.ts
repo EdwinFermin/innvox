@@ -9,4 +9,5 @@ export interface Payable {
   description: string;
   status: string;
   createdAt: Timestamp;
+  createdBy?: string;
 }

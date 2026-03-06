@@ -21,12 +21,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, doc, type DocumentReference } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
+import { User } from "@/types/auth.types";
 
 const newReceivableSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -44,7 +45,10 @@ export function NewReceivableDialog() {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
+  const { data: branches } = useBranches(
+    user?.id || "",
+    user?.type === "USER" ? user?.branchIds : undefined,
+  );
 
   const {
     register,
@@ -64,12 +68,20 @@ export function NewReceivableDialog() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewReceivableValues) => {
+      if (!user?.id) {
+        throw new Error("No se encontró el usuario autenticado.");
+      }
+
       const ref = collection(db, "receivables");
+      const userRef = doc(db, "users", user.id) as DocumentReference<User>;
+
       await addDoc(ref, {
         ...data,
         amount: Number(data.amount),
         dueDate: new Date(data.dueDate),
         createdAt: new Date(),
+        createdBy: user.id,
+        createdByRef: userRef,
       });
     },
     onSuccess: () => {

@@ -9,4 +9,5 @@ export interface Receivable {
   description: string;
   status: string;
   createdAt: Timestamp;
+  createdBy?: string;
 }

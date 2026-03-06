@@ -214,6 +214,8 @@ export function NewInvoiceDialog({
         createdAt: invoice?.createdAt ?? Timestamp.fromDate(new Date()),
         user: userRef,
         userId: invoiceUserId,
+        createdBy: invoiceUserId,
+        createdByRef: userRef,
       };
 
       await setDoc(ref, payload, { merge: false });

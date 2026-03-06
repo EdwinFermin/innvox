@@ -57,6 +57,14 @@ import { Income } from "@/types/income.types";
 import { NewIncomeDialog } from "./components/new-income-dialog";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { TablePageSize } from "@/components/ui/table-page-size";
+import { useUsers } from "@/hooks/use-users";
+import {
+  ListVisibilityControl,
+  type VisibilityScope,
+} from "@/components/ui/list-visibility-control";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -66,6 +74,7 @@ const getColumnLabel = (id: string): string => {
     amount: "Monto",
     date: "Fecha",
     description: "Descripción",
+    createdBy: "Creado por",
     createdAt: "Fecha de creación",
   };
   return map[id] || id;
@@ -76,10 +85,11 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
   currency: "DOP",
 });
 
-export const getColumns = (
+const getColumns = (
   queryClient: QueryClient,
   branchNameById: Record<string, string>,
   incomeTypeNameById: Record<string, string>,
+  userNameById: Record<string, string>,
   canDelete: boolean,
   toLocalMidnight: (value: Income["date"]) => Date | null,
 ): ColumnDef<Income>[] => [
@@ -193,6 +203,15 @@ export const getColumns = (
     },
   },
   {
+    accessorKey: "createdBy",
+    header: "Creado por",
+    cell: ({ row }) => {
+      const userId = row.original.createdBy ?? "";
+      if (!userId) return <div>-</div>;
+      return <div>{userNameById[userId] ?? userId}</div>;
+    },
+  },
+  {
     id: "actions",
     enableHiding: false,
     cell: (row) => (
@@ -234,10 +253,27 @@ export default function IncomesPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { data: incomes, isLoading } = useIncomes(user?.id || "");
-  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
+  const [visibilityScope, setVisibilityScope] =
+    React.useState<VisibilityScope>("all");
+  const { data: incomes, isLoading } = useIncomes(user?.id || "", {
+    role: user?.type,
+  });
+  const { data: branches } = useBranches(
+    user?.id || "",
+    user?.type === "USER" ? user?.branchIds : undefined,
+  );
   const { data: incomeTypes } = useIncomeTypes(user?.id || "");
+  const { data: users } = useUsers();
   const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    if (user?.type === "ADMIN") {
+      setVisibilityScope("all");
+      return;
+    }
+
+    setVisibilityScope("mine");
+  }, [user?.type]);
 
   const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [startDate, setStartDate] = React.useState<string>(today);
@@ -288,10 +324,13 @@ export default function IncomesPage() {
 
   const filteredIncomes = React.useMemo(() => {
     const allowedBranches =
-      user?.branchIds && user.branchIds.length > 0
+      user?.type === "USER" && user?.branchIds && user.branchIds.length > 0
         ? new Set(user.branchIds)
         : null;
     return incomes.filter((income) => {
+      if (visibilityScope === "mine" && income.createdBy !== user?.id) {
+        return false;
+      }
       if (allowedBranches && !allowedBranches.has(income.branchId))
         return false;
       const dateKey = normalizeDateKey(income.date);
@@ -312,6 +351,9 @@ export default function IncomesPage() {
     normalizeDateKey,
     startDate,
     typeFilter,
+    visibilityScope,
+    user?.id,
+    user?.type,
     user?.branchIds,
   ]);
 
@@ -333,19 +375,30 @@ export default function IncomesPage() {
     [incomeTypes],
   );
 
+  const userNameById = React.useMemo(
+    () =>
+      users.reduce<Record<string, string>>((acc, item) => {
+        acc[item.id] = item.name || item.email || item.id;
+        return acc;
+      }, {}),
+    [users],
+  );
+
   const columns = React.useMemo(
     () =>
       getColumns(
         queryClient,
         branchNameById,
         incomeTypeNameById,
-        user?.type === "ADMIN",
+        userNameById,
+        can(user?.type, PERMISSIONS.dataDelete),
         toLocalMidnight,
       ),
     [
       queryClient,
       branchNameById,
       incomeTypeNameById,
+      userNameById,
       user?.type,
       toLocalMidnight,
     ],
@@ -553,6 +606,12 @@ export default function IncomesPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <ListVisibilityControl
+          role={user?.type}
+          value={visibilityScope}
+          onChange={setVisibilityScope}
+        />
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

@@ -13,10 +13,9 @@ import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signIn } from "next-auth/react";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
-import { useAuthStore } from "@/store/auth";
 
 export function LoginForm({
   className,
@@ -25,34 +24,36 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { setLoading } = useAuthStore();
 
   const signInEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
     try {
-      setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/");
-    } catch (err: unknown) {
-      setLoading(false);
-      if (err instanceof FirebaseError) {
-        switch (err.code) {
-          case "auth/invalid-credential":
-            setError("Invalid credentials provided.");
-            break;
-          case "auth/user-not-found":
-            setError("No user found with this email.");
-            break;
-          case "auth/wrong-password":
-            setError("Incorrect password. Please try again.");
-            break;
-          default:
-            setError(err.message);
-        }
-      } else {
-        setError("An unknown error occurred");
+
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        await signOut(auth);
+        setError("Credenciales inválidas. Verifica tu correo y contraseña.");
+        return;
       }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      await signOut(auth).catch(() => undefined);
+      setError("Ocurrió un error inesperado. Intenta de nuevo.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,7 +102,9 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit">Iniciar</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Entrando..." : "Iniciar"}
+                </Button>
               </Field>
               {/* <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 O continúa con

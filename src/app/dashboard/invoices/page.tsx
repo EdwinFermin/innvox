@@ -52,6 +52,13 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePrintInvoice } from "@/hooks/use-print-invoice";
 import { useAuthStore } from "@/store/auth";
 import { NCFConfig } from "@/types/ncf.types";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
+import { TablePageSize } from "@/components/ui/table-page-size";
+import {
+  ListVisibilityControl,
+  type VisibilityScope,
+} from "@/components/ui/list-visibility-control";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -81,9 +88,32 @@ const getDateTime = (value: unknown): number => {
 
 export default function InvoicesPage() {
   const { user: currentUser } = useAuthStore();
-  const canDelete = currentUser?.type === "ADMIN";
+  const canDelete = can(currentUser?.type, PERMISSIONS.dataDelete);
   const isMobile = useIsMobile();
-  const { data: invoices, isLoading } = useInvoices();
+  const [visibilityScope, setVisibilityScope] =
+    React.useState<VisibilityScope>("all");
+  const { data: invoices, isLoading } = useInvoices(currentUser?.id || "", {
+    role: currentUser?.type,
+  });
+
+  React.useEffect(() => {
+    if (currentUser?.type === "ADMIN") {
+      setVisibilityScope("all");
+      return;
+    }
+
+    setVisibilityScope("mine");
+  }, [currentUser?.type]);
+
+  const filteredInvoices = React.useMemo(() => {
+    if (visibilityScope !== "mine") {
+      return invoices;
+    }
+
+    return invoices.filter(
+      (invoice) => (invoice.createdBy ?? invoice.userId) === currentUser?.id,
+    );
+  }, [invoices, currentUser?.id, visibilityScope]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -388,7 +418,7 @@ export default function InvoicesPage() {
   ];
 
   const table = useReactTable({
-    data: invoices,
+    data: filteredInvoices,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -528,6 +558,12 @@ export default function InvoicesPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <ListVisibilityControl
+          role={currentUser?.type}
+          value={visibilityScope}
+          onChange={setVisibilityScope}
+        />
+        <TablePageSize table={table} />
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

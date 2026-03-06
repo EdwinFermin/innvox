@@ -50,10 +50,12 @@ const chartConfig = {
 
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
-  const userId = useAuthStore((state) => state.user?.id ?? "");
-  const { data: invoices } = useInvoices();
-  const { data: incomes } = useIncomes(userId);
-  const { data: expenses } = useExpenses(userId);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.id ?? "";
+  const userRole = user?.type;
+  const { data: invoices } = useInvoices(userId, { role: userRole });
+  const { data: incomes } = useIncomes(userId, { role: userRole });
+  const { data: expenses } = useExpenses(userId, { role: userRole });
   const [timeRange, setTimeRange] = React.useState("90d");
 
   React.useEffect(() => {

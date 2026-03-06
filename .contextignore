@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/**
+.next/**
+out/**
+build/**
+coverage/**
+
+# VCS and tooling caches
+.git/**
+.cache/**
+.vercel/**
+
+# Local env and logs
+.env*
+*.log
+
+# Heavy or generated files
+package-lock.json
+*.tsbuildinfo
+
+# Agent skill packs (not app source)
+.agents/skills/**

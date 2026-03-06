@@ -21,13 +21,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, doc, type DocumentReference } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
+import { User } from "@/types/auth.types";
 
 const newIncomeSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -46,7 +47,10 @@ export function NewIncomeDialog({
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { data: branches } = useBranches(user?.id || "", user?.branchIds);
+  const { data: branches } = useBranches(
+    user?.id || "",
+    user?.type === "USER" ? user?.branchIds : undefined,
+  );
   const { data: incomeTypes } = useIncomeTypes(user?.id || "");
 
   const {
@@ -63,15 +67,23 @@ export function NewIncomeDialog({
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewIncomeValues) => {
+      if (!user?.id) {
+        throw new Error("No se encontró el usuario autenticado.");
+      }
+
       const [year, month, day] = data.date.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day));
       const ref = collection(db, "incomes");
+      const userRef = doc(db, "users", user.id) as DocumentReference<User>;
+
       await addDoc(ref, {
         ...data,
         amount: Number(data.amount),
         // Store as UTC midnight to keep a consistent calendar date
         date: utcDate,
         createdAt: new Date(),
+        createdBy: user.id,
+        createdByRef: userRef,
       });
     },
     onSuccess: () => {

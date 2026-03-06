@@ -1,15 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDoc, getDocs } from "firebase/firestore";
+import { collection, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Invoice } from "@/types/invoice.types";
 import { Client } from "@/types/client.types";
 import { User } from "@/types/auth.types";
 
-export function useInvoices() {
-  const query = useQuery<Invoice[]>({
-    queryKey: ["invoices"],
+type UseInvoicesOptions = {
+  role?: "ADMIN" | "USER";
+};
+
+export function useInvoices(userId = "", options: UseInvoicesOptions = {}) {
+  const isUserRole = options.role === "USER";
+
+  const queryResult = useQuery<Invoice[]>({
+    queryKey: ["invoices", userId, isUserRole ? "mine" : "all"],
     queryFn: async () => {
-      const snap = await getDocs(collection(db, "invoices"));
+      const invoicesRef = collection(db, "invoices");
+      const snap = isUserRole
+        ? await getDocs(query(invoicesRef, where("createdBy", "==", userId)))
+        : await getDocs(invoicesRef);
 
       return Promise.all(
         snap.docs.map(async (d) => {
@@ -48,14 +57,16 @@ export function useInvoices() {
             createdAt: data.createdAt,
             userId: userRef?.id ?? "",
             user,
+            createdBy: String(data.createdBy ?? userRef?.id ?? data.userId ?? ""),
           } as Invoice;
         })
       );
     },
+    enabled: isUserRole ? !!userId : true,
   });
 
   return {
-    ...query,
-    data: query.data ?? [],
+    ...queryResult,
+    data: queryResult.data ?? [],
   };
 }

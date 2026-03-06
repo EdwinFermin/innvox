@@ -16,4 +16,5 @@ export interface Invoice {
   createdAt: Timestamp;
   userId: string;
   user: User | null;
+  createdBy?: string;
 }
