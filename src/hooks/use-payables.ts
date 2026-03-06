@@ -24,7 +24,7 @@ export function usePayables(userId: string, options: UsePayablesOptions = {}) {
         ...docSnap.data(),
       })) as Payable[];
     },
-    enabled: !!userId,
+    enabled: isUserRole ? !!userId : true,
   });
 
   return {

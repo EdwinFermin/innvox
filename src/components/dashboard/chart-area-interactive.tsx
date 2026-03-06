@@ -117,10 +117,7 @@ export function ChartAreaInteractive() {
     }));
   }, [expenses, incomes, invoices]);
 
-  const referenceDate = React.useMemo(() => {
-    if (!dailyRollups.length) return new Date();
-    return new Date(dailyRollups[dailyRollups.length - 1].date);
-  }, [dailyRollups]);
+  const referenceDate = React.useMemo(() => new Date(), []);
 
   const filteredData = React.useMemo(() => {
     let daysToSubtract = 90;
@@ -133,7 +130,10 @@ export function ChartAreaInteractive() {
     const startDate = new Date(referenceDate);
     startDate.setDate(startDate.getDate() - daysToSubtract);
 
-    return dailyRollups.filter((item) => new Date(item.date) >= startDate);
+    return dailyRollups.filter((item) => {
+      const pointDate = new Date(item.date);
+      return pointDate >= startDate && pointDate <= referenceDate;
+    });
   }, [dailyRollups, referenceDate, timeRange]);
 
   const growthData = React.useMemo(() => {

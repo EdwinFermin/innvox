@@ -27,7 +27,7 @@ export function useReceivables(
         ...docSnap.data(),
       })) as Receivable[];
     },
-    enabled: !!userId,
+    enabled: isUserRole ? !!userId : true,
   });
 
   return {

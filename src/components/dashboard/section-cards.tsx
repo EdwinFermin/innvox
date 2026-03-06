@@ -19,10 +19,12 @@ import { usePayables } from "@/hooks/use-payables";
 
 export function SectionCards() {
   const { user } = useAuthStore();
-  const { data: incomes } = useIncomes(user?.id || "");
-  const { data: expenses } = useExpenses(user?.id || "");
-  const { data: receivables } = useReceivables(user?.id || "");
-  const { data: payables } = usePayables(user?.id || "");
+  const userId = user?.id || "";
+  const userRole = user?.type;
+  const { data: incomes } = useIncomes(userId, { role: userRole });
+  const { data: expenses } = useExpenses(userId, { role: userRole });
+  const { data: receivables } = useReceivables(userId, { role: userRole });
+  const { data: payables } = usePayables(userId, { role: userRole });
 
   const now = new Date();
   const prev = new Date(now);

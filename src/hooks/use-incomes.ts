@@ -28,7 +28,7 @@ export function useIncomes(userId: string, options: UseIncomesOptions = {}) {
         ...docSnap.data(),
       })) as Income[];
     },
-    enabled: !!userId,
+    enabled: isUserRole ? !!userId : true,
   });
 
   const baseData = queryResult.data ?? [];

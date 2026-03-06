@@ -28,7 +28,7 @@ export function useExpenses(userId: string, options: UseExpensesOptions = {}) {
         ...docSnap.data(),
       })) as Expense[];
     },
-    enabled: !!userId,
+    enabled: isUserRole ? !!userId : true,
   });
 
   const baseData = queryResult.data ?? [];
