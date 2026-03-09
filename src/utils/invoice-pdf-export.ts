@@ -20,6 +20,10 @@ function parseAmount(value: string): number {
   return Number(value.replace(/,/g, "").trim());
 }
 
+function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function parseDdMmYyyy(value: string): Date {
   const [day, month, year] = value.split("/").map((part) => Number(part));
   const date = new Date(year, month - 1, day);
@@ -64,16 +68,27 @@ function getSubtotalFromText(text: string, lines: string[]): number | null {
 }
 
 function getItbisFromText(text: string, lines: string[]): number | null {
-  const itbisLine =
-    lines.find((line) => /\bITBIS\b/i.test(line) && !/^\s*\d+%\s*ITBIS\s+en\s+RD\$/i.test(line)) ??
-    lines.find((line) => /\bITBIS\b/i.test(line)) ??
-    "";
+  const labeledItbisLine =
+    lines.find((line) => /^\s*18%\s*ITBIS\s+en\s+RD\$/i.test(line)) ?? "";
+  const labeledLineAmount = getLastAmountFromLine(labeledItbisLine);
+  if (labeledLineAmount !== null) {
+    return labeledLineAmount;
+  }
+
+  const itbisLine = lines.find((line) => /\bITBIS\b/i.test(line)) ?? "";
   const lineAmount = getLastAmountFromLine(itbisLine);
   if (lineAmount !== null) {
     return lineAmount;
   }
 
   const compactText = text.replace(/\s+/g, " ");
+  const labeledItbisMatch = compactText.match(
+    /18%\s*ITBIS\s+en\s+RD\$\s*[0-9.,]+[\s\S]{0,40}?RD\$\s*([0-9.,]+)/i,
+  );
+  if (labeledItbisMatch?.[1]) {
+    return parseAmount(labeledItbisMatch[1]);
+  }
+
   const itbisMatch = compactText.match(
     /\bITBIS\b[\s\S]{0,80}?RD\$\s*([0-9.,]+)(?:[\s\S]{0,40}?RD\$\s*([0-9.,]+))?/i,
   );
@@ -85,19 +100,25 @@ function getItbisFromText(text: string, lines: string[]): number | null {
 }
 
 function getTotalFromText(text: string, lines: string[]): number | null {
-  const totalLine = lines.find((line) => /^Total\b/i.test(line)) ?? "";
+  const totalLine =
+    lines.find((line) => /^Total\b/i.test(line) && !/^Sub\s*total\b/i.test(line)) ?? "";
   const lineAmount = getLastAmountFromLine(totalLine);
   if (lineAmount !== null) {
     return lineAmount;
   }
 
   const compactText = text.replace(/\s+/g, " ");
-  const totalMatch = compactText.match(/\bTotal\s*RD\$\s*([0-9.,]+)/i);
+  const totalMatches = [
+    ...compactText.matchAll(/\b(Sub\s*total|Total)\b\s*RD\$\s*([0-9.,]+)/gi),
+  ];
+  const totalMatch = [...totalMatches]
+    .reverse()
+    .find((match) => !/^Sub\s*total$/i.test(match[1] ?? ""));
   if (!totalMatch?.[1]) {
     return null;
   }
 
-  return parseAmount(totalMatch[1]);
+  return parseAmount(totalMatch[2]);
 }
 
 async function extractPdfText(file: File): Promise<string> {
@@ -142,7 +163,10 @@ export async function parseInvoicePdf(
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const rnc = text.match(/RNC\s+CLIENTE:\s*([0-9-]+)/i)?.[1] ?? "";
+  const rnc =
+    text.match(/(?:^|\n)\s*RNC\s*:?[ \t]*([0-9-]+)/i)?.[1] ??
+    text.match(/\bRNC\s*:?[ \t]*([0-9-]+)/i)?.[1] ??
+    "";
   const ncf =
     text.match(/\bNCF:\s*([A-Z0-9-]+)/i)?.[1] ??
     text.match(/\b([BE]\d{10,20})\b/)?.[1] ??
@@ -152,14 +176,20 @@ export async function parseInvoicePdf(
   const subtotal = getSubtotalFromText(text, lines);
   const itbis = getItbisFromText(text, lines);
   const total = getTotalFromText(text, lines);
+  const normalizedTotal =
+    subtotal !== null &&
+    itbis !== null &&
+    (total === null || Math.abs(total - subtotal) < 0.01)
+      ? roundCurrency(subtotal + itbis)
+      : total;
 
   const missingFields: string[] = [];
-  if (!rnc) missingFields.push("RNC CLIENTE");
+  if (!rnc) missingFields.push("RNC");
   if (!ncf) missingFields.push("NCF");
   if (!dateValue) missingFields.push("Fecha");
   if (subtotal === null) missingFields.push("Subtotal");
   if (itbis === null) missingFields.push("ITBIS");
-  if (total === null) missingFields.push("Total");
+  if (normalizedTotal === null) missingFields.push("Total");
 
   if (missingFields.length > 0) {
     throw new Error(`No se encontraron campos: ${missingFields.join(", ")}.`);
@@ -171,7 +201,7 @@ export async function parseInvoicePdf(
     date: parseDdMmYyyy(dateValue),
     subtotal: subtotal!,
     itbis: itbis!,
-    total: total!,
+    total: normalizedTotal!,
   };
 }
 
