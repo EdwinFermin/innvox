@@ -234,6 +234,10 @@ export default function DgiiFormPage() {
           <div className="text-sm text-muted-foreground space-y-1">
             <p>Procesadas: {processedCount}</p>
             <p>Omitidas: {skippedFiles.length}</p>
+            <p>
+              Soporta los dos formatos actuales de factura de EnviosRD siempre que el
+              PDF contenga texto seleccionable.
+            </p>
           </div>
 
           {skippedFiles.length > 0 ? (

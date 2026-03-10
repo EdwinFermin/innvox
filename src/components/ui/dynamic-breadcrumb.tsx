@@ -26,6 +26,7 @@ function translateSegment(segment: string): string {
     profit: "Utilidades",
     receivables: "CxC",
     payables: "CxP",
+    "link-de-pago": "Link de pago",
     branches: "Sucursales",
     parameters: "Parametros",
     "Income-types": "Tipos de ingresos",
