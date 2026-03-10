@@ -64,6 +64,10 @@ const data = {
           title: "Cuentas por pagar",
           url: "/dashboard/payables",
         },
+        {
+          title: "Link de pago",
+          url: "/dashboard/link-de-pago",
+        },
       ],
     },
     {
@@ -151,6 +155,10 @@ const data = {
         {
           title: "Cuentas por pagar",
           url: "/dashboard/payables",
+        },
+        {
+          title: "Link de pago",
+          url: "/dashboard/link-de-pago",
         },
       ],
     },

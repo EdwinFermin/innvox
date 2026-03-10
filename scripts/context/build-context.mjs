@@ -59,6 +59,28 @@ function chooseScopedFiles(files, scope) {
   return files.filter((entry) => scope.some((prefix) => entry.path.startsWith(prefix)));
 }
 
+function prependCoreFiles(selected, repoMap, maxFiles) {
+  const corePaths = ["docs/app-overview.md"];
+  const byPath = new Map(repoMap.files.map((entry) => [entry.path, entry]));
+  const selectedSet = new Set(selected.map((entry) => entry.path));
+  const prepended = [];
+
+  for (const corePath of corePaths) {
+    if (selectedSet.has(corePath)) continue;
+
+    const entry = byPath.get(corePath);
+    if (!entry) continue;
+
+    prepended.push({
+      ...entry,
+      score: Number.MAX_SAFE_INTEGER,
+      reason: ["core app overview"],
+    });
+  }
+
+  return [...prepended, ...selected].slice(0, maxFiles);
+}
+
 function lineRangesForTokens(content, queryTokens, padding = 4) {
   const lines = content.split(/\r?\n/g);
   const hits = new Set();
@@ -155,6 +177,8 @@ async function main() {
     }
   }
 
+  const withCoreContext = prependCoreFiles(selected, repoMap, args.maxFiles);
+
   await mkdir(cacheDir, { recursive: true });
 
   const headerLines = [
@@ -168,7 +192,7 @@ async function main() {
     "## Included Files",
   ];
 
-  for (const file of selected) {
+  for (const file of withCoreContext) {
     const reason = file.reason.length > 0 ? file.reason[0] : "relevant by ranking";
     headerLines.push(`- ${file.path} -- ${reason}`);
   }
@@ -176,7 +200,7 @@ async function main() {
   let markdown = `${headerLines.join("\n")}\n`;
   const included = [];
 
-  for (const file of selected) {
+  for (const file of withCoreContext) {
     if (markdown.length >= args.budget) {
       break;
     }
