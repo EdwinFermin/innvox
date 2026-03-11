@@ -27,6 +27,14 @@ service cloud.firestore {
       allow update: if isAuthenticated() || isLinkPaymentCompletion();
     }
 
+    match /bankAccounts/{accountId} {
+      allow read: if isAuthenticated()
+        || (resource.data.isActive == true
+            && resource.data.accountType == "bank"
+            && resource.data.isPublic == true);
+      allow write: if isAuthenticated();
+    }
+
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }

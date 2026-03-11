@@ -50,6 +50,7 @@ const schema = z
     accountNumber: z.string().optional(),
     currency: z.enum(["DOP", "USD"]),
     isActive: z.enum(["true", "false"]),
+    isPublic: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.branchIds.length === 0 && !data.pettyCashBranchId) {
@@ -114,6 +115,7 @@ export function EditBankAccountDialog({
       accountNumber: account.accountNumber ?? "",
       currency: (account.currency ?? "DOP") as Currency,
       isActive: account.isActive ? "true" : "false",
+      isPublic: account.isPublic !== false,
     };
   }, [account, isBankAccount]);
 
@@ -166,6 +168,7 @@ export function EditBankAccountDialog({
           : null,
         currency: values.currency,
         isActive: values.isActive === "true",
+        isPublic: isBankAccount ? values.isPublic : false,
         iconUrl,
       });
     },
@@ -323,6 +326,24 @@ export function EditBankAccountDialog({
               </div>
             </div>
           ) : null}
+
+          {isBankAccount && (
+            <label className="flex items-center gap-3 rounded-lg border p-4 cursor-pointer hover:bg-muted/40">
+              <Checkbox
+                checked={watch("isPublic")}
+                onCheckedChange={(val) =>
+                  setValue("isPublic", !!val, { shouldValidate: true })
+                }
+                disabled={isPending}
+              />
+              <div>
+                <p className="text-sm font-medium">Visible en portal público</p>
+                <p className="text-xs text-muted-foreground">
+                  Si está activo, esta cuenta aparecerá en la página pública de cuentas bancarias de la sucursal.
+                </p>
+              </div>
+            </label>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Icono o logo</label>

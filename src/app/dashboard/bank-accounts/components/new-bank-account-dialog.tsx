@@ -48,6 +48,7 @@ const newBankAccountSchema = z
       error: "La moneda es obligatoria",
     }),
     initialBalance: z.coerce.number().min(0, "El balance inicial debe ser 0 o mayor"),
+    isPublic: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.accountType === "bank") {
@@ -107,6 +108,7 @@ export function NewBankAccountDialog() {
       branchIds: [],
       currency: "DOP",
       initialBalance: 0,
+      isPublic: true,
     },
   });
 
@@ -123,6 +125,7 @@ export function NewBankAccountDialog() {
       accountName: "",
       bankName: "",
       accountNumber: "",
+      isPublic: true,
     }),
     [],
   );
@@ -153,6 +156,7 @@ export function NewBankAccountDialog() {
         iconUrl,
         currentBalance: Number(data.initialBalance),
         isActive: true,
+        isPublic: data.accountType === "bank" ? data.isPublic : false,
         createdAt: new Date(),
         createdBy: user.id,
       });
@@ -436,6 +440,24 @@ export function NewBankAccountDialog() {
               )}
             </div>
           </div>
+
+          {accountType === "bank" && (
+            <label className="flex items-center gap-3 rounded-lg border p-4 cursor-pointer hover:bg-muted/40">
+              <Checkbox
+                checked={watch("isPublic")}
+                onCheckedChange={(val) =>
+                  setValue("isPublic", !!val, { shouldValidate: true })
+                }
+                disabled={isPending}
+              />
+              <div>
+                <p className="text-sm font-medium">Visible en portal público</p>
+                <p className="text-xs text-muted-foreground">
+                  Si está activo, esta cuenta aparecerá en la página pública de cuentas bancarias de la sucursal.
+                </p>
+              </div>
+            </label>
+          )}
 
           <div className="flex justify-end gap-2">
             <DialogClose asChild>
