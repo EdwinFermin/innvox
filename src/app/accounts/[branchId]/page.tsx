@@ -77,6 +77,7 @@ export default function PublicBranchAccountsPage() {
           where("branchIds", "array-contains", branchId),
           where("isActive", "==", true),
           where("accountType", "==", "bank"),
+          where("isPublic", "==", true),
         ),
       );
 

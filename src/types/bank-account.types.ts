@@ -16,6 +16,7 @@ export interface BankAccount {
   currentBalance: number;
   currency: Currency;
   isActive: boolean;
+  isPublic?: boolean; // Whether this account is visible on the public accounts page
   createdAt: Timestamp;
   createdBy: string;
 }
