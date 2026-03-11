@@ -13,11 +13,10 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { deleteDoc, doc } from "firebase/firestore";
 import { toast } from "sonner";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -51,7 +50,6 @@ import {
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
-import { db } from "@/lib/firebase";
 import { useIncomes } from "@/hooks/use-incomes";
 import { Income } from "@/types/income.types";
 import { NewIncomeDialog } from "./components/new-income-dialog";
@@ -68,6 +66,7 @@ import {
   ListVisibilityControl,
   type VisibilityScope,
 } from "@/components/ui/list-visibility-control";
+import { deleteIncome } from "@/lib/financial-movements";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -90,13 +89,13 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
 });
 
 const getColumns = (
-  queryClient: QueryClient,
   branchNameById: Record<string, string>,
   incomeTypeNameById: Record<string, string>,
   accountById: Record<string, BankAccount>,
   userNameById: Record<string, string>,
   canDelete: boolean,
   toLocalMidnight: (value: Income["date"]) => Date | null,
+  onDelete: (incomeId: string) => Promise<void>,
 ): ColumnDef<Income>[] => [
   {
     id: "select",
@@ -260,14 +259,8 @@ const getColumns = (
           {canDelete && (
             <DropdownMenuItem
               variant="destructive"
-              onClick={async () => {
-                try {
-                  await deleteDoc(doc(db, "incomes", row.row.original.id));
-                  toast.success("Ingreso eliminado");
-                  queryClient.invalidateQueries({ queryKey: ["incomes"] });
-                } catch {
-                  toast.error("Error al eliminar el ingreso");
-                }
+              onClick={() => {
+                void onDelete(row.row.original.id);
               }}
             >
               Eliminar
@@ -426,25 +419,56 @@ export default function IncomesPage() {
     [users],
   );
 
+  const handleDeleteIncome = React.useCallback(
+    async (incomeId: string) => {
+      try {
+        const result = await deleteIncome(incomeId);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["incomes"] }),
+          queryClient.invalidateQueries({ queryKey: ["bankAccounts"] }),
+          queryClient.invalidateQueries({ queryKey: ["bankAccount"] }),
+          queryClient.invalidateQueries({ queryKey: ["bankTransactions"] }),
+        ]);
+
+        if (result.historyRepaired) {
+          toast.success("Ingreso eliminado");
+          return;
+        }
+
+        toast.success(
+          "Ingreso eliminado, pero no se pudo recalcular el historial bancario",
+        );
+      } catch (error) {
+        console.error("Error al eliminar el ingreso", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Error al eliminar el ingreso",
+        );
+      }
+    },
+    [queryClient],
+  );
+
   const columns = React.useMemo(
     () =>
       getColumns(
-        queryClient,
         branchNameById,
         incomeTypeNameById,
         accountById,
         userNameById,
         can(user?.type, PERMISSIONS.dataDelete),
         toLocalMidnight,
+        handleDeleteIncome,
       ),
     [
-      queryClient,
       branchNameById,
       incomeTypeNameById,
       accountById,
       userNameById,
       user?.type,
       toLocalMidnight,
+      handleDeleteIncome,
     ],
   );
 
