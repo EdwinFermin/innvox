@@ -4,7 +4,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   Timestamp,
 } from "firebase/firestore";
 
@@ -14,6 +13,33 @@ import { BankAccount } from "@/types/bank-account.types";
 import { BankTransaction } from "@/types/bank-transaction.types";
 
 const EMPTY_TRANSACTIONS: BankTransaction[] = [];
+
+function toMillis(value: unknown): number {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  const timestampLike = value as { toMillis?: () => number } | null;
+
+  if (
+    timestampLike &&
+    typeof timestampLike === "object" &&
+    typeof timestampLike.toMillis === "function"
+  ) {
+    return timestampLike.toMillis();
+  }
+
+  return 0;
+}
+
+function sortTransactionsDesc(transactions: BankTransaction[]): BankTransaction[] {
+  return [...transactions].sort(
+    (a, b) =>
+      toMillis(b.date) - toMillis(a.date) ||
+      toMillis(b.createdAt) - toMillis(a.createdAt) ||
+      b.id.localeCompare(a.id),
+  );
+}
 
 export function useBankTransactions(
   userId: string,
@@ -37,11 +63,7 @@ export function useBankTransactions(
     ],
     queryFn: async (): Promise<BankTransaction[]> => {
       const ref = collection(db, "bankTransactions");
-      const q = query(
-        ref,
-        where("bankAccountId", "==", bankAccountId),
-        orderBy("date", "desc")
-      );
+      const q = query(ref, where("bankAccountId", "==", bankAccountId));
 
       const snapshot = await getDocs(q);
       let transactions = snapshot.docs.map(
@@ -52,18 +74,18 @@ export function useBankTransactions(
       if (startDate) {
         const startTimestamp = Timestamp.fromDate(startDate);
         transactions = transactions.filter(
-          (t) => t.date.toMillis() >= startTimestamp.toMillis()
+          (t) => toMillis(t.date) >= startTimestamp.toMillis()
         );
       }
 
       if (endDate) {
         const endTimestamp = Timestamp.fromDate(endDate);
         transactions = transactions.filter(
-          (t) => t.date.toMillis() <= endTimestamp.toMillis()
+          (t) => toMillis(t.date) <= endTimestamp.toMillis()
         );
       }
 
-      return transactions;
+      return sortTransactionsDesc(transactions);
     },
     enabled: enabled && !!userId && !!bankAccountId,
     staleTime: 30_000,
@@ -115,11 +137,7 @@ export function useBranchTransactions(
       // Firestore 'in' queries support max 10 values, so we batch
       for (let i = 0; i < accountIds.length; i += 10) {
         const batch = accountIds.slice(i, i + 10);
-        const q = query(
-          transactionsRef,
-          where("bankAccountId", "in", batch),
-          orderBy("date", "desc")
-        );
+        const q = query(transactionsRef, where("bankAccountId", "in", batch));
         const snapshot = await getDocs(q);
         snapshot.docs.forEach((doc) => {
           allTransactions.push({ id: doc.id, ...doc.data() } as BankTransaction);
@@ -132,21 +150,19 @@ export function useBranchTransactions(
       if (startDate) {
         const startTimestamp = Timestamp.fromDate(startDate);
         filtered = filtered.filter(
-          (t) => t.date.toMillis() >= startTimestamp.toMillis()
+          (t) => toMillis(t.date) >= startTimestamp.toMillis()
         );
       }
 
       if (endDate) {
         const endTimestamp = Timestamp.fromDate(endDate);
         filtered = filtered.filter(
-          (t) => t.date.toMillis() <= endTimestamp.toMillis()
+          (t) => toMillis(t.date) <= endTimestamp.toMillis()
         );
       }
 
       // Sort by date descending
-      filtered.sort((a, b) => b.date.toMillis() - a.date.toMillis());
-
-      return filtered;
+      return sortTransactionsDesc(filtered);
     },
     enabled: !!userId && !!branchId,
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +33,7 @@ import {
 import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
-import { accountSupportsBranch, isSafeAccountImageSrc } from "@/lib/bank-accounts";
+import { accountSupportsBranch } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
@@ -78,11 +79,17 @@ export function NewIncomeDialog({
   });
 
   const selectedBranchId = watch("branchId");
+  const selectedAccountId = watch("bankAccountId");
 
   const availableAccounts = React.useMemo(() => {
     if (!selectedBranchId) return [];
     return bankAccounts.filter((account) => accountSupportsBranch(account, selectedBranchId));
   }, [bankAccounts, selectedBranchId]);
+
+  const selectedAccount = React.useMemo(
+    () => availableAccounts.find((account) => account.id === selectedAccountId) ?? null,
+    [availableAccounts, selectedAccountId],
+  );
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewIncomeValues) => {
@@ -275,31 +282,21 @@ export function NewIncomeDialog({
             <div className="space-y-2 min-w-0">
               <label className="text-sm font-medium">Cuenta financiera</label>
               <Select
-                value={watch("bankAccountId")}
+                value={selectedAccountId}
                 onValueChange={(val) => setValue("bankAccountId", val, { shouldValidate: true })}
                 disabled={isPending || !selectedBranchId}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona la cuenta" />
+                <SelectTrigger className="h-auto min-h-12 w-full">
+                  {selectedAccount ? (
+                    <BankAccountOptionContent account={selectedAccount} />
+                  ) : (
+                    <SelectValue placeholder="Selecciona la cuenta" />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {availableAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <span className="flex items-center gap-2">
-                        {isSafeAccountImageSrc(account.iconUrl) ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={account.iconUrl!}
-                            alt=""
-                            className="h-5 w-5 shrink-0 rounded border object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border bg-muted text-[9px] font-semibold text-muted-foreground">
-                            {account.accountType === "bank" ? "BK" : "CJ"}
-                          </span>
-                        )}
-                        {account.accountName}{account.accountNumber ? ` ****${account.accountNumber.slice(-4)}` : ""} - {account.accountType === "bank" ? account.bankName || "Cuenta bancaria" : "Caja"}
-                      </span>
+                    <SelectItem key={account.id} value={account.id} className="py-2">
+                      <BankAccountOptionContent account={account} />
                     </SelectItem>
                   ))}
                 </SelectContent>

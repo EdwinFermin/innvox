@@ -63,20 +63,20 @@ const getTransactionTypeLabel = (type: BankTransactionType): string => {
   return labels[type];
 };
 
-const getTransactionTypeBadgeVariant = (
+const getTransactionTypeBadgeClassName = (
   type: BankTransactionType
-): "default" | "secondary" | "destructive" | "outline" => {
+): string => {
   switch (type) {
     case "deposit":
     case "transfer_in":
-      return "default";
+      return "border-transparent bg-emerald-100 text-emerald-800";
     case "withdrawal":
     case "transfer_out":
-      return "destructive";
+      return "border-transparent bg-rose-100 text-rose-800";
     case "adjustment":
-      return "secondary";
+      return "border-transparent bg-amber-100 text-amber-800";
     default:
-      return "outline";
+      return "border-transparent bg-slate-100 text-slate-800";
   }
 };
 
@@ -107,7 +107,10 @@ const getColumns = (currency: string): ColumnDef<BankTransaction>[] => [
     cell: ({ row }) => {
       const type = row.getValue("type") as BankTransactionType;
       return (
-        <Badge variant={getTransactionTypeBadgeVariant(type)}>
+        <Badge
+          variant="outline"
+          className={getTransactionTypeBadgeClassName(type)}
+        >
           {getTransactionTypeLabel(type)}
         </Badge>
       );
@@ -180,8 +183,11 @@ export default function BankAccountDetailPage() {
   });
 
   // Fetch transactions
-  const { data: transactions, isLoading: isLoadingTransactions } =
-    useBankTransactions(user?.id || "", accountId, { enabled: !!account });
+  const {
+    data: transactions,
+    isLoading: isLoadingTransactions,
+    error: transactionsError,
+  } = useBankTransactions(user?.id || "", accountId, { enabled: !!account });
 
   const branchNames = React.useMemo(() => {
     if (!account) return "";
@@ -379,6 +385,15 @@ export default function BankAccountDetailPage() {
                     <div className="flex justify-center items-center h-full">
                       <SpinnerLabel label="Cargando transacciones..." />
                     </div>
+                  </TableCell>
+                </TableRow>
+              ) : transactionsError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-destructive"
+                  >
+                    No se pudieron cargar las transacciones.
                   </TableCell>
                 </TableRow>
               ) : table.getRowModel().rows?.length ? (

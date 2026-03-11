@@ -9,8 +9,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
-import { getBankAccountBranchIds } from "@/lib/bank-accounts";
 import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/auth";
 import { BankAccount } from "@/types/bank-account.types";
@@ -98,6 +98,15 @@ export function TransferFundsDialog({
           item.currency === account.currency,
       ),
     [account.currency, account.id, allAccounts],
+  );
+
+  const selectedDestinationId = watch("destinationAccountId");
+  const selectedDestination = React.useMemo(
+    () =>
+      availableDestinations.find(
+        (item) => item.id === selectedDestinationId,
+      ) ?? null,
+    [availableDestinations, selectedDestinationId],
   );
 
   const { mutate, isPending } = useMutation({
@@ -201,7 +210,7 @@ export function TransferFundsDialog({
               Cuenta destino
             </label>
             <Select
-              value={watch("destinationAccountId")}
+              value={selectedDestinationId}
               onValueChange={(val) =>
                 setValue("destinationAccountId", val, {
                   shouldValidate: true,
@@ -209,8 +218,12 @@ export function TransferFundsDialog({
               }
               disabled={isPending}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona la cuenta destino" />
+              <SelectTrigger className="h-auto min-h-12 w-full">
+                {selectedDestination ? (
+                  <BankAccountOptionContent account={selectedDestination} />
+                ) : (
+                  <SelectValue placeholder="Selecciona la cuenta destino" />
+                )}
               </SelectTrigger>
               <SelectContent>
                 {availableDestinations.length === 0 ? (
@@ -219,12 +232,8 @@ export function TransferFundsDialog({
                   </SelectItem>
                 ) : (
                   availableDestinations.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.accountName} -{" "}
-                      {item.accountType === "bank"
-                        ? item.bankName || "Cuenta bancaria"
-                        : "Caja"}{" "}
-                      - {getBankAccountBranchIds(item).length} suc.
+                    <SelectItem key={item.id} value={item.id} className="py-2">
+                      <BankAccountOptionContent account={item} />
                     </SelectItem>
                   ))
                 )}

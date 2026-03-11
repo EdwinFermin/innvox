@@ -3,7 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  orderBy,
   query,
   runTransaction,
   where,
@@ -114,18 +113,19 @@ async function listBankTransactions(
   const transactionsQuery = query(
     transactionsRef,
     where("bankAccountId", "==", bankAccountId),
-    orderBy("date", "desc"),
   );
   const snapshot = await getDocs(transactionsQuery);
 
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ref: docSnap.ref,
-    data: {
+  return snapshot.docs
+    .map((docSnap) => ({
       id: docSnap.id,
-      ...docSnap.data(),
-    } as BankTransaction,
-  }));
+      ref: docSnap.ref,
+      data: {
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as BankTransaction,
+    }))
+    .sort(compareTransactionsDesc);
 }
 
 async function resolveLinkedBankContext(
