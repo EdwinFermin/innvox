@@ -1,51 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Innvox
 
-## Getting Started
+Innvox is a branch-aware finance and operations dashboard built with Next.js, Firebase, React Query, and shadcn/ui.
 
-First, run the development server:
+## Main areas
+
+- Dashboard metrics and reports
+- Income and expense tracking
+- Receivables and payables
+- Invoices and clients
+- Users, branches, and settings
+- `Link de pago` for branch-based QR payment links
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-## Authentication (NextAuth + Firebase)
-
-This project uses NextAuth (Auth.js) with Firebase credentials.
-
-Required environment variables:
+## Required environment variables
 
 - `AUTH_SECRET`
+- `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_FIREBASE_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
 
-Protected routes are enforced through `src/proxy.ts` and server guards in
-`src/lib/auth/guards.ts`.
+## Auth and routing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Login uses NextAuth credentials backed by Firebase
+- Protected routes are enforced in `src/proxy.ts`
+- Server guards live in `src/lib/auth/guards.ts`
+- Public payment pages live outside `/dashboard`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Fast architecture overview
 
-## Learn More
+Read `docs/app-overview.md` first. It is the shortest reliable way to understand the app structure, major collections, route layout, and module conventions.
 
-To learn more about Next.js, take a look at the following resources:
+## Context workflow for agents
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This repository uses a scoped context workflow to avoid scanning the whole project.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run context:map
+npm run context:pack -- --query "your task here" --budget 12000 --max-files 10
+```
 
-## Deploy on Vercel
+Generated files:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `.cache/context/repo-map.json`
+- `.cache/context/last-pack.md`
+- `.cache/context/last-pack.json`

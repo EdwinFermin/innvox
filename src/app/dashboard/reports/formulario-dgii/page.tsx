@@ -141,6 +141,11 @@ export default function DgiiFormPage() {
       });
 
       headerRow.height = 42;
+      sheet.getColumn(6).width = 14;
+      sheet.getColumn(10).width = 12;
+      sheet.getColumn(12).width = 12;
+      sheet.getColumn(13).width = 12;
+      sheet.getColumn(25).width = 12;
 
       parsedInvoices.forEach((invoice, rowIndex) => {
         const row = sheet.getRow(4 + rowIndex);
@@ -149,11 +154,12 @@ export default function DgiiFormPage() {
         row.getCell(6).value = invoice.date;
         row.getCell(6).numFmt = "dd/mm/yyyy";
         row.getCell(10).value = invoice.subtotal;
+        row.getCell(12).value = invoice.subtotal;
         row.getCell(13).value = invoice.itbis;
         row.getCell(25).value = invoice.total;
       });
 
-      [10, 13, 25].forEach((columnNumber) => {
+      [10, 12, 13, 25].forEach((columnNumber) => {
         sheet.getColumn(columnNumber).numFmt = "#,##0.00";
       });
 
@@ -228,6 +234,10 @@ export default function DgiiFormPage() {
           <div className="text-sm text-muted-foreground space-y-1">
             <p>Procesadas: {processedCount}</p>
             <p>Omitidas: {skippedFiles.length}</p>
+            <p>
+              Soporta los dos formatos actuales de factura de EnviosRD siempre que el
+              PDF contenga texto seleccionable.
+            </p>
           </div>
 
           {skippedFiles.length > 0 ? (

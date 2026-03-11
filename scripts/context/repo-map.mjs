@@ -14,7 +14,17 @@ async function main() {
 
   const fileEntries = [];
   for (const relativePath of files) {
-    if (!relativePath.startsWith("src/") && !["package.json", "tsconfig.json", "next.config.ts", "README.md", "AGENTS.md"].includes(relativePath)) {
+    if (
+      !relativePath.startsWith("src/") &&
+      ![
+        "package.json",
+        "tsconfig.json",
+        "next.config.ts",
+        "README.md",
+        "AGENTS.md",
+        "docs/app-overview.md",
+      ].includes(relativePath)
+    ) {
       continue;
     }
 

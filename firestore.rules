@@ -1,0 +1,34 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isLinkPaymentCompletion() {
+      return resource.data.status == "pending"
+        && request.resource.data.status == "completed"
+        && request.resource.data.branchId == resource.data.branchId
+        && request.resource.data.amount == resource.data.amount
+        && request.resource.data.paymentUrl == resource.data.paymentUrl
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.completedAt is timestamp
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "status",
+          "completedAt",
+        ]);
+    }
+
+    match /linkPayments/{paymentId} {
+      allow read: if isAuthenticated() || resource.data.status == "pending";
+      allow create, delete: if isAuthenticated();
+      allow update: if isAuthenticated() || isLinkPaymentCompletion();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
