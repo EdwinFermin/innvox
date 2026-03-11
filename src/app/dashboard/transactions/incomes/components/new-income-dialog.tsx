@@ -32,12 +32,12 @@ import {
 import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
+import { accountSupportsBranch, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { User } from "@/types/auth.types";
-import { PaymentMethod } from "@/types/bank-account.types";
 
 const newIncomeSchema = z
   .object({
@@ -46,23 +46,8 @@ const newIncomeSchema = z
     date: z.string().min(1, "La fecha es obligatoria"),
     amount: z.coerce.number().positive("Monto inválido"),
     description: z.string().min(1, "La descripción es obligatoria"),
-    paymentMethod: z.enum(["cash", "bank"], {
-      error: "El método de pago es obligatorio",
-    }),
-    bankAccountId: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.paymentMethod === "bank") {
-        return data.bankAccountId && data.bankAccountId.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "La cuenta bancaria es obligatoria para pagos con banco",
-      path: ["bankAccountId"],
-    }
-  );
+    bankAccountId: z.string().min(1, "La cuenta financiera es obligatoria"),
+  });
 
 type NewIncomeValues = z.infer<typeof newIncomeSchema>;
 type NewIncomeFormValues = z.input<typeof newIncomeSchema>;
@@ -90,29 +75,14 @@ export function NewIncomeDialog({
   } = useForm<NewIncomeFormValues>({
     resolver: zodResolver(newIncomeSchema),
     mode: "onChange",
-    defaultValues: {
-      paymentMethod: "cash",
-    },
   });
 
   const selectedBranchId = watch("branchId");
-  const paymentMethod = watch("paymentMethod");
 
-  // Filter bank accounts by selected branch
-  const availableBankAccounts = React.useMemo(() => {
+  const availableAccounts = React.useMemo(() => {
     if (!selectedBranchId) return [];
-    return bankAccounts.filter((account) => account.branchId === selectedBranchId);
+    return bankAccounts.filter((account) => accountSupportsBranch(account, selectedBranchId));
   }, [bankAccounts, selectedBranchId]);
-
-  // Get petty cash account for the branch
-  const pettyCashAccount = React.useMemo(() => {
-    return availableBankAccounts.find((account) => account.accountType === "petty_cash");
-  }, [availableBankAccounts]);
-
-  // Get bank accounts (excluding petty cash)
-  const bankOnlyAccounts = React.useMemo(() => {
-    return availableBankAccounts.filter((account) => account.accountType === "bank");
-  }, [availableBankAccounts]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewIncomeValues) => {
@@ -123,51 +93,40 @@ export function NewIncomeDialog({
       const [year, month, day] = data.date.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day));
       const userRef = doc(db, "users", user.id) as DocumentReference<User>;
-
-      // Determine which account to affect
-      let targetAccountId: string | undefined;
-      if (data.paymentMethod === "cash" && pettyCashAccount) {
-        targetAccountId = pettyCashAccount.id;
-      } else if (data.paymentMethod === "bank" && data.bankAccountId) {
-        targetAccountId = data.bankAccountId;
-      }
+      const targetAccountId = data.bankAccountId;
+      const bankTransactionId = doc(collection(db, "bankTransactions")).id;
 
       await runTransaction(db, async (transaction) => {
-        let bankTransactionId: string | undefined;
-        let newBalance: number | undefined;
+        let paymentMethod: "cash" | "bank" = "bank";
 
-        // If we have a target account, create bank transaction and update balance
-        if (targetAccountId) {
-          const accountRef = doc(db, "bankAccounts", targetAccountId);
-          const accountSnap = await transaction.get(accountRef);
+        const accountRef = doc(db, "bankAccounts", targetAccountId);
+        const accountSnap = await transaction.get(accountRef);
 
-          if (accountSnap.exists()) {
-            const accountData = accountSnap.data();
-            newBalance = accountData.currentBalance + Number(data.amount);
-
-            // Update account balance (add for income)
-            transaction.update(accountRef, {
-              currentBalance: newBalance,
-            });
-
-            // Create bank transaction record
-            const bankTransactionRef = doc(collection(db, "bankTransactions"));
-            bankTransactionId = bankTransactionRef.id;
-
-            transaction.set(bankTransactionRef, {
-              bankAccountId: targetAccountId,
-              type: "deposit",
-              amount: Number(data.amount),
-              description: `Ingreso: ${data.description}`,
-              date: utcDate,
-              balanceAfter: newBalance,
-              createdAt: new Date(),
-              createdBy: user.id,
-            });
-          }
+        if (!accountSnap.exists()) {
+          throw new Error("La cuenta seleccionada no existe.");
         }
 
-        // Create income record
+        const accountData = accountSnap.data();
+        paymentMethod = accountData.accountType === "petty_cash" ? "cash" : "bank";
+        const newBalance = accountData.currentBalance + Number(data.amount);
+
+        transaction.update(accountRef, {
+          currentBalance: newBalance,
+        });
+
+        const bankTransactionRef = doc(db, "bankTransactions", bankTransactionId);
+
+        transaction.set(bankTransactionRef, {
+          bankAccountId: targetAccountId,
+          type: "deposit",
+          amount: Number(data.amount),
+          description: `Ingreso: ${data.description}`,
+          date: utcDate,
+          balanceAfter: newBalance,
+          createdAt: new Date(),
+          createdBy: user.id,
+        });
+
         const incomeRef = doc(collection(db, "incomes"));
         transaction.set(incomeRef, {
           branchId: data.branchId,
@@ -175,21 +134,17 @@ export function NewIncomeDialog({
           amount: Number(data.amount),
           description: data.description,
           date: utcDate,
-          paymentMethod: data.paymentMethod,
-          bankAccountId: targetAccountId || null,
-          bankTransactionId: bankTransactionId || null,
+          paymentMethod,
+          bankAccountId: targetAccountId,
+          bankTransactionId,
           createdAt: new Date(),
           createdBy: user.id,
           createdByRef: userRef,
         });
 
-        // Update bank transaction with income reference
-        if (bankTransactionId) {
-          const bankTransactionRef = doc(db, "bankTransactions", bankTransactionId);
-          transaction.update(bankTransactionRef, {
-            linkedIncomeId: incomeRef.id,
-          });
-        }
+        transaction.update(bankTransactionRef, {
+          linkedIncomeId: incomeRef.id,
+        });
       });
     },
     onSuccess: () => {
@@ -318,67 +273,41 @@ export function NewIncomeDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 min-w-0">
-              <label className="text-sm font-medium">Método de Pago</label>
+              <label className="text-sm font-medium">Cuenta financiera</label>
               <Select
-                value={paymentMethod}
-                onValueChange={(val: PaymentMethod) => {
-                  setValue("paymentMethod", val, { shouldValidate: true });
-                  // Reset bank account when switching to cash
-                  if (val === "cash") {
-                    setValue("bankAccountId", undefined);
-                  }
-                }}
+                value={watch("bankAccountId")}
+                onValueChange={(val) => setValue("bankAccountId", val, { shouldValidate: true })}
                 disabled={isPending || !selectedBranchId}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona el método" />
+                  <SelectValue placeholder="Selecciona la cuenta" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash" disabled={!pettyCashAccount}>
-                    Efectivo (Caja Chica)
-                    {!pettyCashAccount && selectedBranchId && " - No disponible"}
-                  </SelectItem>
-                  <SelectItem value="bank" disabled={bankOnlyAccounts.length === 0}>
-                    Banco
-                    {bankOnlyAccounts.length === 0 && selectedBranchId && " - No disponible"}
-                  </SelectItem>
+                  {availableAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      <span className="flex items-center gap-2">
+                        {isSafeAccountImageSrc(account.iconUrl) ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={account.iconUrl!}
+                            alt=""
+                            className="h-5 w-5 shrink-0 rounded border object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border bg-muted text-[9px] font-semibold text-muted-foreground">
+                            {account.accountType === "bank" ? "BK" : "CJ"}
+                          </span>
+                        )}
+                        {account.accountName}{account.accountNumber ? ` ****${account.accountNumber.slice(-4)}` : ""} - {account.accountType === "bank" ? account.bankName || "Cuenta bancaria" : "Caja"}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              {errors.paymentMethod && (
-                <p className="text-xs text-red-500">
-                  {errors.paymentMethod.message}
-                </p>
+              {errors.bankAccountId && (
+                <p className="text-xs text-red-500">{errors.bankAccountId.message}</p>
               )}
             </div>
-
-            {paymentMethod === "bank" && (
-              <div className="space-y-2 min-w-0">
-                <label className="text-sm font-medium">Cuenta Bancaria</label>
-                <Select
-                  value={watch("bankAccountId")}
-                  onValueChange={(val) =>
-                    setValue("bankAccountId", val, { shouldValidate: true })
-                  }
-                  disabled={isPending || bankOnlyAccounts.length === 0}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona la cuenta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bankOnlyAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.accountName} ({account.bankName})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.bankAccountId && (
-                  <p className="text-xs text-red-500">
-                    {errors.bankAccountId.message}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="space-y-2">

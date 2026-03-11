@@ -37,14 +37,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { BankAccount } from "@/types/bank-account.types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { useBranches } from "@/hooks/use-branches";
+import { getAccountBranchNames, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { NewBankAccountDialog } from "./components/new-bank-account-dialog";
 import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -59,22 +58,12 @@ const getColumnLabel = (id: string): string => {
     accountName: "Nombre",
     accountType: "Tipo",
     bankName: "Banco",
-    branchName: "Sucursal",
+    accountNumber: "No. Cuenta",
+    branchNames: "Sucursales",
     currentBalance: "Balance",
     currency: "Moneda",
-    createdAt: "Fecha de creación",
   };
   return map[id] || id;
-};
-
-const getCreatedAtTime = (value: unknown): number => {
-  if (!value) return 0;
-  if (value instanceof Date) return value.getTime();
-  if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
-  return 0;
 };
 
 const formatCurrency = (amount: number, currency: string): string => {
@@ -85,12 +74,12 @@ const formatCurrency = (amount: number, currency: string): string => {
   }).format(amount);
 };
 
-type BankAccountWithBranch = BankAccount & { branchName?: string };
+type BankAccountWithBranches = BankAccount & { branchNames: string[] };
 
 const getColumns = (
   queryClient: QueryClient,
   canDelete: boolean
-): ColumnDef<BankAccountWithBranch>[] => [
+): ColumnDef<BankAccountWithBranches>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -125,13 +114,47 @@ const getColumns = (
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
+    cell: ({ row }) => {
+      const iconUrl = row.original.iconUrl;
+
+      return (
+        <Link
+          href={`/dashboard/bank-accounts/${row.original.id}`}
+          className="flex items-center gap-3 hover:underline min-w-[180px]"
+        >
+          {isSafeAccountImageSrc(iconUrl) ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={iconUrl!}
+              alt={row.original.accountName}
+              width={40}
+              height={40}
+              className="h-10 w-10 shrink-0 rounded-md border object-cover"
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xs font-semibold text-muted-foreground">
+              {row.original.accountType === "bank" ? "BK" : "CJ"}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-medium truncate">{row.getValue("accountName")}</div>
+            <div className="text-xs text-muted-foreground truncate">
+              {row.original.accountType === "bank"
+                ? row.original.bankName || "Cuenta bancaria"
+                : "Caja"}
+            </div>
+          </div>
+        </Link>
+      );
+    },
+  },
+  {
+    accessorKey: "accountNumber",
+    header: "No. Cuenta",
     cell: ({ row }) => (
-      <Link
-        href={`/dashboard/bank-accounts/${row.original.id}`}
-        className="font-medium hover:underline"
-      >
-        {row.getValue("accountName")}
-      </Link>
+      <div className="text-muted-foreground">
+        {row.original.accountNumber || "-"}
+      </div>
     ),
   },
   {
@@ -141,7 +164,7 @@ const getColumns = (
       const type = row.getValue("accountType") as string;
       return (
         <Badge variant={type === "bank" ? "default" : "secondary"}>
-          {type === "bank" ? "Banco" : "Caja Chica"}
+          {type === "bank" ? "Cuenta bancaria" : "Caja"}
         </Badge>
       );
     },
@@ -156,9 +179,12 @@ const getColumns = (
     ),
   },
   {
-    accessorKey: "branchName",
-    header: "Sucursal",
-    cell: ({ row }) => <div>{row.getValue("branchName") || "-"}</div>,
+    accessorKey: "branchNames",
+    header: "Sucursales",
+    cell: ({ row }) => {
+      const names = row.original.branchNames;
+      return <div>{names.join(", ")}</div>;
+    },
   },
   {
     accessorKey: "currentBalance",
@@ -185,27 +211,6 @@ const getColumns = (
     },
   },
   {
-    id: "createdAt",
-    accessorFn: (row) => getCreatedAtTime(row.createdAt),
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        className="w-full justify-end px-0 hover:bg-transparent"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Fecha de Creación
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <div className="text-right text-muted-foreground">
-        {format(row.original.createdAt.toDate(), "d 'de' MMMM yyyy", {
-          locale: es,
-        })}
-      </div>
-    ),
-  },
-  {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => (
@@ -220,7 +225,7 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuItem asChild>
             <Link href={`/dashboard/bank-accounts/${row.original.id}`}>
-              Ver transacciones
+              Ver detalle
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -269,6 +274,7 @@ export default function BankAccountsPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
   const { data: bankAccounts, isLoading } = useBankAccounts(user?.id || "", {
+    allowedBranchIds: user?.type === "USER" ? user?.branchIds : undefined,
     activeOnly: false,
   });
   const { data: branches } = useBranches(user?.id || "");
@@ -277,11 +283,11 @@ export default function BankAccountsPage() {
   const canDelete = can(user?.type, PERMISSIONS.dataDelete);
 
   // Join bank accounts with branch names
-  const accountsWithBranches: BankAccountWithBranch[] = React.useMemo(() => {
-    const branchMap = new Map(branches.map((b) => [b.id, b.name]));
+  const accountsWithBranches: BankAccountWithBranches[] = React.useMemo(() => {
+    const branchMap = Object.fromEntries(branches.map((b) => [b.id, b.name]));
     return bankAccounts.map((account) => ({
       ...account,
-      branchName: branchMap.get(account.branchId) || "Desconocida",
+      branchNames: getAccountBranchNames(account, branchMap),
     }));
   }, [bankAccounts, branches]);
 
@@ -320,7 +326,7 @@ export default function BankAccountsPage() {
   if (!canManageSettings) {
     return (
       <div className="w-full">
-        <h3 className="text-2xl font-semibold">Cuentas Bancarias</h3>
+        <h3 className="text-2xl font-semibold">Cuentas financieras</h3>
         <p className="text-sm text-muted-foreground mt-2">
           No tienes permisos para acceder a esta sección.
         </p>
@@ -330,9 +336,9 @@ export default function BankAccountsPage() {
 
   return (
     <div className="w-full">
-      <h3 className="text-2xl font-semibold">Cuentas Bancarias</h3>
+      <h3 className="text-2xl font-semibold">Cuentas financieras</h3>
       <span className="text-muted-foreground text-sm">
-        Gestiona las cuentas bancarias y cajas chicas de cada sucursal
+        Gestiona cuentas bancarias y cajas con cobertura por sucursal
       </span>
       <div
         className={`grid w-full py-4 mt-2 gap-4 ${
@@ -433,7 +439,7 @@ export default function BankAccountsPage() {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No se encontraron cuentas bancarias.
+                  No se encontraron cuentas financieras.
                 </TableCell>
               </TableRow>
             )}

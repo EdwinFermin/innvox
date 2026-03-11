@@ -27,6 +27,7 @@ function translateSegment(segment: string): string {
     receivables: "CxC",
     payables: "CxP",
     "link-de-pago": "Link de pago",
+    "bank-accounts": "Cuentas financieras",
     branches: "Sucursales",
     parameters: "Parametros",
     "Income-types": "Tipos de ingresos",

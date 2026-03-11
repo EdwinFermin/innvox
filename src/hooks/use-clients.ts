@@ -3,6 +3,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Client } from "@/types/client.types";
 
+const EMPTY: Client[] = [];
+
 export function useClients(userId: string) {
   const query = useQuery({
     queryKey: ["clients", userId],
@@ -16,6 +18,6 @@ export function useClients(userId: string) {
 
   return {
     ...query,
-    data: query.data ?? [],
+    data: query.data ?? EMPTY,
   };
 }

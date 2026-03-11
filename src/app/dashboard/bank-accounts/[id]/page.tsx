@@ -11,7 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpDown, Building2, Wallet } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { useAuthStore } from "@/store/auth";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
+import { getAccountBranchNames, normalizeBankAccount, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { db } from "@/lib/firebase";
 import { BankAccount } from "@/types/bank-account.types";
 import { BankTransaction, BankTransactionType } from "@/types/bank-transaction.types";
@@ -38,8 +39,9 @@ import { useBranches } from "@/hooks/use-branches";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
-import { BalanceAdjustmentDialog } from "./components/balance-adjustment-dialog";
-import { TransferDialog } from "./components/transfer-dialog";
+import { EditBankAccountDialog } from "@/app/dashboard/bank-accounts/components/edit-bank-account-dialog";
+import { TransferFundsDialog } from "@/app/dashboard/bank-accounts/components/transfer-funds-dialog";
+import { AdjustBalanceDialog } from "@/app/dashboard/bank-accounts/components/adjust-balance-dialog";
 import Link from "next/link";
 
 const formatCurrency = (amount: number, currency: string): string => {
@@ -157,12 +159,12 @@ const getColumns = (currency: string): ColumnDef<BankTransaction>[] => [
 ];
 
 export default function BankAccountDetailPage() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const accountId = params.id as string;
+  const accountId = params.id;
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
-  const { data: branches } = useBranches(user?.id || "");
+  const allowedBranchIds = user?.type === "USER" ? user?.branchIds : undefined;
+  const { data: branches } = useBranches(user?.id || "", allowedBranchIds);
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
 
   // Fetch account details
@@ -172,19 +174,19 @@ export default function BankAccountDetailPage() {
       const docRef = doc(db, "bankAccounts", accountId);
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) return null;
-      return { id: docSnap.id, ...docSnap.data() } as BankAccount;
+      return normalizeBankAccount({ id: docSnap.id, ...docSnap.data() } as BankAccount);
     },
     enabled: !!accountId && !!user?.id,
   });
 
   // Fetch transactions
   const { data: transactions, isLoading: isLoadingTransactions } =
-    useBankTransactions(user?.id || "", accountId);
+    useBankTransactions(user?.id || "", accountId, { enabled: !!account });
 
-  const branchName = React.useMemo(() => {
+  const branchNames = React.useMemo(() => {
     if (!account) return "";
-    const branch = branches.find((b) => b.id === account.branchId);
-    return branch?.name || "Desconocida";
+    const branchMap = Object.fromEntries(branches.map((branch) => [branch.id, branch.name]));
+    return getAccountBranchNames(account, branchMap).join(", ");
   }, [account, branches]);
 
   const columns = React.useMemo(
@@ -195,6 +197,9 @@ export default function BankAccountDetailPage() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "date", desc: true },
   ]);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [transferOpen, setTransferOpen] = React.useState(false);
+  const [adjustOpen, setAdjustOpen] = React.useState(false);
 
   const table = useReactTable({
     data: transactions,
@@ -211,7 +216,7 @@ export default function BankAccountDetailPage() {
   if (!canManageSettings) {
     return (
       <div className="w-full">
-        <h3 className="text-2xl font-semibold">Detalle de Cuenta</h3>
+        <h3 className="text-2xl font-semibold">Detalle de cuenta financiera</h3>
         <p className="text-sm text-muted-foreground mt-2">
           No tienes permisos para acceder a esta sección.
         </p>
@@ -236,7 +241,7 @@ export default function BankAccountDetailPage() {
         </Button>
         <h3 className="text-2xl font-semibold">Cuenta no encontrada</h3>
         <p className="text-sm text-muted-foreground mt-2">
-          La cuenta bancaria solicitada no existe.
+           La cuenta financiera solicitada no existe.
         </p>
       </div>
     );
@@ -251,12 +256,26 @@ export default function BankAccountDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
+        {isSafeAccountImageSrc(account.iconUrl) ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={account.iconUrl!}
+            alt={account.accountName}
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-lg border object-cover"
+          />
+        ) : (
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground">
+            {account.accountType === "bank" ? "BK" : "CJ"}
+          </div>
+        )}
         <div>
           <h3 className="text-2xl font-semibold">{account.accountName}</h3>
           <span className="text-muted-foreground text-sm">
-            {account.accountType === "bank"
-              ? `${account.bankName} - ${account.accountNumber}`
-              : "Caja Chica"}
+             {account.accountType === "bank"
+               ? `${account.bankName || "Cuenta bancaria"}${account.accountNumber ? ` - ${account.accountNumber}` : ""}`
+: "Caja"}
           </span>
         </div>
       </div>
@@ -283,7 +302,7 @@ export default function BankAccountDetailPage() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{branchName}</div>
+            <div className="text-lg font-bold leading-snug">{branchNames}</div>
           </CardContent>
         </Card>
 
@@ -296,7 +315,7 @@ export default function BankAccountDetailPage() {
               variant={account.accountType === "bank" ? "default" : "secondary"}
               className="text-lg"
             >
-              {account.accountType === "bank" ? "Cuenta Bancaria" : "Caja Chica"}
+              {account.accountType === "bank" ? "Cuenta bancaria" : "Caja"}
             </Badge>
           </CardContent>
         </Card>
@@ -304,19 +323,33 @@ export default function BankAccountDetailPage() {
 
       {/* Action Buttons */}
       <div className="flex gap-2 flex-wrap">
-        <TransferDialog
-          sourceAccountId={accountId}
-          sourceAccountName={account.accountName}
-          currency={account.currency}
-          currentBalance={account.currentBalance}
-        />
-        <BalanceAdjustmentDialog
-          accountId={accountId}
-          accountName={account.accountName}
-          currentBalance={account.currentBalance}
-          currency={account.currency}
-        />
+        <Button variant="outline" onClick={() => setEditOpen(true)}>
+          Editar cuenta
+        </Button>
+        <Button onClick={() => setTransferOpen(true)}>
+          Transferir
+        </Button>
+        <Button variant="outline" onClick={() => setAdjustOpen(true)}>
+          Ajustar balance
+        </Button>
       </div>
+
+      {/* Dialogs */}
+      <EditBankAccountDialog
+        account={account}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+      <TransferFundsDialog
+        account={account}
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+      />
+      <AdjustBalanceDialog
+        account={account}
+        open={adjustOpen}
+        onOpenChange={setAdjustOpen}
+      />
 
       {/* Transactions Table */}
       <div>

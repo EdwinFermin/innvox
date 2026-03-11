@@ -6,11 +6,13 @@ export type Currency = "DOP" | "USD";
 
 export interface BankAccount {
   id: string;
-  branchId: string;
+  branchIds: string[];
+  branchId?: string;
   accountType: AccountType;
   bankName?: string; // Only for bank accounts
   accountNumber?: string; // Only for bank accounts
   accountName: string; // e.g., "Caja Chica", "Cuenta Operativa"
+  iconUrl?: string;
   currentBalance: number;
   currency: Currency;
   isActive: boolean;

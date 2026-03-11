@@ -4,6 +4,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Payable } from "@/types/payable.types";
 
+const EMPTY: Payable[] = [];
+
 type UsePayablesOptions = {
   role?: "ADMIN" | "USER";
 };
@@ -29,6 +31,6 @@ export function usePayables(userId: string, options: UsePayablesOptions = {}) {
 
   return {
     ...queryResult,
-    data: queryResult.data ?? [],
+    data: queryResult.data ?? EMPTY,
   };
 }

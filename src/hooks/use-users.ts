@@ -4,6 +4,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { User } from "@/types/auth.types";
 
+const EMPTY: User[] = [];
+
 export function useUsers() {
   const query = useQuery({
     queryKey: ["users"],
@@ -19,6 +21,6 @@ export function useUsers() {
 
   return {
     ...query,
-    data: query.data ?? [],
+    data: query.data ?? EMPTY,
   };
 }

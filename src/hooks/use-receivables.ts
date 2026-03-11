@@ -4,6 +4,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Receivable } from "@/types/receivable.types";
 
+const EMPTY: Receivable[] = [];
+
 type UseReceivablesOptions = {
   role?: "ADMIN" | "USER";
 };
@@ -32,6 +34,6 @@ export function useReceivables(
 
   return {
     ...queryResult,
-    data: queryResult.data ?? [],
+    data: queryResult.data ?? EMPTY,
   };
 }

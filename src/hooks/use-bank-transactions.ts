@@ -8,8 +8,12 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
+import { accountSupportsBranch, normalizeBankAccount } from "@/lib/bank-accounts";
 import { db } from "@/lib/firebase";
+import { BankAccount } from "@/types/bank-account.types";
 import { BankTransaction } from "@/types/bank-transaction.types";
+
+const EMPTY_TRANSACTIONS: BankTransaction[] = [];
 
 export function useBankTransactions(
   userId: string,
@@ -18,9 +22,10 @@ export function useBankTransactions(
     startDate?: Date;
     endDate?: Date;
     limit?: number;
+    enabled?: boolean;
   }
 ) {
-  const { startDate, endDate } = options ?? {};
+  const { startDate, endDate, enabled = true } = options ?? {};
 
   const queryResult = useQuery({
     queryKey: [
@@ -32,7 +37,7 @@ export function useBankTransactions(
     ],
     queryFn: async (): Promise<BankTransaction[]> => {
       const ref = collection(db, "bankTransactions");
-      let q = query(
+      const q = query(
         ref,
         where("bankAccountId", "==", bankAccountId),
         orderBy("date", "desc")
@@ -60,12 +65,13 @@ export function useBankTransactions(
 
       return transactions;
     },
-    enabled: !!userId && !!bankAccountId,
+    enabled: enabled && !!userId && !!bankAccountId,
+    staleTime: 30_000,
   });
 
   return {
     ...queryResult,
-    data: queryResult.data ?? [],
+    data: queryResult.data ?? EMPTY_TRANSACTIONS,
   };
 }
 
@@ -94,12 +100,11 @@ export function useBranchTransactions(
     queryFn: async (): Promise<BankTransaction[]> => {
       // First get all accounts for the branch
       const accountsRef = collection(db, "bankAccounts");
-      const accountsQuery = query(
-        accountsRef,
-        where("branchId", "==", branchId)
-      );
-      const accountsSnapshot = await getDocs(accountsQuery);
-      const accountIds = accountsSnapshot.docs.map((doc) => doc.id);
+      const accountsSnapshot = await getDocs(accountsRef);
+      const accountIds = accountsSnapshot.docs
+        .map((doc) => normalizeBankAccount({ id: doc.id, ...doc.data() } as BankAccount))
+        .filter((account) => accountSupportsBranch(account, branchId))
+        .map((account) => account.id);
 
       if (accountIds.length === 0) return [];
 
@@ -148,6 +153,6 @@ export function useBranchTransactions(
 
   return {
     ...queryResult,
-    data: queryResult.data ?? [],
+    data: queryResult.data ?? EMPTY_TRANSACTIONS,
   };
 }
