@@ -45,6 +45,7 @@ import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { useBranches } from "@/hooks/use-branches";
 import { getAccountBranchNames, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { NewBankAccountDialog } from "./components/new-bank-account-dialog";
+import { GenerateAccountsQrDialog } from "./components/generate-accounts-qr-dialog";
 import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
@@ -356,7 +357,7 @@ export default function BankAccountsPage() {
           className="w-full"
         />
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full">
@@ -384,6 +385,7 @@ export default function BankAccountsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <GenerateAccountsQrDialog branches={branches} />
           <NewBankAccountDialog />
         </div>
       </div>
