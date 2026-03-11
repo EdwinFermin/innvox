@@ -4,6 +4,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Branch } from "@/types/branch.types";
 
+const EMPTY_BRANCHES: Branch[] = [];
+
 export function useBranches(userId: string, allowedBranchIds?: string[]) {
   const query = useQuery({
     queryKey: [
@@ -28,6 +30,6 @@ export function useBranches(userId: string, allowedBranchIds?: string[]) {
 
   return {
     ...query,
-    data: query.data ?? [],
+    data: query.data ?? EMPTY_BRANCHES,
   };
 }

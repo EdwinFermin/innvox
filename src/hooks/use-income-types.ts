@@ -4,6 +4,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { IncomeType } from "@/types/income-type.types";
 
+const EMPTY: IncomeType[] = [];
+
 export function useIncomeTypes(userId: string) {
   const query = useQuery({
     queryKey: ["incomeTypes", userId],
@@ -20,6 +22,6 @@ export function useIncomeTypes(userId: string) {
 
   return {
     ...query,
-    data: query.data ?? [],
+    data: query.data ?? EMPTY,
   };
 }

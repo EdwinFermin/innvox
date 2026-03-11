@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { collection, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Invoice } from "@/types/invoice.types";
+
+const EMPTY: Invoice[] = [];
 import { Client } from "@/types/client.types";
 import { User } from "@/types/auth.types";
 
@@ -67,6 +69,6 @@ export function useInvoices(userId = "", options: UseInvoicesOptions = {}) {
 
   return {
     ...queryResult,
-    data: queryResult.data ?? [],
+    data: queryResult.data ?? EMPTY,
   };
 }

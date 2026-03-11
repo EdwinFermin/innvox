@@ -4,6 +4,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LinkPayment } from "@/types/link-payment.types";
 
+const EMPTY: LinkPayment[] = [];
+
 type UseLinkPaymentsOptions = {
   role?: "ADMIN" | "USER";
 };
@@ -32,6 +34,6 @@ export function useLinkPayments(
 
   return {
     ...queryResult,
-    data: queryResult.data ?? [],
+    data: queryResult.data ?? EMPTY,
   };
 }

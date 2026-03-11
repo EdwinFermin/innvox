@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,22 +23,31 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDoc, collection, doc, type DocumentReference } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  runTransaction,
+  type DocumentReference,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
+import { accountSupportsBranch, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
+import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { User } from "@/types/auth.types";
 
-const newIncomeSchema = z.object({
-  branchId: z.string().min(1, "La sucursal es obligatoria"),
-  incomeTypeId: z.string().min(1, "El tipo de ingreso es obligatorio"),
-  date: z.string().min(1, "La fecha es obligatoria"),
-  amount: z.coerce.number().positive("Monto inválido"),
-  description: z.string().min(1, "La descripción es obligatoria"),
-});
+const newIncomeSchema = z
+  .object({
+    branchId: z.string().min(1, "La sucursal es obligatoria"),
+    incomeTypeId: z.string().min(1, "El tipo de ingreso es obligatorio"),
+    date: z.string().min(1, "La fecha es obligatoria"),
+    amount: z.coerce.number().positive("Monto inválido"),
+    description: z.string().min(1, "La descripción es obligatoria"),
+    bankAccountId: z.string().min(1, "La cuenta financiera es obligatoria"),
+  });
 
 type NewIncomeValues = z.infer<typeof newIncomeSchema>;
 type NewIncomeFormValues = z.input<typeof newIncomeSchema>;
@@ -52,6 +63,7 @@ export function NewIncomeDialog({
     user?.type === "USER" ? user?.branchIds : undefined,
   );
   const { data: incomeTypes } = useIncomeTypes(user?.id || "");
+  const { data: bankAccounts } = useBankAccounts(user?.id || "");
 
   const {
     register,
@@ -65,6 +77,13 @@ export function NewIncomeDialog({
     mode: "onChange",
   });
 
+  const selectedBranchId = watch("branchId");
+
+  const availableAccounts = React.useMemo(() => {
+    if (!selectedBranchId) return [];
+    return bankAccounts.filter((account) => accountSupportsBranch(account, selectedBranchId));
+  }, [bankAccounts, selectedBranchId]);
+
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewIncomeValues) => {
       if (!user?.id) {
@@ -73,22 +92,66 @@ export function NewIncomeDialog({
 
       const [year, month, day] = data.date.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day));
-      const ref = collection(db, "incomes");
       const userRef = doc(db, "users", user.id) as DocumentReference<User>;
+      const targetAccountId = data.bankAccountId;
+      const bankTransactionId = doc(collection(db, "bankTransactions")).id;
 
-      await addDoc(ref, {
-        ...data,
-        amount: Number(data.amount),
-        // Store as UTC midnight to keep a consistent calendar date
-        date: utcDate,
-        createdAt: new Date(),
-        createdBy: user.id,
-        createdByRef: userRef,
+      await runTransaction(db, async (transaction) => {
+        let paymentMethod: "cash" | "bank" = "bank";
+
+        const accountRef = doc(db, "bankAccounts", targetAccountId);
+        const accountSnap = await transaction.get(accountRef);
+
+        if (!accountSnap.exists()) {
+          throw new Error("La cuenta seleccionada no existe.");
+        }
+
+        const accountData = accountSnap.data();
+        paymentMethod = accountData.accountType === "petty_cash" ? "cash" : "bank";
+        const newBalance = accountData.currentBalance + Number(data.amount);
+
+        transaction.update(accountRef, {
+          currentBalance: newBalance,
+        });
+
+        const bankTransactionRef = doc(db, "bankTransactions", bankTransactionId);
+
+        transaction.set(bankTransactionRef, {
+          bankAccountId: targetAccountId,
+          type: "deposit",
+          amount: Number(data.amount),
+          description: `Ingreso: ${data.description}`,
+          date: utcDate,
+          balanceAfter: newBalance,
+          createdAt: new Date(),
+          createdBy: user.id,
+        });
+
+        const incomeRef = doc(collection(db, "incomes"));
+        transaction.set(incomeRef, {
+          branchId: data.branchId,
+          incomeTypeId: data.incomeTypeId,
+          amount: Number(data.amount),
+          description: data.description,
+          date: utcDate,
+          paymentMethod,
+          bankAccountId: targetAccountId,
+          bankTransactionId,
+          createdAt: new Date(),
+          createdBy: user.id,
+          createdByRef: userRef,
+        });
+
+        transaction.update(bankTransactionRef, {
+          linkedIncomeId: incomeRef.id,
+        });
       });
     },
     onSuccess: () => {
       toast.success("Ingreso registrado");
       queryClient.invalidateQueries({ queryKey: ["incomes"] });
+      queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
+      queryClient.invalidateQueries({ queryKey: ["bankTransactions"] });
       reset();
       setOpen(false);
     },
@@ -204,6 +267,45 @@ export function NewIncomeDialog({
               />
               {errors.amount && (
                 <p className="text-xs text-red-500">{errors.amount.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 min-w-0">
+              <label className="text-sm font-medium">Cuenta financiera</label>
+              <Select
+                value={watch("bankAccountId")}
+                onValueChange={(val) => setValue("bankAccountId", val, { shouldValidate: true })}
+                disabled={isPending || !selectedBranchId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecciona la cuenta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      <span className="flex items-center gap-2">
+                        {isSafeAccountImageSrc(account.iconUrl) ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={account.iconUrl!}
+                            alt=""
+                            className="h-5 w-5 shrink-0 rounded border object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border bg-muted text-[9px] font-semibold text-muted-foreground">
+                            {account.accountType === "bank" ? "BK" : "CJ"}
+                          </span>
+                        )}
+                        {account.accountName}{account.accountNumber ? ` ****${account.accountNumber.slice(-4)}` : ""} - {account.accountType === "bank" ? account.bankName || "Cuenta bancaria" : "Caja"}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.bankAccountId && (
+                <p className="text-xs text-red-500">{errors.bankAccountId.message}</p>
               )}
             </div>
           </div>

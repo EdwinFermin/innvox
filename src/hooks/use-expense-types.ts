@@ -4,6 +4,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ExpenseType } from "@/types/expense-type.types";
 
+const EMPTY: ExpenseType[] = [];
+
 export function useExpenseTypes(userId: string) {
   const query = useQuery({
     queryKey: ["expenseTypes", userId],
@@ -20,6 +22,6 @@ export function useExpenseTypes(userId: string) {
 
   return {
     ...query,
-    data: query.data ?? [],
+    data: query.data ?? EMPTY,
   };
 }

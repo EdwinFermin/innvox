@@ -47,21 +47,30 @@ export function useAuthStore<T>(selector?: (state: AuthState) => T) {
   const { data, status } = useSession();
   const sessionUser = data?.user;
 
+  // Depend on primitive values so a new sessionUser object reference
+  // from useSession() doesn't break memoisation and trigger render loops.
+  const id = sessionUser?.id;
+  const name = sessionUser?.name;
+  const email = sessionUser?.email;
+  const image = sessionUser?.image;
+  const role = sessionUser?.role;
+  const branchKey = sessionUser?.branchIds?.join(",");
+
   const user = useMemo(
     () =>
       toUser(
-        sessionUser
+        id
           ? {
-              id: sessionUser.id,
-              name: sessionUser.name,
-              email: sessionUser.email,
-              image: sessionUser.image,
-              role: sessionUser.role,
-              branchIds: sessionUser.branchIds,
+              id,
+              name,
+              email,
+              image,
+              role,
+              branchIds: branchKey ? branchKey.split(",") : [],
             }
           : undefined,
       ),
-    [sessionUser],
+    [id, name, email, image, role, branchKey],
   );
 
   const state = useMemo<AuthState>(

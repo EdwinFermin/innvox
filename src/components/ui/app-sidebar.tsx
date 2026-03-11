@@ -126,6 +126,10 @@ const data = {
           title: "Sucursales",
           url: "/dashboard/branches",
         },
+        {
+          title: "Cuentas financieras",
+          url: "/dashboard/bank-accounts",
+        },
       ],
     },
   ],

@@ -55,6 +55,9 @@ import { db } from "@/lib/firebase";
 import { useExpenses } from "@/hooks/use-expenses";
 import { Expense } from "@/types/expense.types";
 import { NewExpenseDialog } from "./components/new-expense-dialog";
+import { useBankAccounts } from "@/hooks/use-bank-accounts";
+import { isSafeAccountImageSrc } from "@/lib/bank-accounts";
+import { BankAccount } from "@/types/bank-account.types";
 import { useBranches } from "@/hooks/use-branches";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { can } from "@/lib/auth/can";
@@ -71,6 +74,7 @@ const getColumnLabel = (id: string): string => {
     id: "ID",
     branchId: "Sucursal",
     expenseTypeId: "Tipo",
+    bankAccountId: "Cuenta",
     amount: "Monto",
     date: "Fecha",
     description: "Descripción",
@@ -89,6 +93,7 @@ const getColumns = (
   queryClient: QueryClient,
   branchNameById: Record<string, string>,
   expenseTypeNameById: Record<string, string>,
+  accountById: Record<string, BankAccount>,
   userNameById: Record<string, string>,
   canDelete: boolean,
   toLocalMidnight: (value: Expense["date"]) => Date | null,
@@ -140,6 +145,33 @@ const getColumns = (
           row.original.expenseTypeId}
       </div>
     ),
+  },
+  {
+    accessorKey: "bankAccountId",
+    header: "Cuenta",
+    cell: ({ row }) => {
+      const account = row.original.bankAccountId
+        ? accountById[row.original.bankAccountId]
+        : undefined;
+      if (!account) return <div className="text-muted-foreground">-</div>;
+      return (
+        <div className="flex items-center gap-2">
+          {isSafeAccountImageSrc(account.iconUrl) ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={account.iconUrl!}
+              alt=""
+              className="h-5 w-5 shrink-0 rounded border object-cover"
+            />
+          ) : (
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border bg-muted text-[9px] font-semibold text-muted-foreground">
+              {account.accountType === "bank" ? "BK" : "CJ"}
+            </span>
+          )}
+          <span className="truncate">{account.accountName}</span>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "amount",
@@ -263,6 +295,7 @@ export default function ExpensesPage() {
     user?.type === "USER" ? user?.branchIds : undefined,
   );
   const { data: expenseTypes } = useExpenseTypes(user?.id || "");
+  const { data: bankAccounts } = useBankAccounts(user?.id || "", { activeOnly: false });
   const { data: users } = useUsers();
   const queryClient = useQueryClient();
 
@@ -374,6 +407,15 @@ export default function ExpensesPage() {
     [expenseTypes],
   );
 
+  const accountById = React.useMemo(
+    () =>
+      bankAccounts.reduce<Record<string, BankAccount>>((acc, a) => {
+        acc[a.id] = a;
+        return acc;
+      }, {}),
+    [bankAccounts],
+  );
+
   const userNameById = React.useMemo(
     () =>
       users.reduce<Record<string, string>>((acc, item) => {
@@ -389,6 +431,7 @@ export default function ExpensesPage() {
         queryClient,
         branchNameById,
         expenseTypeNameById,
+        accountById,
         userNameById,
         can(user?.type, PERMISSIONS.dataDelete),
         toLocalMidnight,
@@ -397,6 +440,7 @@ export default function ExpensesPage() {
       queryClient,
       branchNameById,
       expenseTypeNameById,
+      accountById,
       userNameById,
       user?.type,
       toLocalMidnight,
