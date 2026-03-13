@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import z from "zod";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
@@ -39,6 +39,16 @@ const settingsSchema = z.object({
 
 type SettingsValues = z.infer<typeof settingsSchema>;
 
+const EMPTY_SETTINGS_VALUES: SettingsValues = {
+  NCFRangeStart: "",
+  NCFRangeEnd: "",
+  CFRangeStart: "",
+  CFRangeEnd: "",
+  ITBISPercentage: "",
+  ExcentoPercentage: "",
+  GravadoPercentage: "",
+};
+
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
@@ -54,27 +64,36 @@ export default function SettingsPage() {
   } = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
     mode: "onChange",
+    defaultValues: EMPTY_SETTINGS_VALUES,
   });
 
-  useEffect(() => {
-    if (configs) {
-      const ncf = configs.NCF ?? {};
-      const cf = configs.CF ?? {};
-      const itbis = configs.ITBIS ?? {};
-      const excento = configs.EXCENTO ?? {};
-      const gravado = configs.GRAVADO ?? {};
-
-      reset({
-        NCFRangeStart: String(ncf.range_start ?? ""),
-        NCFRangeEnd: String(ncf.range_end ?? ""),
-        CFRangeStart: String(cf.range_start ?? ""),
-        CFRangeEnd: String(cf.range_end ?? ""),
-        ITBISPercentage: String(itbis.percentage ?? ""),
-        ExcentoPercentage: String(excento.percentage ?? ""),
-        GravadoPercentage: String(gravado.percentage ?? ""),
-      });
+  const configValues = useMemo<SettingsValues | null>(() => {
+    if (Object.keys(configs).length === 0) {
+      return null;
     }
-  }, [configs, reset]);
+
+    const ncf = configs.NCF ?? {};
+    const cf = configs.CF ?? {};
+    const itbis = configs.ITBIS ?? {};
+    const excento = configs.EXCENTO ?? {};
+    const gravado = configs.GRAVADO ?? {};
+
+    return {
+      NCFRangeStart: String(ncf.range_start ?? ""),
+      NCFRangeEnd: String(ncf.range_end ?? ""),
+      CFRangeStart: String(cf.range_start ?? ""),
+      CFRangeEnd: String(cf.range_end ?? ""),
+      ITBISPercentage: String(itbis.percentage ?? ""),
+      ExcentoPercentage: String(excento.percentage ?? ""),
+      GravadoPercentage: String(gravado.percentage ?? ""),
+    };
+  }, [configs]);
+
+  useEffect(() => {
+    if (configValues) {
+      reset(configValues);
+    }
+  }, [configValues, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: SettingsValues) => {

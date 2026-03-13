@@ -7,6 +7,8 @@ export type ConfigDocument = Record<string, unknown>;
 
 export type ConfigsMap = Record<string, ConfigDocument>;
 
+const EMPTY_CONFIGS: ConfigsMap = {};
+
 export function useConfigs() {
   const queryResult = useQuery<ConfigsMap>({
     queryKey: ["configs"],
@@ -27,6 +29,6 @@ export function useConfigs() {
 
   return {
     ...queryResult,
-    data: (queryResult.data ?? {}) as ConfigsMap,
+    data: (queryResult.data ?? EMPTY_CONFIGS) as ConfigsMap,
   };
 }

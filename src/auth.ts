@@ -17,6 +17,7 @@ const authSecret =
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: authSecret,
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
