@@ -1,0 +1,58 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import { requireAuth } from "@/lib/auth/guards";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+
+interface CreateReceivableData {
+  branch_id?: string | null;
+  name: string;
+  amount: number;
+  due_date: string;
+  description?: string | null;
+  status: string;
+}
+
+export async function createReceivable(data: CreateReceivableData) {
+  const session = await requireAuth();
+
+  const supabase = await getSupabaseServerClient();
+
+  const { error } = await supabase.from("receivables").insert({
+    branch_id: data.branch_id ?? null,
+    name: data.name,
+    amount: data.amount,
+    due_date: data.due_date,
+    description: data.description ?? null,
+    status: data.status,
+    created_by: session.user.id,
+  });
+
+  if (error) {
+    throw new Error(
+      `Error al crear la cuenta por cobrar: ${error.message}`,
+    );
+  }
+
+  revalidatePath("/dashboard/cuentas-por-cobrar");
+}
+
+export async function deleteReceivable(id: string) {
+  await requireAuth();
+
+  const supabase = await getSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("receivables")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(
+      `Error al eliminar la cuenta por cobrar: ${error.message}`,
+    );
+  }
+
+  revalidatePath("/dashboard/cuentas-por-cobrar");
+}

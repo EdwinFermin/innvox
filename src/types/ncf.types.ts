@@ -1,12 +1,27 @@
 export interface NCFConfig {
-  rangeStart: string;
-  rangeEnd: string;
-  lastAssigned?: string | null;
-  releasedNumbers?: string[];
+  range_start: string;
+  range_end: string;
+  last_assigned?: string | null;
 }
 
 export interface CFConfig {
-  rangeStart: string;
-  rangeEnd: string;
-  lastAssigned?: string | null;
+  range_start: string;
+  range_end: string;
+  last_assigned?: string | null;
 }
+
+export interface TaxConfig {
+  percentage: string;
+}
+
+/**
+ * Union of all config document shapes keyed by their config key.
+ * Stored as JSONB in the `configs` table.
+ */
+export type ConfigMap = {
+  NCF: NCFConfig;
+  CF: CFConfig;
+  ITBIS: TaxConfig;
+  EXCENTO: TaxConfig;
+  GRAVADO: TaxConfig;
+};

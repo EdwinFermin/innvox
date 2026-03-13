@@ -1,35 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { LinkPayment } from "@/types/link-payment.types";
 
 const EMPTY: LinkPayment[] = [];
 
-type UseLinkPaymentsOptions = {
-  role?: "ADMIN" | "USER";
-};
-
-export function useLinkPayments(
-  userId: string,
-  options: UseLinkPaymentsOptions = {},
-) {
-  const isUserRole = options.role === "USER";
-
+export function useLinkPayments(userId: string) {
   const queryResult = useQuery({
-    queryKey: ["linkPayments", userId, isUserRole ? "mine" : "all"],
+    queryKey: ["linkPayments", userId],
     queryFn: async (): Promise<LinkPayment[]> => {
-      const ref = collection(db, "linkPayments");
-      const snapshot = isUserRole
-        ? await getDocs(query(ref, where("createdBy", "==", userId)))
-        : await getDocs(ref);
+      const supabase = getSupabaseBrowserClient();
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase.from("link_payments").select("*");
 
-      return snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      })) as LinkPayment[];
+      if (error) throw error;
+
+      return data as LinkPayment[];
     },
-    enabled: isUserRole ? !!userId : true,
+    enabled: !!userId,
   });
 
   return {

@@ -20,11 +20,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { createUser } from "@/actions/users";
 import { toast } from "sonner";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,7 +31,7 @@ const newUserSchema = z.object({
   email: z.string().email("Correo inválido"),
   type: z.enum(["ADMIN", "USER"]),
   password: z.string().min(6, "Mínimo 6 caracteres"),
-  branchIds: z.array(z.string()).optional(),
+  branch_ids: z.array(z.string()).optional(),
 });
 
 type NewUserValues = z.infer<typeof newUserSchema>;
@@ -45,7 +42,7 @@ export function NewUserDialog() {
   const { user: currentUser } = useAuthStore();
   const { data: branches } = useBranches(
     currentUser?.id || "",
-    currentUser?.type === "USER" ? currentUser?.branchIds : undefined,
+    currentUser?.type === "USER" ? currentUser?.branch_ids : undefined,
   );
 
   const {
@@ -60,35 +57,21 @@ export function NewUserDialog() {
     mode: "onChange",
     defaultValues: {
       type: "USER",
-      branchIds: [],
+      branch_ids: [],
     },
   });
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewUserValues) => {
-      // Crear usuario en Auth y luego persistir perfil en Firestore
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
-
-      await setDoc(doc(db, "users", credential.user.uid), {
-        name: data.name,
-        email: data.email,
-        type: data.type,
-        branchIds: data.branchIds ?? [],
-        avatar: "",
-        createdAt: new Date(),
-      });
+      await createUser(data);
     },
     onSuccess: () => {
       toast.success("Usuario creado exitosamente");
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      reset({ type: "USER", branchIds: [] });
+      reset({ type: "USER", branch_ids: [] });
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrió un error inesperado.");
     },
   });
@@ -170,15 +153,15 @@ export function NewUserDialog() {
                   className="flex items-center gap-2 text-sm"
                 >
                   <Checkbox
-                    checked={(watch("branchIds") ?? []).includes(branch.id)}
+                    checked={(watch("branch_ids") ?? []).includes(branch.id)}
                     onCheckedChange={() => {
-                      const current = new Set(watch("branchIds") ?? []);
+                      const current = new Set(watch("branch_ids") ?? []);
                       if (current.has(branch.id)) {
                         current.delete(branch.id);
                       } else {
                         current.add(branch.id);
                       }
-                      setValue("branchIds", Array.from(current), {
+                      setValue("branch_ids", Array.from(current), {
                         shouldValidate: true,
                       });
                     }}
@@ -195,9 +178,9 @@ export function NewUserDialog() {
                 </span>
               )}
             </div>
-            {errors.branchIds && (
+            {errors.branch_ids && (
               <p className="text-red-500 text-xs">
-                {errors.branchIds.message as string}
+                {errors.branch_ids.message as string}
               </p>
             )}
           </div>

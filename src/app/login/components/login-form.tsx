@@ -14,8 +14,6 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 
 export function LoginForm({
   className,
@@ -33,8 +31,6 @@ export function LoginForm({
     setIsSubmitting(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-
       const result = await signIn("credentials", {
         email,
         password,
@@ -42,7 +38,6 @@ export function LoginForm({
       });
 
       if (result?.error) {
-        await signOut(auth);
         setError("Credenciales inválidas. Verifica tu correo y contraseña.");
         return;
       }
@@ -50,7 +45,6 @@ export function LoginForm({
       router.push("/dashboard");
       router.refresh();
     } catch {
-      await signOut(auth).catch(() => undefined);
       setError("Ocurrió un error inesperado. Intenta de nuevo.");
     } finally {
       setIsSubmitting(false);

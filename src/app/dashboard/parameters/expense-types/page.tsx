@@ -17,7 +17,6 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { deleteDoc, doc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,18 +42,18 @@ import {
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
-import { db } from "@/lib/firebase";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { ExpenseType } from "@/types/expense-type.types";
 import { NewExpenseTypeDialog } from "./components/new-expense-type-dialog";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { deleteExpenseType } from "@/actions/expense-types";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     name: "Nombre",
-    createdAt: "Fecha de creación",
+    created_at: "Fecha de creación",
   };
   return map[id] || id;
 };
@@ -63,9 +62,6 @@ const getDateTime = (value: unknown): number => {
   if (!value) return 0;
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
   return 0;
 };
 
@@ -117,8 +113,8 @@ const getColumns = (
     cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>,
   },
   {
-    id: "createdAt",
-    accessorFn: (row) => getDateTime(row.createdAt),
+    id: "created_at",
+    accessorFn: (row) => getDateTime(row.created_at),
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -131,7 +127,7 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        {format(row.original.createdAt.toDate(), "d 'de' MMMM yyyy hh:mm a", {
+        {format(new Date(row.original.created_at), "d 'de' MMMM yyyy hh:mm a", {
           locale: es,
         })}
       </div>
@@ -156,7 +152,7 @@ const getColumns = (
               variant="destructive"
               onClick={async () => {
                 try {
-                  await deleteDoc(doc(db, "expenseTypes", row.row.original.id));
+                  await deleteExpenseType(row.row.original.id);
                   toast.success("Tipo de gasto eliminado");
                   queryClient.invalidateQueries({ queryKey: ["expenseTypes"] });
                 } catch {

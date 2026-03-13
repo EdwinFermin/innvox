@@ -1,5 +1,3 @@
-import { Timestamp } from "firebase/firestore";
-
 export type BankTransactionType =
   | "deposit"
   | "withdrawal"
@@ -9,21 +7,16 @@ export type BankTransactionType =
 
 export interface BankTransaction {
   id: string;
-  bankAccountId: string;
+  bank_account_id: string;
   type: BankTransactionType;
   amount: number;
-  description: string;
-  date: Timestamp;
-  balanceAfter: number; // Snapshot of balance after this transaction
-
-  // Links to source transactions (for reconciliation)
-  linkedExpenseId?: string;
-  linkedIncomeId?: string;
-
-  // For transfers between accounts
-  relatedTransferId?: string; // Links two transfer transactions together
-  relatedAccountId?: string; // The other account in the transfer
-
-  createdAt: Timestamp;
-  createdBy: string;
+  description: string | null;
+  date: string;
+  balance_after: number;
+  linked_expense_id: string | null;
+  linked_income_id: string | null;
+  related_transfer_id: string | null;
+  related_account_id: string | null;
+  created_at: string;
+  created_by: string | null;
 }

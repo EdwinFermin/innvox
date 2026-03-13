@@ -1,35 +1,42 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Branch } from "@/types/branch.types";
 
 const EMPTY_BRANCHES: Branch[] = [];
 
 export function useBranches(userId: string, allowedBranchIds?: string[]) {
-  const query = useQuery({
+  const queryResult = useQuery({
     queryKey: [
       "branches",
       userId,
       [...(allowedBranchIds ?? [])].sort().join(","),
     ],
     queryFn: async (): Promise<Branch[]> => {
-      const ref = collection(db, "branches");
-      const snapshot = await getDocs(ref);
-      const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Branch));
+      const supabase = getSupabaseBrowserClient();
+
+      let query = supabase.from("branches").select("*");
 
       if (allowedBranchIds && allowedBranchIds.length > 0) {
-        const set = new Set(allowedBranchIds);
-        return all.filter((b) => set.has(b.id));
+        query = query.in("id", allowedBranchIds);
       }
 
-      return all;
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // In the DB, the branch `id` IS the code (e.g. "SDQ-01").
+      // Populate the `code` field so the UI can display it.
+      return (data ?? []).map((row) => ({
+        ...row,
+        code: row.id,
+      })) as Branch[];
     },
     enabled: !!userId,
   });
 
   return {
-    ...query,
-    data: query.data ?? EMPTY_BRANCHES,
+    ...queryResult,
+    data: queryResult.data ?? EMPTY_BRANCHES,
   };
 }

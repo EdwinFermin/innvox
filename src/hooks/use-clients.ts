@@ -1,23 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Client } from "@/types/client.types";
 
 const EMPTY: Client[] = [];
 
 export function useClients(userId: string) {
-  const query = useQuery({
+  const queryResult = useQuery({
     queryKey: ["clients", userId],
     queryFn: async (): Promise<Client[]> => {
-      const ref = collection(db, "clients");
-      const snapshot = await getDocs(ref);
-      return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Client));
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.from("clients").select("*");
+
+      if (error) throw error;
+
+      return data as Client[];
     },
     enabled: !!userId,
   });
 
   return {
-    ...query,
-    data: query.data ?? EMPTY,
+    ...queryResult,
+    data: queryResult.data ?? EMPTY,
   };
 }

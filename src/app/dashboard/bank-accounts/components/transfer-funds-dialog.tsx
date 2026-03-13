@@ -3,15 +3,13 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, doc, runTransaction } from "firebase/firestore";
-import { FirebaseError } from "firebase/app";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
-import { db } from "@/lib/firebase";
+import { transferFunds } from "@/actions/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { BankAccount } from "@/types/bank-account.types";
 import { Button } from "@/components/ui/button";
@@ -56,7 +54,7 @@ export function TransferFundsDialog({
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const allowedBranchIds =
-    user?.type === "USER" ? user?.branchIds : undefined;
+    user?.type === "USER" ? user?.branch_ids : undefined;
   const { data: allAccounts } = useBankAccounts(user?.id || "", {
     allowedBranchIds,
     activeOnly: false,
@@ -113,59 +111,14 @@ export function TransferFundsDialog({
     mutationFn: async (values: Values) => {
       if (!user?.id)
         throw new Error("No se encontro el usuario autenticado.");
-      if (values.amount > account.currentBalance)
+      if (values.amount > account.current_balance)
         throw new Error("El monto excede el balance disponible.");
 
-      await runTransaction(db, async (transaction) => {
-        const destRef = doc(
-          db,
-          "bankAccounts",
-          values.destinationAccountId,
-        );
-        const destSnap = await transaction.get(destRef);
-        if (!destSnap.exists())
-          throw new Error("La cuenta destino no existe.");
-        const dest = destSnap.data() as BankAccount;
-
-        const sourceRef = doc(db, "bankAccounts", account.id);
-        const newSourceBalance =
-          account.currentBalance - values.amount;
-        const newDestBalance = dest.currentBalance + values.amount;
-
-        transaction.update(sourceRef, {
-          currentBalance: newSourceBalance,
-        });
-        transaction.update(destRef, {
-          currentBalance: newDestBalance,
-        });
-
-        const outRef = doc(collection(db, "bankTransactions"));
-        const inRef = doc(collection(db, "bankTransactions"));
-
-        transaction.set(outRef, {
-          bankAccountId: account.id,
-          type: "transfer_out",
-          amount: values.amount,
-          description: values.description,
-          date: new Date(),
-          balanceAfter: newSourceBalance,
-          relatedTransferId: inRef.id,
-          relatedAccountId: values.destinationAccountId,
-          createdAt: new Date(),
-          createdBy: user.id,
-        });
-        transaction.set(inRef, {
-          bankAccountId: values.destinationAccountId,
-          type: "transfer_in",
-          amount: values.amount,
-          description: values.description,
-          date: new Date(),
-          balanceAfter: newDestBalance,
-          relatedTransferId: outRef.id,
-          relatedAccountId: account.id,
-          createdAt: new Date(),
-          createdBy: user.id,
-        });
+      await transferFunds({
+        sourceAccountId: account.id,
+        destAccountId: values.destinationAccountId,
+        amount: values.amount,
+        description: values.description,
       });
     },
     onSuccess: () => {
@@ -177,14 +130,14 @@ export function TransferFundsDialog({
       });
       onOpenChange(false);
     },
-    onError: (error: FirebaseError | Error) =>
+    onError: (error: Error) =>
       toast.error(error.message || "Ocurrio un error inesperado."),
   });
 
   const formatBalance = new Intl.NumberFormat("es-DO", {
     style: "currency",
     currency: account.currency,
-  }).format(account.currentBalance);
+  }).format(account.current_balance);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -194,7 +147,7 @@ export function TransferFundsDialog({
             Transferir fondos
           </DialogTitle>
           <DialogDescription>
-            Desde: <span className="font-medium">{account.accountName}</span>
+            Desde: <span className="font-medium">{account.account_name}</span>
             {" \u00B7 "}
             Balance disponible:{" "}
             <span className="font-medium">{formatBalance}</span>
@@ -252,7 +205,7 @@ export function TransferFundsDialog({
               type="number"
               step="0.01"
               min="0.01"
-              max={account.currentBalance}
+              max={account.current_balance}
               {...register("amount", { valueAsNumber: true })}
               disabled={isPending}
             />

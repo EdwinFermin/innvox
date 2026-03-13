@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,34 +16,25 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Timestamp,
-  doc,
-  setDoc,
-  type DocumentReference,
-} from "firebase/firestore";
+import { createInvoice } from "@/actions/invoices";
 import { toast } from "sonner";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
 import { useClients } from "@/hooks/use-clients";
 import { useAuthStore } from "@/store/auth";
 import { ClientsCombobox } from "./clients-combobox";
-import { generateInvoiceNumber, generateNCF } from "@/utils/tools";
+import { generateInvoiceNumber } from "@/utils/tools";
 import { useConfigs } from "@/hooks/use-configs";
 import { Invoice } from "@/types/invoice.types";
-import { Client } from "@/types/client.types";
-import { User } from "@/types/auth.types";
 
 const newInvoiceSchema = z.object({
   client: z.string().nonempty("El cliente es obligatorio"),
   description: z
     .string()
-    .min(1, "La descripción es obligatoria")
-    .max(500, "Máximo 500 caracteres"),
+    .min(1, "La descripcion es obligatoria")
+    .max(500, "Maximo 500 caracteres"),
   amount: z.number().min(0, "El monto no puede ser negativo"),
   montoExento: z.number().min(0),
   montoGravado: z.number().min(0),
-  ITBIS: z.number().min(0),
+  itbis: z.number().min(0),
 });
 
 type NewInvoiceFormValues = z.input<typeof newInvoiceSchema>;
@@ -65,7 +58,7 @@ export function NewInvoiceDialog({
       amount: 0,
       montoExento: 0,
       montoGravado: 0,
-      ITBIS: 0,
+      itbis: 0,
     }),
     [],
   );
@@ -113,9 +106,13 @@ export function NewInvoiceDialog({
 
   React.useEffect(() => {
     const amount = Number(watchedAmount ?? 0) || 0;
-    const computedMontoExento = Number((amount * (excentoPercentage / 100)).toFixed(2));
-    const computedMontoGravado = Number((amount * (gravadoPercentage / 100)).toFixed(2));
-    const computedITBIS = Number(
+    const computedMontoExento = Number(
+      (amount * (excentoPercentage / 100)).toFixed(2),
+    );
+    const computedMontoGravado = Number(
+      (amount * (gravadoPercentage / 100)).toFixed(2),
+    );
+    const computedItbis = Number(
       (computedMontoGravado * (itbisPercentage / 100)).toFixed(2),
     );
 
@@ -127,11 +124,17 @@ export function NewInvoiceDialog({
       shouldValidate: true,
       shouldDirty: false,
     });
-    setValue("ITBIS", computedITBIS, {
+    setValue("itbis", computedItbis, {
       shouldValidate: true,
       shouldDirty: false,
     });
-  }, [watchedAmount, excentoPercentage, gravadoPercentage, itbisPercentage, setValue]);
+  }, [
+    watchedAmount,
+    excentoPercentage,
+    gravadoPercentage,
+    itbisPercentage,
+    setValue,
+  ]);
 
   const [open, setOpen] = React.useState(false);
   const isEditMode = Boolean(invoice);
@@ -144,12 +147,12 @@ export function NewInvoiceDialog({
     if (currentInvoiceId && invoice) {
       if (currentInvoiceId !== lastInvoiceId) {
         reset({
-          client: invoice.clientId,
+          client: invoice.client_id ?? "",
           description: invoice.description ?? "",
           amount: invoice.amount,
-          montoExento: invoice.montoExento,
-          montoGravado: invoice.montoGravado,
-          ITBIS: invoice.ITBIS,
+          montoExento: invoice.monto_exento,
+          montoGravado: invoice.monto_gravado,
+          itbis: invoice.itbis,
         });
         setOpen(true);
         lastInvoiceIdRef.current = currentInvoiceId;
@@ -175,53 +178,29 @@ export function NewInvoiceDialog({
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewInvoiceFormValues) => {
       const isEditing = Boolean(invoice);
-      const ref = doc(
-        db,
-        "invoices",
-        isEditing && invoice ? invoice.id : generateInvoiceNumber(),
-      );
+      const invoiceId =
+        isEditing && invoice ? invoice.id : generateInvoiceNumber();
 
-      const clientRef = doc(
-        db,
-        "clients",
-        data.client,
-      ) as DocumentReference<Client>;
-      const invoiceUserId = invoice?.userId || user?.id;
+      const invoiceUserId = invoice?.user_id || user?.id;
 
       if (!invoiceUserId) {
-        throw new Error("No se encontró el usuario autenticado.");
+        throw new Error("No se encontro el usuario autenticado.");
       }
 
-      const userRef = doc(
-        db,
-        "users",
-        invoiceUserId,
-      ) as DocumentReference<User>;
-
-      const resolvedNCF = isEditing ? (invoice?.NCF ?? await generateNCF()) : await generateNCF();
-
-      const payload = {
-        id: ref.id,
-        invoiceType: "FISCAL" as const,
-        NCF: resolvedNCF,
-        client: clientRef,
+      await createInvoice({
+        id: invoiceId,
+        invoiceType: "FISCAL",
         clientId: data.client,
         description: data.description,
         amount: Number(data.amount) || 0,
         montoExento: Number(data.montoExento) || 0,
         montoGravado: Number(data.montoGravado) || 0,
-        ITBIS: Number(data.ITBIS) || 0,
-        createdAt: invoice?.createdAt ?? Timestamp.fromDate(new Date()),
-        user: userRef,
+        itbis: Number(data.itbis) || 0,
         userId: invoiceUserId,
-        createdBy: invoiceUserId,
-        createdByRef: userRef,
-      };
-
-      await setDoc(ref, payload, { merge: false });
+      });
 
       return {
-        id: ref.id,
+        id: invoiceId,
         mode: (isEditing ? "edit" : "create") as DialogMode,
       };
     },
@@ -235,8 +214,8 @@ export function NewInvoiceDialog({
       handleClose();
       onSuccess({ id, mode });
     },
-    onError: (error: FirebaseError) => {
-      toast.error(error?.message || "Ocurrió un error inesperado.");
+    onError: (error: Error) => {
+      toast.error(error?.message || "Ocurrio un error inesperado.");
     },
   });
 
@@ -282,7 +261,9 @@ export function NewInvoiceDialog({
               <label className="text-sm font-medium text-start">
                 Tipo de Factura
               </label>
-              <p className="text-sm text-muted-foreground">Factura con Valor Fiscal</p>
+              <p className="text-sm text-muted-foreground">
+                Factura con Valor Fiscal
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -335,7 +316,8 @@ export function NewInvoiceDialog({
                 htmlFor="description"
                 className="text-sm font-medium text-start"
               >
-                Descripción de la factura <span className="text-red-500">*</span>
+                Descripcion de la factura{" "}
+                <span className="text-red-500">*</span>
               </label>
               <Textarea
                 id="description"
@@ -355,9 +337,16 @@ export function NewInvoiceDialog({
                 Monto Exento {`(${excentoPercentage || 0}%)`}
               </label>
               <Input
-                value={Number(watchedAmount ?? 0)
-                  ? Number((Number(watchedAmount) * (excentoPercentage / 100)).toFixed(2))
-                  : 0}
+                value={
+                  Number(watchedAmount ?? 0)
+                    ? Number(
+                        (
+                          Number(watchedAmount) *
+                          (excentoPercentage / 100)
+                        ).toFixed(2),
+                      )
+                    : 0
+                }
                 readOnly
                 className="w-full"
               />
@@ -368,9 +357,16 @@ export function NewInvoiceDialog({
                 Monto Gravado {`(${gravadoPercentage || 0}%)`}
               </label>
               <Input
-                value={Number(watchedAmount ?? 0)
-                  ? Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2))
-                  : 0}
+                value={
+                  Number(watchedAmount ?? 0)
+                    ? Number(
+                        (
+                          Number(watchedAmount) *
+                          (gravadoPercentage / 100)
+                        ).toFixed(2),
+                      )
+                    : 0
+                }
                 readOnly
                 className="w-full"
               />
@@ -381,14 +377,21 @@ export function NewInvoiceDialog({
                 ITBIS {`(${itbisPercentage || 0}%)`}
               </label>
               <Input
-                value={Number(watchedAmount ?? 0)
-                  ? Number(
-                      (
-                        Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) *
-                        (itbisPercentage / 100)
-                      ).toFixed(2),
-                    )
-                  : 0}
+                value={
+                  Number(watchedAmount ?? 0)
+                    ? Number(
+                        (
+                          Number(
+                            (
+                              Number(watchedAmount) *
+                              (gravadoPercentage / 100)
+                            ).toFixed(2),
+                          ) *
+                          (itbisPercentage / 100)
+                        ).toFixed(2),
+                      )
+                    : 0
+                }
                 readOnly
                 className="w-full"
               />

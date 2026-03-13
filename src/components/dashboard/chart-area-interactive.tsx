@@ -53,9 +53,9 @@ export function ChartAreaInteractive() {
   const user = useAuthStore((state) => state.user);
   const userId = user?.id ?? "";
   const userRole = user?.type;
-  const { data: invoices } = useInvoices(userId, { role: userRole });
-  const { data: incomes } = useIncomes(userId, { role: userRole });
-  const { data: expenses } = useExpenses(userId, { role: userRole });
+  const { data: invoices } = useInvoices(userId);
+  const { data: incomes } = useIncomes(userId);
+  const { data: expenses } = useExpenses(userId);
   const [timeRange, setTimeRange] = React.useState("90d");
 
   React.useEffect(() => {
@@ -70,16 +70,13 @@ export function ChartAreaInteractive() {
 
     const normalizeDate = (value: unknown) => {
       if (!value) return null;
-      const date =
-        typeof (value as { toDate?: () => Date }).toDate === "function"
-          ? (value as { toDate: () => Date }).toDate()
-          : new Date(value as string | number | Date);
+      const date = new Date(value as string | number | Date);
       if (Number.isNaN(date.getTime())) return null;
       return date.toISOString().slice(0, 10);
     };
 
     invoices?.forEach((invoice) => {
-      const key = normalizeDate(invoice.createdAt);
+      const key = normalizeDate(invoice.created_at);
       if (!key) return;
       incomeTotals.set(
         key,
@@ -88,7 +85,7 @@ export function ChartAreaInteractive() {
     });
 
     incomes?.forEach((income) => {
-      const key = normalizeDate(income.date ?? income.createdAt);
+      const key = normalizeDate(income.date ?? income.created_at);
       if (!key) return;
       incomeTotals.set(
         key,
@@ -97,7 +94,7 @@ export function ChartAreaInteractive() {
     });
 
     expenses?.forEach((expense) => {
-      const key = normalizeDate(expense.date ?? expense.createdAt);
+      const key = normalizeDate(expense.date ?? expense.created_at);
       if (!key) return;
       expenseTotals.set(
         key,

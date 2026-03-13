@@ -5,7 +5,7 @@ import { forwardRef } from "react";
 
 export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
   ({ invoice }, ref) => {
-    const total = invoice.amount + invoice.ITBIS;
+    const total = invoice.amount + invoice.itbis;
 
     return (
       <div
@@ -27,16 +27,17 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
         <br />
         <div>
           <p>
-            <b>Fecha:</b> {invoice.createdAt.toDate().toLocaleString()}
+            <b>Fecha:</b>{" "}
+            {new Date(invoice.created_at).toLocaleString()}
           </p>
           <p>
             <b>Factura #:</b> {invoice.id}
           </p>
           <p>
-            <b>Cliente:</b> {invoice.client?.name} {invoice.client?.poBox}
+            <b>Cliente:</b> {invoice.client_name}
           </p>
           <p>
-            <b>NCF:</b> {invoice.NCF}
+            <b>NCF:</b> {invoice.ncf}
           </p>
         </div>
         <br />
@@ -47,7 +48,7 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
         <hr />
         <div style={{ marginTop: "8px" }}>
           <p style={{ margin: "0 0 4px 0" }}>
-            <b>Descripción:</b>
+            <b>Descripcion:</b>
           </p>
           <p style={{ margin: 0 }}>{invoice.description}</p>
         </div>
@@ -57,13 +58,13 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
             <b>Monto:</b> {invoice.amount.toFixed(2)}
           </p>
           <p>
-            <b>Monto Exento:</b> {invoice.montoExento.toFixed(2)}
+            <b>Monto Exento:</b> {invoice.monto_exento.toFixed(2)}
           </p>
           <p>
-            <b>Monto Gravado:</b> {invoice.montoGravado.toFixed(2)}
+            <b>Monto Gravado:</b> {invoice.monto_gravado.toFixed(2)}
           </p>
           <p>
-            <b>ITBIS:</b> {invoice.ITBIS.toFixed(2)}
+            <b>ITBIS:</b> {invoice.itbis.toFixed(2)}
           </p>
           <p>
             <b>Total:</b> {total.toFixed(2)}
@@ -75,7 +76,7 @@ export const Receipt80mm = forwardRef<HTMLDivElement, { invoice: Invoice }>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 Receipt80mm.displayName = "Receipt80mm";

@@ -81,7 +81,7 @@ export default function ProfitReportPage() {
   const { user } = useAuthStore();
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
   const { data: incomes } = useIncomes(user?.id || "");
   const { data: expenses } = useExpenses(user?.id || "");
@@ -106,9 +106,6 @@ export default function ProfitReportPage() {
     const toDate = (d: unknown) => {
       if (!d) return null;
       if (d instanceof Date) return d;
-      if (typeof (d as { toDate?: () => Date }).toDate === "function") {
-        return (d as { toDate: () => Date }).toDate();
-      }
       if (typeof d === "string" || typeof d === "number") {
         const parsed = new Date(d);
         return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -123,11 +120,11 @@ export default function ProfitReportPage() {
       list.push({
         id: `income-${i.id}`,
         type: "INGRESO",
-        branchId: i.branchId,
+        branchId: i.branch_id,
         name: "Ingreso",
         amount: Number(i.amount || 0),
         date: d,
-        description: i.description,
+        description: i.description ?? "",
       });
     });
     expenses.forEach((e) => {
@@ -136,37 +133,37 @@ export default function ProfitReportPage() {
       list.push({
         id: `expense-${e.id}`,
         type: "GASTO",
-        branchId: e.branchId,
+        branchId: e.branch_id,
         name: "Gasto",
         amount: Number(e.amount || 0),
         date: d,
-        description: e.description,
+        description: e.description ?? "",
       });
     });
     receivables.forEach((r) => {
-      const d = toDate(r.dueDate);
+      const d = toDate(r.due_date);
       if (!d) return;
       list.push({
         id: `receivable-${r.id}`,
         type: "CXC",
-        branchId: r.branchId,
+        branchId: r.branch_id ?? undefined,
         name: r.name,
         amount: Number(r.amount || 0),
         date: d,
-        description: r.description,
+        description: r.description ?? "",
       });
     });
     payables.forEach((p) => {
-      const d = toDate(p.dueDate);
+      const d = toDate(p.due_date);
       if (!d) return;
       list.push({
         id: `payable-${p.id}`,
         type: "CXP",
-        branchId: p.branchId,
+        branchId: p.branch_id ?? undefined,
         name: p.name,
         amount: Number(p.amount || 0),
         date: d,
-        description: p.description,
+        description: p.description ?? "",
       });
     });
     return list;

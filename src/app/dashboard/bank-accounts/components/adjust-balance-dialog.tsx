@@ -3,13 +3,11 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, doc, runTransaction } from "firebase/firestore";
-import { FirebaseError } from "firebase/app";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { db } from "@/lib/firebase";
+import { adjustBalance } from "@/actions/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { BankAccount } from "@/types/bank-account.types";
 import { Button } from "@/components/ui/button";
@@ -55,7 +53,7 @@ export function AdjustBalanceDialog({
     resolver: zodResolver(schema),
     mode: "onChange",
     defaultValues: {
-      newBalance: account.currentBalance ?? 0,
+      newBalance: account.current_balance ?? 0,
       description: "",
     },
   });
@@ -64,39 +62,21 @@ export function AdjustBalanceDialog({
   React.useEffect(() => {
     if (open) {
       reset({
-        newBalance: account.currentBalance ?? 0,
+        newBalance: account.current_balance ?? 0,
         description: "",
       });
     }
-  }, [open, account.currentBalance, reset]);
+  }, [open, account.current_balance, reset]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (values: Values) => {
       if (!user?.id)
         throw new Error("No se encontro el usuario autenticado.");
 
-      const adjustmentAmount =
-        values.newBalance - account.currentBalance;
-
-      await runTransaction(db, async (transaction) => {
-        const accountRef = doc(db, "bankAccounts", account.id);
-        transaction.update(accountRef, {
-          currentBalance: values.newBalance,
-        });
-
-        const transactionRef = doc(
-          collection(db, "bankTransactions"),
-        );
-        transaction.set(transactionRef, {
-          bankAccountId: account.id,
-          type: "adjustment",
-          amount: adjustmentAmount,
-          description: values.description,
-          date: new Date(),
-          balanceAfter: values.newBalance,
-          createdAt: new Date(),
-          createdBy: user.id,
-        });
+      await adjustBalance({
+        bankAccountId: account.id,
+        amount: values.newBalance,
+        description: values.description,
       });
     },
     onSuccess: () => {
@@ -110,14 +90,14 @@ export function AdjustBalanceDialog({
       });
       onOpenChange(false);
     },
-    onError: (error: FirebaseError | Error) =>
+    onError: (error: Error) =>
       toast.error(error.message || "Ocurrio un error inesperado."),
   });
 
   const formatBalance = new Intl.NumberFormat("es-DO", {
     style: "currency",
     currency: account.currency,
-  }).format(account.currentBalance);
+  }).format(account.current_balance);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,7 +109,7 @@ export function AdjustBalanceDialog({
           <DialogDescription>
             Cuenta:{" "}
             <span className="font-medium">
-              {account.accountName}
+              {account.account_name}
             </span>
             {" \u00B7 "}
             Balance actual:{" "}

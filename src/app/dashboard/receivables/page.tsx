@@ -17,7 +17,6 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { deleteDoc, doc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,6 @@ import {
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
-import { db } from "@/lib/firebase";
 import { useReceivables } from "@/hooks/use-receivables";
 import { Receivable } from "@/types/receivable.types";
 import { NewReceivableDialog } from "./components/new-receivable-dialog";
@@ -55,17 +53,18 @@ import {
   ListVisibilityControl,
   type VisibilityScope,
 } from "@/components/ui/list-visibility-control";
+import { deleteReceivable } from "@/actions/receivables";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     id: "ID",
     name: "Nombre",
     amount: "Monto",
-    dueDate: "Vencimiento",
+    due_date: "Vencimiento",
     status: "Estado",
     description: "Descripción",
-    createdBy: "Creado por",
-    createdAt: "Fecha de creación",
+    created_by: "Creado por",
+    created_at: "Fecha de creación",
   };
   return map[id] || id;
 };
@@ -79,9 +78,6 @@ const getDateTime = (value: unknown): number => {
   if (!value) return 0;
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
   return 0;
 };
 
@@ -152,8 +148,8 @@ const getColumns = (
     ),
   },
   {
-    id: "dueDate",
-    accessorFn: (row) => getDateTime(row.dueDate),
+    id: "due_date",
+    accessorFn: (row) => getDateTime(row.due_date),
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -166,7 +162,7 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        {format(row.original.dueDate.toDate(), "d 'de' MMMM yyyy", {
+        {format(new Date(row.original.due_date), "d 'de' MMMM yyyy", {
           locale: es,
         })}
       </div>
@@ -192,10 +188,10 @@ const getColumns = (
     cell: ({ row }) => <div className="line-clamp-2">{row.original.description}</div>,
   },
   {
-    accessorKey: "createdBy",
+    accessorKey: "created_by",
     header: "Creado por",
     cell: ({ row }) => {
-      const userId = row.original.createdBy ?? "";
+      const userId = row.original.created_by ?? "";
       if (!userId) return <div>-</div>;
       return <div>{userNameById[userId] ?? userId}</div>;
     },
@@ -219,7 +215,7 @@ const getColumns = (
               variant="destructive"
               onClick={async () => {
                 try {
-                  await deleteDoc(doc(db, "receivables", row.row.original.id));
+                  await deleteReceivable(row.row.original.id);
                   toast.success("Cuenta por cobrar eliminada");
                   queryClient.invalidateQueries({ queryKey: ["receivables"] });
                 } catch {
@@ -241,9 +237,7 @@ export default function ReceivablesPage() {
   const { user } = useAuthStore();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
-  const { data: receivables, isLoading } = useReceivables(user?.id || "", {
-    role: user?.type,
-  });
+  const { data: receivables, isLoading } = useReceivables(user?.id || "");
   const { data: users } = useUsers();
   const queryClient = useQueryClient();
 
@@ -270,7 +264,7 @@ export default function ReceivablesPage() {
       return receivables;
     }
 
-    return receivables.filter((receivable) => receivable.createdBy === user?.id);
+    return receivables.filter((receivable) => receivable.created_by === user?.id);
   }, [receivables, user?.id, visibilityScope]);
 
   const columns = React.useMemo(

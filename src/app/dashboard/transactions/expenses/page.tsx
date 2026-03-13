@@ -71,14 +71,14 @@ import { deleteExpense } from "@/lib/financial-movements";
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     id: "ID",
-    branchId: "Sucursal",
-    expenseTypeId: "Tipo",
-    bankAccountId: "Cuenta",
+    branch_id: "Sucursal",
+    expense_type_id: "Tipo",
+    bank_account_id: "Cuenta",
     amount: "Monto",
     date: "Fecha",
     description: "Descripción",
-    createdBy: "Creado por",
-    createdAt: "Fecha de creación",
+    created_by: "Creado por",
+    created_at: "Fecha de creación",
   };
   return map[id] || id;
 };
@@ -127,47 +127,47 @@ const getColumns = (
     ),
   },
   {
-    accessorKey: "branchId",
+    accessorKey: "branch_id",
     header: "Sucursal",
     cell: ({ row }) => (
       <div className="capitalize">
-        {branchNameById[row.original.branchId] ?? row.original.branchId}
+        {branchNameById[row.original.branch_id] ?? row.original.branch_id}
       </div>
     ),
   },
   {
-    accessorKey: "expenseTypeId",
+    accessorKey: "expense_type_id",
     header: "Tipo",
     cell: ({ row }) => (
       <div className="capitalize">
-        {expenseTypeNameById[row.original.expenseTypeId] ??
-          row.original.expenseTypeId}
+        {expenseTypeNameById[row.original.expense_type_id] ??
+          row.original.expense_type_id}
       </div>
     ),
   },
   {
-    accessorKey: "bankAccountId",
+    accessorKey: "bank_account_id",
     header: "Cuenta",
     cell: ({ row }) => {
-      const account = row.original.bankAccountId
-        ? accountById[row.original.bankAccountId]
+      const account = row.original.bank_account_id
+        ? accountById[row.original.bank_account_id]
         : undefined;
       if (!account) return <div className="text-muted-foreground">-</div>;
       return (
         <div className="flex items-center gap-2">
-          {isSafeAccountImageSrc(account.iconUrl) ? (
+          {isSafeAccountImageSrc(account.icon_url) ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={account.iconUrl!}
+              src={account.icon_url!}
               alt=""
               className="h-5 w-5 shrink-0 rounded border object-cover"
             />
           ) : (
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border bg-muted text-[9px] font-semibold text-muted-foreground">
-              {account.accountType === "bank" ? "BK" : "CJ"}
+              {account.account_type === "bank" ? "BK" : "CJ"}
             </span>
           )}
-          <span className="truncate">{account.accountName}</span>
+          <span className="truncate">{account.account_name}</span>
         </div>
       );
     },
@@ -234,10 +234,10 @@ const getColumns = (
     },
   },
   {
-    accessorKey: "createdBy",
+    accessorKey: "created_by",
     header: "Creado por",
     cell: ({ row }) => {
-      const userId = row.original.createdBy ?? "";
+      const userId = row.original.created_by ?? "";
       if (!userId) return <div>-</div>;
       return <div>{userNameById[userId] ?? userId}</div>;
     },
@@ -280,12 +280,10 @@ export default function ExpensesPage() {
   const router = useRouter();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
-  const { data: expenses, isLoading } = useExpenses(user?.id || "", {
-    role: user?.type,
-  });
+  const { data: expenses, isLoading } = useExpenses(user?.id || "");
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
   const { data: expenseTypes } = useExpenseTypes(user?.id || "");
   const { data: bankAccounts } = useBankAccounts(user?.id || "", { activeOnly: false });
@@ -317,13 +315,7 @@ export default function ExpensesPage() {
 
   const normalizeDateKey = React.useCallback((value: Expense["date"]) => {
     if (!value) return null;
-    const date =
-      value instanceof Date
-        ? value
-        : typeof value === "object" &&
-            typeof (value as { toDate?: () => Date }).toDate === "function"
-          ? (value as { toDate: () => Date }).toDate()
-          : new Date(value as unknown as string | number | Date);
+    const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     const y = date.getUTCFullYear();
     const m = `${date.getUTCMonth() + 1}`.padStart(2, "0");
@@ -333,13 +325,7 @@ export default function ExpensesPage() {
 
   const toLocalMidnight = React.useCallback((value: Expense["date"]) => {
     if (!value) return null;
-    const date =
-      value instanceof Date
-        ? value
-        : typeof value === "object" &&
-            typeof (value as { toDate?: () => Date }).toDate === "function"
-          ? (value as { toDate: () => Date }).toDate()
-          : new Date(value as unknown as string | number | Date);
+    const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     return new Date(
       date.getUTCFullYear(),
@@ -350,22 +336,22 @@ export default function ExpensesPage() {
 
   const filteredExpenses = React.useMemo(() => {
     const allowedBranches =
-      user?.type === "USER" && user?.branchIds && user.branchIds.length > 0
-        ? new Set(user.branchIds)
+      user?.type === "USER" && user?.branch_ids && user.branch_ids.length > 0
+        ? new Set(user.branch_ids)
         : null;
     return expenses.filter((expense) => {
-      if (visibilityScope === "mine" && expense.createdBy !== user?.id) {
+      if (visibilityScope === "mine" && expense.created_by !== user?.id) {
         return false;
       }
-      if (allowedBranches && !allowedBranches.has(expense.branchId))
+      if (allowedBranches && !allowedBranches.has(expense.branch_id))
         return false;
       const dateKey = normalizeDateKey(expense.date);
       if (!dateKey) return false;
       if (startDate && dateKey < startDate) return false;
       if (endDate && dateKey > endDate) return false;
-      if (branchFilter !== "ALL" && expense.branchId !== branchFilter)
+      if (branchFilter !== "ALL" && expense.branch_id !== branchFilter)
         return false;
-      if (typeFilter !== "ALL" && expense.expenseTypeId !== typeFilter)
+      if (typeFilter !== "ALL" && expense.expense_type_id !== typeFilter)
         return false;
       return true;
     });
@@ -379,7 +365,7 @@ export default function ExpensesPage() {
     visibilityScope,
     user?.id,
     user?.type,
-    user?.branchIds,
+    user?.branch_ids,
   ]);
 
   const branchNameById = React.useMemo(
@@ -421,7 +407,7 @@ export default function ExpensesPage() {
   const handleDeleteExpense = React.useCallback(
     async (expenseId: string) => {
       try {
-        const result = await deleteExpense(expenseId);
+        await deleteExpense(expenseId);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["expenses"] }),
           queryClient.invalidateQueries({ queryKey: ["bankAccounts"] }),
@@ -429,14 +415,7 @@ export default function ExpensesPage() {
           queryClient.invalidateQueries({ queryKey: ["bankTransactions"] }),
         ]);
 
-        if (result.historyRepaired) {
-          toast.success("Gasto eliminado");
-          return;
-        }
-
-        toast.success(
-          "Gasto eliminado, pero no se pudo recalcular el historial bancario",
-        );
+        toast.success("Gasto eliminado");
       } catch (error) {
         console.error("Error al eliminar el gasto", error);
         toast.error(

@@ -25,14 +25,11 @@ import {
 } from "@/components/ui/sidebar";
 import { User } from "@/types/auth.types";
 import { signOut } from "next-auth/react";
-import { signOut as firebaseSignOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 
 export function NavUser({ user }: { user: User | null }) {
   const { isMobile } = useSidebar();
 
   const handleSignOut = async () => {
-    await firebaseSignOut(auth).catch(() => undefined);
     await signOut({ callbackUrl: "/login" });
   };
 

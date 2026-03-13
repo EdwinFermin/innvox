@@ -2,30 +2,20 @@
 
 import * as React from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { PackageCheck } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 
+import { completeLinkPayment } from "@/actions/link-payments";
 import { Button } from "@/components/ui/button";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { LinkPayment } from "@/types/link-payment.types";
 
 const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
   currency: "DOP",
 });
-
-const getDateTime = (value: unknown): number => {
-  if (!value) return 0;
-  if (value instanceof Date) return value.getTime();
-  if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
-  return 0;
-};
 
 export default function PublicBranchPaymentPage() {
   const params = useParams<{ branchId: string | string[] }>();
@@ -37,38 +27,28 @@ export default function PublicBranchPaymentPage() {
   const pendingPaymentQuery = useQuery({
     queryKey: ["public-link-payment", branchId],
     queryFn: async (): Promise<LinkPayment | null> => {
-      const snapshot = await getDocs(
-        query(
-          collection(db, "linkPayments"),
-          where("branchId", "==", branchId),
-          where("status", "==", "pending"),
-        ),
-      );
+      const supabase = getSupabaseBrowserClient();
 
-      const items = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      })) as LinkPayment[];
+      const { data, error } = await supabase
+        .from("link_payments")
+        .select("*")
+        .eq("branch_id", branchId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (items.length === 0) {
-        return null;
-      }
+      if (error) throw error;
 
-      return [...items].sort(
-        (a, b) => getDateTime(b.createdAt) - getDateTime(a.createdAt),
-      )[0];
+      return data;
     },
     enabled: !!branchId,
   });
 
   const payMutation = useMutation({
     mutationFn: async (payment: LinkPayment) => {
-      await updateDoc(doc(db, "linkPayments", payment.id), {
-        status: "completed",
-        completedAt: new Date(),
-      });
-
-      window.location.assign(payment.paymentUrl);
+      await completeLinkPayment(payment.id);
+      window.location.assign(payment.payment_url);
     },
   });
 

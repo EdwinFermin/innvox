@@ -1,32 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Payable } from "@/types/payable.types";
 
 const EMPTY: Payable[] = [];
 
-type UsePayablesOptions = {
-  role?: "ADMIN" | "USER";
-};
-
-export function usePayables(userId: string, options: UsePayablesOptions = {}) {
-  const isUserRole = options.role === "USER";
-
+export function usePayables(userId: string) {
   const queryResult = useQuery({
-    queryKey: ["payables", userId, isUserRole ? "mine" : "all"],
+    queryKey: ["payables", userId],
     queryFn: async (): Promise<Payable[]> => {
-      const ref = collection(db, "payables");
-      const snapshot = isUserRole
-        ? await getDocs(query(ref, where("createdBy", "==", userId)))
-        : await getDocs(ref);
+      const supabase = getSupabaseBrowserClient();
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase.from("payables").select("*");
 
-      return snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      })) as Payable[];
+      if (error) throw error;
+
+      return data as Payable[];
     },
-    enabled: isUserRole ? !!userId : true,
+    enabled: !!userId,
   });
 
   return {

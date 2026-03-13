@@ -3,15 +3,13 @@
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FirebaseError } from "firebase/app";
-import { addDoc, collection } from "firebase/firestore";
 import { PlusCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { useBranches } from "@/hooks/use-branches";
-import { db } from "@/lib/firebase";
+import { createLinkPayment } from "@/actions/link-payments";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,7 +43,7 @@ export function NewLinkPaymentDialog() {
   const { user } = useAuthStore();
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
 
   const {
@@ -71,13 +69,10 @@ export function NewLinkPaymentDialog() {
         throw new Error("No se encontro el usuario autenticado.");
       }
 
-      await addDoc(collection(db, "linkPayments"), {
-        branchId: data.branchId,
+      await createLinkPayment({
+        branch_id: data.branchId,
         amount: Number(data.amount),
-        paymentUrl: data.paymentUrl,
-        status: "pending",
-        createdAt: new Date(),
-        createdBy: user.id,
+        payment_url: data.paymentUrl,
       });
     },
     onSuccess: () => {
@@ -86,7 +81,7 @@ export function NewLinkPaymentDialog() {
       reset();
       setOpen(false);
     },
-    onError: (error: FirebaseError | Error) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Ocurrio un error inesperado.");
     },
   });
