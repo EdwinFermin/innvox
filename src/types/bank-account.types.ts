@@ -1,24 +1,21 @@
-import { Timestamp } from "firebase/firestore";
-
 export type AccountType = "bank" | "petty_cash";
-
 export type Currency = "DOP" | "USD";
+export type PaymentMethod = "cash" | "bank";
 
 export interface BankAccount {
   id: string;
-  branchIds: string[];
-  branchId?: string;
-  accountType: AccountType;
-  bankName?: string; // Only for bank accounts
-  accountNumber?: string; // Only for bank accounts
-  accountName: string; // e.g., "Caja Chica", "Cuenta Operativa"
-  iconUrl?: string;
-  currentBalance: number;
+  branch_id: string | null;
+  account_type: AccountType;
+  bank_name: string | null;
+  account_number: string | null;
+  account_name: string;
+  icon_url: string | null;
+  current_balance: number;
   currency: Currency;
-  isActive: boolean;
-  isPublic?: boolean; // Whether this account is visible on the public accounts page
-  createdAt: Timestamp;
-  createdBy: string;
+  is_active: boolean;
+  is_public: boolean | null;
+  created_at: string;
+  created_by: string | null;
+  /** Populated from bank_account_branches junction table */
+  branch_ids: string[];
 }
-
-export type PaymentMethod = "cash" | "bank";

@@ -3,18 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { db } from "@/lib/firebase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, writeBatch } from "firebase/firestore";
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import z from "zod";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
 import { useConfigs } from "@/hooks/use-configs";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
+import { updateConfigs } from "@/actions/configs";
 
 const settingsSchema = z.object({
   NCFRangeStart: z
@@ -40,6 +39,16 @@ const settingsSchema = z.object({
 
 type SettingsValues = z.infer<typeof settingsSchema>;
 
+const EMPTY_SETTINGS_VALUES: SettingsValues = {
+  NCFRangeStart: "",
+  NCFRangeEnd: "",
+  CFRangeStart: "",
+  CFRangeEnd: "",
+  ITBISPercentage: "",
+  ExcentoPercentage: "",
+  GravadoPercentage: "",
+};
+
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
@@ -55,73 +64,59 @@ export default function SettingsPage() {
   } = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
     mode: "onChange",
+    defaultValues: EMPTY_SETTINGS_VALUES,
   });
 
-  useEffect(() => {
-    if (configs) {
-      reset({
-        NCFRangeStart: configs.NCF?.rangeStart || "",
-        NCFRangeEnd: configs.NCF?.rangeEnd || "",
-        CFRangeStart: configs.CF?.rangeStart || "",
-        CFRangeEnd: configs.CF?.rangeEnd || "",
-        ITBISPercentage: configs.ITBIS?.percentage || "",
-        ExcentoPercentage: configs.EXCENTO?.percentage || "",
-        GravadoPercentage: configs.GRAVADO?.percentage || "",
-      });
+  const configValues = useMemo<SettingsValues | null>(() => {
+    if (Object.keys(configs).length === 0) {
+      return null;
     }
-  }, [configs, reset]);
+
+    const ncf = configs.NCF ?? {};
+    const cf = configs.CF ?? {};
+    const itbis = configs.ITBIS ?? {};
+    const excento = configs.EXCENTO ?? {};
+    const gravado = configs.GRAVADO ?? {};
+
+    return {
+      NCFRangeStart: String(ncf.range_start ?? ""),
+      NCFRangeEnd: String(ncf.range_end ?? ""),
+      CFRangeStart: String(cf.range_start ?? ""),
+      CFRangeEnd: String(cf.range_end ?? ""),
+      ITBISPercentage: String(itbis.percentage ?? ""),
+      ExcentoPercentage: String(excento.percentage ?? ""),
+      GravadoPercentage: String(gravado.percentage ?? ""),
+    };
+  }, [configs]);
+
+  useEffect(() => {
+    if (configValues) {
+      reset(configValues);
+    }
+  }, [configValues, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: SettingsValues) => {
-      const batch = writeBatch(db);
-
-      batch.set(
-        doc(db, "configs", "NCF"),
-        {
-          rangeStart: values.NCFRangeStart,
-          rangeEnd: values.NCFRangeEnd,
+      await updateConfigs({
+        NCF: {
+          range_start: values.NCFRangeStart,
+          range_end: values.NCFRangeEnd,
         },
-        { merge: true }
-      );
-
-      batch.set(
-        doc(db, "configs", "CF"),
-        {
-          rangeStart: values.CFRangeStart,
-          rangeEnd: values.CFRangeEnd,
+        CF: {
+          range_start: values.CFRangeStart,
+          range_end: values.CFRangeEnd,
         },
-        { merge: true }
-      );
-
-      batch.set(
-        doc(db, "configs", "ITBIS"),
-        {
-          percentage: values.ITBISPercentage,
-        },
-        { merge: true }
-      );
-
-      batch.set(
-        doc(db, "configs", "EXCENTO"),
-        {
-          percentage: values.ExcentoPercentage,
-        },
-        { merge: true }
-      );
-
-      batch.set(
-        doc(db, "configs", "GRAVADO"),
-        {
-          percentage: values.GravadoPercentage,
-        },
-        { merge: true }
-      );
-
-      await batch.commit();
+        ITBIS: { percentage: values.ITBISPercentage },
+        EXCENTO: { percentage: values.ExcentoPercentage },
+        GRAVADO: { percentage: values.GravadoPercentage },
+      });
     },
     onSuccess: () => {
-      toast.success("Configuración guardada");
+      toast.success("Configuracion guardada");
       queryClient.invalidateQueries({ queryKey: ["configs"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message || "Error al guardar la configuracion");
     },
   });
 
@@ -134,7 +129,7 @@ export default function SettingsPage() {
       <div className="w-full">
         <h3 className="text-2xl font-semibold">Configuraciones Generales</h3>
         <p className="text-sm text-muted-foreground mt-2">
-          No tienes permisos para acceder a esta sección.
+          No tienes permisos para acceder a esta seccion.
         </p>
       </div>
     );
@@ -145,7 +140,7 @@ export default function SettingsPage() {
       <div className="mx-auto w-full max-w-3xl">
         <h3 className="text-2xl font-semibold">Configuraciones Generales</h3>
         <span className="text-muted-foreground text-sm">
-          Gestiona toda la configuración de tu cuenta y preferencias del sistema
+          Gestiona toda la configuracion de tu cuenta y preferencias del sistema
         </span>
       </div>
 
@@ -335,7 +330,7 @@ export default function SettingsPage() {
             >
               {saveMutation.isPending
                 ? "Guardando..."
-                : "Guardar configuración"}
+                : "Guardar configuracion"}
             </Button>
           </div>
         </form>

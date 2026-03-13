@@ -1,14 +1,12 @@
-import { Timestamp } from "firebase/firestore";
-
 export type LinkPaymentStatus = "pending" | "completed";
 
 export interface LinkPayment {
   id: string;
-  branchId: string;
+  branch_id: string;
   amount: number;
-  paymentUrl: string;
+  payment_url: string;
   status: LinkPaymentStatus;
-  createdAt: Timestamp;
-  createdBy?: string;
-  completedAt?: Timestamp;
+  created_at: string;
+  created_by: string | null;
+  completed_at: string | null;
 }

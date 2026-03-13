@@ -1,42 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  Timestamp,
-} from "firebase/firestore";
 
-import { accountSupportsBranch, normalizeBankAccount } from "@/lib/bank-accounts";
-import { db } from "@/lib/firebase";
-import { BankAccount } from "@/types/bank-account.types";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { BankTransaction } from "@/types/bank-transaction.types";
+import { toMillis } from "@/utils/dates";
 
 const EMPTY_TRANSACTIONS: BankTransaction[] = [];
-
-function toMillis(value: unknown): number {
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-
-  const timestampLike = value as { toMillis?: () => number } | null;
-
-  if (
-    timestampLike &&
-    typeof timestampLike === "object" &&
-    typeof timestampLike.toMillis === "function"
-  ) {
-    return timestampLike.toMillis();
-  }
-
-  return 0;
-}
 
 function sortTransactionsDesc(transactions: BankTransaction[]): BankTransaction[] {
   return [...transactions].sort(
     (a, b) =>
       toMillis(b.date) - toMillis(a.date) ||
-      toMillis(b.createdAt) - toMillis(a.createdAt) ||
+      toMillis(b.created_at) - toMillis(a.created_at) ||
       b.id.localeCompare(a.id),
   );
 }
@@ -49,7 +23,7 @@ export function useBankTransactions(
     endDate?: Date;
     limit?: number;
     enabled?: boolean;
-  }
+  },
 ) {
   const { startDate, endDate, enabled = true } = options ?? {};
 
@@ -62,30 +36,29 @@ export function useBankTransactions(
       endDate?.toISOString(),
     ],
     queryFn: async (): Promise<BankTransaction[]> => {
-      const ref = collection(db, "bankTransactions");
-      const q = query(ref, where("bankAccountId", "==", bankAccountId));
+      const supabase = getSupabaseBrowserClient();
 
-      const snapshot = await getDocs(q);
-      let transactions = snapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as BankTransaction)
-      );
+      let query = supabase
+        .from("bank_transactions")
+        .select("*")
+        .eq("bank_account_id", bankAccountId)
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
 
-      // Filter by date range in memory (Firestore compound queries have limitations)
       if (startDate) {
-        const startTimestamp = Timestamp.fromDate(startDate);
-        transactions = transactions.filter(
-          (t) => toMillis(t.date) >= startTimestamp.toMillis()
-        );
+        query = query.gte("date", startDate.toISOString());
       }
 
       if (endDate) {
-        const endTimestamp = Timestamp.fromDate(endDate);
-        transactions = transactions.filter(
-          (t) => toMillis(t.date) <= endTimestamp.toMillis()
-        );
+        query = query.lte("date", endDate.toISOString());
       }
 
-      return sortTransactionsDesc(transactions);
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return data as BankTransaction[];
     },
     enabled: enabled && !!userId && !!bankAccountId,
     staleTime: 30_000,
@@ -106,7 +79,7 @@ export function useBranchTransactions(
   options?: {
     startDate?: Date;
     endDate?: Date;
-  }
+  },
 ) {
   const { startDate, endDate } = options ?? {};
 
@@ -120,49 +93,41 @@ export function useBranchTransactions(
       endDate?.toISOString(),
     ],
     queryFn: async (): Promise<BankTransaction[]> => {
-      // First get all accounts for the branch
-      const accountsRef = collection(db, "bankAccounts");
-      const accountsSnapshot = await getDocs(accountsRef);
-      const accountIds = accountsSnapshot.docs
-        .map((doc) => normalizeBankAccount({ id: doc.id, ...doc.data() } as BankAccount))
-        .filter((account) => accountSupportsBranch(account, branchId))
-        .map((account) => account.id);
+      const supabase = getSupabaseBrowserClient();
 
+      // Get account IDs for the branch via the junction table
+      const { data: junctions, error: junctionError } = await supabase
+        .from("bank_account_branches")
+        .select("bank_account_id")
+        .eq("branch_id", branchId);
+
+      if (junctionError) throw junctionError;
+
+      const accountIds = (junctions ?? []).map((j) => j.bank_account_id);
       if (accountIds.length === 0) return [];
 
-      // Get transactions for all accounts
-      const transactionsRef = collection(db, "bankTransactions");
-      const allTransactions: BankTransaction[] = [];
-
-      // Firestore 'in' queries support max 10 values, so we batch
-      for (let i = 0; i < accountIds.length; i += 10) {
-        const batch = accountIds.slice(i, i + 10);
-        const q = query(transactionsRef, where("bankAccountId", "in", batch));
-        const snapshot = await getDocs(q);
-        snapshot.docs.forEach((doc) => {
-          allTransactions.push({ id: doc.id, ...doc.data() } as BankTransaction);
-        });
-      }
-
-      // Filter by date range
-      let filtered = allTransactions;
+      // Get transactions for all branch accounts in a single query
+      let query = supabase
+        .from("bank_transactions")
+        .select("*")
+        .in("bank_account_id", accountIds)
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
 
       if (startDate) {
-        const startTimestamp = Timestamp.fromDate(startDate);
-        filtered = filtered.filter(
-          (t) => toMillis(t.date) >= startTimestamp.toMillis()
-        );
+        query = query.gte("date", startDate.toISOString());
       }
 
       if (endDate) {
-        const endTimestamp = Timestamp.fromDate(endDate);
-        filtered = filtered.filter(
-          (t) => toMillis(t.date) <= endTimestamp.toMillis()
-        );
+        query = query.lte("date", endDate.toISOString());
       }
 
-      // Sort by date descending
-      return sortTransactionsDesc(filtered);
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return data as BankTransaction[];
     },
     enabled: !!userId && !!branchId,
   });

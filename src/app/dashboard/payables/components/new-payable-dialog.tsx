@@ -21,19 +21,16 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDoc, collection, doc, type DocumentReference } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { createPayable } from "@/actions/payables";
 import { toast } from "sonner";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
-import { User } from "@/types/auth.types";
 
 const newPayableSchema = z.object({
-  branchId: z.string().min(1, "La sucursal es obligatoria"),
+  branch_id: z.string().min(1, "La sucursal es obligatoria"),
   name: z.string().min(1, "El nombre es obligatorio"),
   amount: z.coerce.number().positive("Monto inválido"),
-  dueDate: z.string().min(1, "La fecha de vencimiento es obligatoria"),
+  due_date: z.string().min(1, "La fecha de vencimiento es obligatoria"),
   status: z.string().min(1, "El estado es obligatorio"),
   description: z.string().min(1, "La descripción es obligatoria"),
 });
@@ -47,7 +44,7 @@ export function NewPayableDialog() {
   const { user } = useAuthStore();
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
 
   const {
@@ -61,7 +58,7 @@ export function NewPayableDialog() {
     resolver: zodResolver(newPayableSchema),
     mode: "onChange",
     defaultValues: {
-      branchId: "",
+      branch_id: "",
       status: "pendiente",
     },
   });
@@ -72,25 +69,19 @@ export function NewPayableDialog() {
         throw new Error("No se encontró el usuario autenticado.");
       }
 
-      const ref = collection(db, "payables");
-      const userRef = doc(db, "users", user.id) as DocumentReference<User>;
-
-      await addDoc(ref, {
+      await createPayable({
         ...data,
         amount: Number(data.amount),
-        dueDate: new Date(data.dueDate),
-        createdAt: new Date(),
-        createdBy: user.id,
-        createdByRef: userRef,
+        due_date: data.due_date,
       });
     },
     onSuccess: () => {
       toast.success("Cuenta por pagar registrada");
       queryClient.invalidateQueries({ queryKey: ["payables"] });
-      reset({ status: "pendiente", branchId: "" });
+      reset({ status: "pendiente", branch_id: "" });
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrió un error inesperado.");
     },
   });
@@ -103,7 +94,7 @@ export function NewPayableDialog() {
         <Button
           variant="default"
           className="w-full"
-          onClick={() => reset({ status: "pendiente", branchId: "" })}
+          onClick={() => reset({ status: "pendiente", branch_id: "" })}
         >
           <PlusCircle className="mr-1" />
           Nueva cuenta por pagar
@@ -122,9 +113,9 @@ export function NewPayableDialog() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Sucursal</label>
               <Select
-                value={watch("branchId")}
+                value={watch("branch_id")}
                 onValueChange={(val) =>
-                  setValue("branchId", val, { shouldValidate: true })
+                  setValue("branch_id", val, { shouldValidate: true })
                 }
                 disabled={isPending}
               >
@@ -139,9 +130,9 @@ export function NewPayableDialog() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.branchId && (
+              {errors.branch_id && (
                 <p className="text-xs text-red-500">
-                  {errors.branchId.message}
+                  {errors.branch_id.message}
                 </p>
               )}
             </div>
@@ -177,12 +168,12 @@ export function NewPayableDialog() {
               <label className="text-sm font-medium">Vencimiento</label>
               <input
                 type="date"
-                {...register("dueDate")}
+                {...register("due_date")}
                 disabled={isPending}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
-              {errors.dueDate && (
-                <p className="text-xs text-red-500">{errors.dueDate.message}</p>
+              {errors.due_date && (
+                <p className="text-xs text-red-500">{errors.due_date.message}</p>
               )}
             </div>
             <div className="space-y-2">

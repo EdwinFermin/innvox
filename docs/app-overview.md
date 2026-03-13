@@ -8,9 +8,12 @@ Innvox is an internal finance and operations dashboard for managing branches, us
 
 - Next.js App Router in `src/app`
 - React 19 + TypeScript
-- Firebase Firestore for app data in `src/lib/firebase.ts`
-- NextAuth credentials auth backed by Firebase in `src/auth.ts`
+- Supabase (PostgreSQL + Auth) for data and authentication
+- Supabase client in `src/lib/supabase/` (client.ts, server.ts, admin.ts)
+- NextAuth credentials auth backed by Supabase in `src/auth.ts`
 - React Query for client-side data fetching
+- Server Actions in `src/actions/` for all mutations
+- PostgreSQL functions (RPC) for atomic operations
 - shadcn/ui + Tailwind for UI primitives
 
 ## How auth works
@@ -19,7 +22,8 @@ Innvox is an internal finance and operations dashboard for managing branches, us
 - `/dashboard/**` and `/login` are gated in `src/proxy.ts`
 - Server-side guards live in `src/lib/auth/guards.ts`
 - Session shape is normalized in `src/store/auth.ts`
-- Users have `type: ADMIN | USER` and optional `branchIds`
+- Users have `type: ADMIN | USER` and branch assignments in `user_branches` junction table
+- NextAuth JWT strategy stores `id`, `role`, `branchIds` in the session token
 
 ## Main route layout
 
@@ -28,47 +32,62 @@ Innvox is an internal finance and operations dashboard for managing branches, us
 - `src/components/ui/dynamic-breadcrumb.tsx` translates route segments into labels
 - `src/app/pay/[branchId]/page.tsx` is the public payment page for QR scans
 
-## Firestore patterns
+## Data patterns
 
 - Most modules follow a 4-file pattern:
   - page in `src/app/dashboard/.../page.tsx`
   - create dialog in `src/app/dashboard/.../components/...`
-  - data hook in `src/hooks/...`
+  - data hook in `src/hooks/...` (reads via Supabase browser client + React Query)
+  - server action in `src/actions/...` (writes via Supabase server/admin client)
   - interface in `src/types/...`
-- Reads are usually client-side with React Query and Firestore `getDocs`
-- Writes are usually in dialogs/pages with `addDoc`, `setDoc`, `updateDoc`, or `deleteDoc`
-- Branch documents use the branch code as the Firestore document id
+- Reads are client-side with React Query and Supabase `.from().select()`
+- Writes go through Server Actions (`"use server"` in `src/actions/`)
+- Complex atomic operations use PostgreSQL functions via `supabase.rpc()`
+- Row Level Security (RLS) handles per-role data visibility
+- All types use `snake_case` field names matching PostgreSQL column names
 
-## Key collections in use
+## Key tables
 
-- `users`
+- `users`, `user_branches` (junction)
 - `branches`
 - `clients`
 - `invoices`
-- `incomes`
-- `expenses`
+- `incomes`, `income_types`
+- `expenses`, `expense_types`
 - `receivables`
 - `payables`
-- `linkPayments`
-- `configs`, `incomeTypes`, `expenseTypes`
+- `link_payments`
+- `bank_accounts`, `bank_account_branches` (junction), `bank_transactions`
+- `configs`, `ncf_released_numbers`
+
+## PostgreSQL functions (RPC)
+
+- `create_income` / `create_expense` — atomic balance update + bank tx + movement
+- `transfer_funds` — atomic inter-account transfer
+- `adjust_balance` — atomic balance adjustment
+- `generate_ncf` / `generate_cf` — atomic sequential number generation
+- `delete_financial_movement` — atomic reversal of income/expense
+- `delete_invoice` — NCF release + deletion
+- `repair_bank_transaction_balances` — recalculate running balances
 
 ## Existing module references
 
 - `src/app/dashboard/payables/page.tsx` is a strong template for table-based CRUD modules
 - `src/app/dashboard/payables/components/new-payable-dialog.tsx` is a strong template for form dialogs
 - `src/hooks/use-payables.ts` shows the standard collection hook shape
+- `src/actions/payables.ts` shows the standard server action shape
 - `src/app/dashboard/branches/components/new-branch-dialog.tsx` shows that branch ids match branch codes
 
 ## Link de pago feature
 
 - Admin/internal route: `src/app/dashboard/link-de-pago/page.tsx`
 - Public route for QR scans: `src/app/pay/[branchId]/page.tsx`
-- Collection: `linkPayments`
+- Table: `link_payments`
 - Flow:
   - create a pending payment link by branch
   - share the public branch URL or QR
   - customer scans QR and sees amount + pay button
-  - clicking pay marks the latest pending payment for that branch as completed, then redirects to the internal payment URL
+  - clicking pay calls `completeLinkPayment` server action, then redirects to the payment URL
 
 ## Recommended agent workflow
 

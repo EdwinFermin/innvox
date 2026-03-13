@@ -1,27 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ExpenseType } from "@/types/expense-type.types";
 
 const EMPTY: ExpenseType[] = [];
 
 export function useExpenseTypes(userId: string) {
-  const query = useQuery({
+  const queryResult = useQuery({
     queryKey: ["expenseTypes", userId],
     queryFn: async (): Promise<ExpenseType[]> => {
-      const ref = collection(db, "expenseTypes");
-      const snapshot = await getDocs(ref);
-      return snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      })) as ExpenseType[];
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.from("expense_types").select("*");
+
+      if (error) throw error;
+
+      return data as ExpenseType[];
     },
     enabled: !!userId,
   });
 
   return {
-    ...query,
-    data: query.data ?? EMPTY,
+    ...queryResult,
+    data: queryResult.data ?? EMPTY,
   };
 }

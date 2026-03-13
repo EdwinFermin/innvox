@@ -13,10 +13,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
+import { createIncomeType } from "@/actions/income-types";
 
 const newIncomeTypeSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
@@ -40,8 +38,7 @@ export function NewIncomeTypeDialog() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewIncomeTypeValues) => {
-      const ref = collection(db, "incomeTypes");
-      await addDoc(ref, { ...data, createdAt: new Date() });
+      await createIncomeType(data.name);
     },
     onSuccess: () => {
       toast.success("Tipo de ingreso creado exitosamente");
@@ -49,7 +46,7 @@ export function NewIncomeTypeDialog() {
       reset();
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrió un error inesperado.");
     },
   });

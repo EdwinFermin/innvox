@@ -1,26 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { User } from "@/types/auth.types";
 
 const EMPTY: User[] = [];
 
 export function useUsers() {
-  const query = useQuery({
+  const queryResult = useQuery({
     queryKey: ["users"],
     queryFn: async (): Promise<User[]> => {
-      const snapshot = await getDocs(collection(db, "users"));
-      return snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        branchIds: [],
-        ...(docSnap.data() as Omit<User, "id">),
+      const supabase = getSupabaseBrowserClient();
+
+      const [usersResult, branchesResult] = await Promise.all([
+        supabase.from("users").select("*"),
+        supabase.from("user_branches").select("user_id, branch_id"),
+      ]);
+
+      if (usersResult.error) throw usersResult.error;
+      if (branchesResult.error) throw branchesResult.error;
+
+      // Build a map of user_id -> branch_ids
+      const branchMap = new Map<string, string[]>();
+      for (const j of branchesResult.data ?? []) {
+        const existing = branchMap.get(j.user_id) ?? [];
+        existing.push(j.branch_id);
+        branchMap.set(j.user_id, existing);
+      }
+
+      return (usersResult.data ?? []).map((row) => ({
+        ...row,
+        branch_ids: branchMap.get(row.id) ?? [],
       }));
     },
   });
 
   return {
-    ...query,
-    data: query.data ?? EMPTY,
+    ...queryResult,
+    data: queryResult.data ?? EMPTY,
   };
 }

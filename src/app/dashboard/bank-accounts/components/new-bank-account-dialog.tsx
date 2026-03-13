@@ -3,8 +3,6 @@
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FirebaseError } from "firebase/app";
-import { collection, doc, setDoc } from "firebase/firestore";
 import { ImagePlus, PlusCircle, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -12,7 +10,7 @@ import { z } from "zod";
 
 import { useBranches } from "@/hooks/use-branches";
 import { uploadBankAccountLogo } from "@/lib/bank-account-logo";
-import { db } from "@/lib/firebase";
+import { createBankAccount } from "@/actions/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { AccountType, Currency } from "@/types/bank-account.types";
 import { Button } from "@/components/ui/button";
@@ -90,7 +88,7 @@ export function NewBankAccountDialog() {
   const { user } = useAuthStore();
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
 
   const {
@@ -136,16 +134,20 @@ export function NewBankAccountDialog() {
         throw new Error("No se encontro el usuario autenticado.");
       }
 
-      const accountRef = doc(collection(db, "bankAccounts"));
       const branchIds =
         data.accountType === "bank" ? data.branchIds : [data.pettyCashBranchId!];
 
       let iconUrl: string | null = null;
       if (logoFile) {
-        iconUrl = await uploadBankAccountLogo(accountRef.id, logoFile);
+        // Upload logo — the action returns the new account id, but we need to
+        // upload before creating since the action expects iconUrl.
+        // We use a temporary id placeholder; uploadBankAccountLogo generates a
+        // path based on the id. For now, generate a temporary one and pass it.
+        const tempId = crypto.randomUUID();
+        iconUrl = await uploadBankAccountLogo(tempId, logoFile);
       }
 
-      await setDoc(accountRef, {
+      await createBankAccount({
         branchIds,
         accountType: data.accountType,
         accountName: data.accountName,
@@ -157,8 +159,6 @@ export function NewBankAccountDialog() {
         currentBalance: Number(data.initialBalance),
         isActive: true,
         isPublic: data.accountType === "bank" ? data.isPublic : false,
-        createdAt: new Date(),
-        createdBy: user.id,
       });
     },
     onSuccess: () => {
@@ -169,7 +169,7 @@ export function NewBankAccountDialog() {
       setLogoFile(null);
       setPreviewUrl(null);
     },
-    onError: (error: FirebaseError | Error) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrio un error inesperado.");
     },
   });

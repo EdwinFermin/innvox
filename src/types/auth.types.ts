@@ -3,9 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
-  createdAt: ISODateString;
+  created_at: string;
   type: "ADMIN" | "USER";
-  branchIds?: string[];
+  branch_ids: string[];
 }
-
-export type ISODateString = string;

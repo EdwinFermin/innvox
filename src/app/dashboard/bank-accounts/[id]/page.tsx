@@ -11,9 +11,8 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpDown, Building2, Wallet } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -30,8 +29,8 @@ import {
 } from "@/components/ui/table";
 import { useAuthStore } from "@/store/auth";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
-import { getAccountBranchNames, normalizeBankAccount, isSafeAccountImageSrc } from "@/lib/bank-accounts";
-import { db } from "@/lib/firebase";
+import { getAccountBranchNames, isSafeAccountImageSrc } from "@/lib/bank-accounts";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { BankAccount } from "@/types/bank-account.types";
 import { BankTransaction, BankTransactionType } from "@/types/bank-transaction.types";
 import { useBankTransactions } from "@/hooks/use-bank-transactions";
@@ -95,7 +94,7 @@ const getColumns = (currency: string): ColumnDef<BankTransaction>[] => [
     ),
     cell: ({ row }) => (
       <div>
-        {format(row.original.date.toDate(), "d 'de' MMMM yyyy", {
+        {format(new Date(row.original.date), "d 'de' MMMM yyyy", {
           locale: es,
         })}
       </div>
@@ -151,11 +150,11 @@ const getColumns = (currency: string): ColumnDef<BankTransaction>[] => [
     },
   },
   {
-    accessorKey: "balanceAfter",
+    accessorKey: "balance_after",
     header: () => <div className="text-right">Balance</div>,
     cell: ({ row }) => (
       <div className="text-right text-muted-foreground">
-        {formatCurrency(row.getValue("balanceAfter"), currency)}
+        {formatCurrency(row.getValue("balance_after"), currency)}
       </div>
     ),
   },
@@ -166,18 +165,33 @@ export default function BankAccountDetailPage() {
   const router = useRouter();
   const accountId = params.id;
   const { user } = useAuthStore();
-  const allowedBranchIds = user?.type === "USER" ? user?.branchIds : undefined;
+  const queryClient = useQueryClient();
+  const allowedBranchIds = user?.type === "USER" ? user?.branch_ids : undefined;
   const { data: branches } = useBranches(user?.id || "", allowedBranchIds);
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
 
-  // Fetch account details
+  // Fetch account details via Supabase browser client
   const { data: account, isLoading: isLoadingAccount } = useQuery({
     queryKey: ["bankAccount", accountId],
     queryFn: async (): Promise<BankAccount | null> => {
-      const docRef = doc(db, "bankAccounts", accountId);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) return null;
-      return normalizeBankAccount({ id: docSnap.id, ...docSnap.data() } as BankAccount);
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("bank_accounts")
+        .select("*")
+        .eq("id", accountId)
+        .single();
+
+      if (error || !data) return null;
+
+      // Fetch branch associations from junction table
+      const { data: junctions } = await supabase
+        .from("bank_account_branches")
+        .select("branch_id")
+        .eq("bank_account_id", accountId);
+
+      const branch_ids = (junctions ?? []).map((j) => j.branch_id);
+
+      return { ...data, branch_ids } as BankAccount;
     },
     enabled: !!accountId && !!user?.id,
   });
@@ -262,25 +276,25 @@ export default function BankAccountDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        {isSafeAccountImageSrc(account.iconUrl) ? (
+        {isSafeAccountImageSrc(account.icon_url) ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
-            src={account.iconUrl!}
-            alt={account.accountName}
+            src={account.icon_url!}
+            alt={account.account_name}
             width={56}
             height={56}
             className="h-14 w-14 rounded-lg border object-cover"
           />
         ) : (
           <div className="flex h-14 w-14 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground">
-            {account.accountType === "bank" ? "BK" : "CJ"}
+            {account.account_type === "bank" ? "BK" : "CJ"}
           </div>
         )}
         <div>
-          <h3 className="text-2xl font-semibold">{account.accountName}</h3>
+          <h3 className="text-2xl font-semibold">{account.account_name}</h3>
           <span className="text-muted-foreground text-sm">
-             {account.accountType === "bank"
-               ? `${account.bankName || "Cuenta bancaria"}${account.accountNumber ? ` - ${account.accountNumber}` : ""}`
+             {account.account_type === "bank"
+               ? `${account.bank_name || "Cuenta bancaria"}${account.account_number ? ` - ${account.account_number}` : ""}`
 : "Caja"}
           </span>
         </div>
@@ -295,9 +309,9 @@ export default function BankAccountDetailPage() {
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${account.currentBalance < 0 ? "text-red-500" : ""}`}
+              className={`text-2xl font-bold ${account.current_balance < 0 ? "text-red-500" : ""}`}
             >
-              {formatCurrency(account.currentBalance, account.currency)}
+              {formatCurrency(account.current_balance, account.currency)}
             </div>
           </CardContent>
         </Card>
@@ -318,10 +332,10 @@ export default function BankAccountDetailPage() {
           </CardHeader>
           <CardContent>
             <Badge
-              variant={account.accountType === "bank" ? "default" : "secondary"}
+              variant={account.account_type === "bank" ? "default" : "secondary"}
               className="text-lg"
             >
-              {account.accountType === "bank" ? "Cuenta bancaria" : "Caja"}
+              {account.account_type === "bank" ? "Cuenta bancaria" : "Caja"}
             </Badge>
           </CardContent>
         </Card>

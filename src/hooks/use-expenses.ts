@@ -1,40 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Expense } from "@/types/expense.types";
 
-type VisibilityScope = "all" | "mine";
+const EMPTY: Expense[] = [];
 
-type UseExpensesOptions = {
-  role?: "ADMIN" | "USER";
-};
-
-export function useExpenses(userId: string, options: UseExpensesOptions = {}) {
-  const isUserRole = options.role === "USER";
-  const effectiveVisibility: VisibilityScope = isUserRole ? "mine" : "all";
-
+export function useExpenses(userId: string) {
   const queryResult = useQuery({
-    queryKey: ["expenses", userId, effectiveVisibility],
+    queryKey: ["expenses", userId],
     queryFn: async (): Promise<Expense[]> => {
-      const ref = collection(db, "expenses");
-      const snapshot =
-        isUserRole
-          ? await getDocs(query(ref, where("createdBy", "==", userId)))
-          : await getDocs(ref);
+      const supabase = getSupabaseBrowserClient();
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase.from("expenses").select("*");
 
-      return snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      })) as Expense[];
+      if (error) throw error;
+
+      return data as Expense[];
     },
-    enabled: isUserRole ? !!userId : true,
+    enabled: !!userId,
   });
-
-  const baseData = queryResult.data ?? [];
 
   return {
     ...queryResult,
-    data: baseData,
+    data: queryResult.data ?? EMPTY,
   };
 }

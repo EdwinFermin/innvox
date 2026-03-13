@@ -13,7 +13,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,8 +46,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { getAccountBranchNames, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { NewBankAccountDialog } from "./components/new-bank-account-dialog";
 import { GenerateAccountsQrDialog } from "./components/generate-accounts-qr-dialog";
-import { deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { deleteBankAccount, toggleBankAccountActive } from "@/actions/bank-accounts";
 import { toast } from "sonner";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
@@ -56,12 +55,12 @@ import Link from "next/link";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
-    accountName: "Nombre",
-    accountType: "Tipo",
-    bankName: "Banco",
-    accountNumber: "No. Cuenta",
+    account_name: "Nombre",
+    account_type: "Tipo",
+    bank_name: "Banco",
+    account_number: "No. Cuenta",
     branchNames: "Sucursales",
-    currentBalance: "Balance",
+    current_balance: "Balance",
     currency: "Moneda",
   };
   return map[id] || id;
@@ -78,7 +77,7 @@ const formatCurrency = (amount: number, currency: string): string => {
 type BankAccountWithBranches = BankAccount & { branchNames: string[] };
 
 const getColumns = (
-  queryClient: QueryClient,
+  invalidate: () => void,
   canDelete: boolean
 ): ColumnDef<BankAccountWithBranches>[] => [
   {
@@ -104,7 +103,7 @@ const getColumns = (
     enableHiding: false,
   },
   {
-    accessorKey: "accountName",
+    accessorKey: "account_name",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -116,7 +115,7 @@ const getColumns = (
       </Button>
     ),
     cell: ({ row }) => {
-      const iconUrl = row.original.iconUrl;
+      const iconUrl = row.original.icon_url;
 
       return (
         <Link
@@ -127,21 +126,21 @@ const getColumns = (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={iconUrl!}
-              alt={row.original.accountName}
+              alt={row.original.account_name}
               width={40}
               height={40}
               className="h-10 w-10 shrink-0 rounded-md border object-cover"
             />
           ) : (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xs font-semibold text-muted-foreground">
-              {row.original.accountType === "bank" ? "BK" : "CJ"}
+              {row.original.account_type === "bank" ? "BK" : "CJ"}
             </div>
           )}
           <div className="min-w-0">
-            <div className="font-medium truncate">{row.getValue("accountName")}</div>
+            <div className="font-medium truncate">{row.getValue("account_name")}</div>
             <div className="text-xs text-muted-foreground truncate">
-              {row.original.accountType === "bank"
-                ? row.original.bankName || "Cuenta bancaria"
+              {row.original.account_type === "bank"
+                ? row.original.bank_name || "Cuenta bancaria"
                 : "Caja"}
             </div>
           </div>
@@ -150,19 +149,19 @@ const getColumns = (
     },
   },
   {
-    accessorKey: "accountNumber",
+    accessorKey: "account_number",
     header: "No. Cuenta",
     cell: ({ row }) => (
       <div className="text-muted-foreground">
-        {row.original.accountNumber || "-"}
+        {row.original.account_number || "-"}
       </div>
     ),
   },
   {
-    accessorKey: "accountType",
+    accessorKey: "account_type",
     header: "Tipo",
     cell: ({ row }) => {
-      const type = row.getValue("accountType") as string;
+      const type = row.getValue("account_type") as string;
       return (
         <Badge variant={type === "bank" ? "default" : "secondary"}>
           {type === "bank" ? "Cuenta bancaria" : "Caja"}
@@ -171,11 +170,11 @@ const getColumns = (
     },
   },
   {
-    accessorKey: "bankName",
+    accessorKey: "bank_name",
     header: "Banco",
     cell: ({ row }) => (
       <div className="text-muted-foreground">
-        {row.getValue("bankName") || "-"}
+        {row.getValue("bank_name") || "-"}
       </div>
     ),
   },
@@ -188,7 +187,7 @@ const getColumns = (
     },
   },
   {
-    accessorKey: "currentBalance",
+    accessorKey: "current_balance",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -200,7 +199,7 @@ const getColumns = (
       </Button>
     ),
     cell: ({ row }) => {
-      const balance = row.getValue("currentBalance") as number;
+      const balance = row.getValue("current_balance") as number;
       const currency = row.original.currency;
       return (
         <div
@@ -233,30 +232,31 @@ const getColumns = (
           <DropdownMenuItem
             onClick={async () => {
               try {
-                await updateDoc(doc(db, "bankAccounts", row.original.id), {
-                  isActive: !row.original.isActive,
-                });
+                await toggleBankAccountActive(
+                  row.original.id,
+                  !row.original.is_active,
+                );
                 toast.success(
-                  row.original.isActive
+                  row.original.is_active
                     ? "Cuenta desactivada"
                     : "Cuenta activada"
                 );
-                queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
+                invalidate();
               } catch {
                 toast.error("Error al actualizar la cuenta");
               }
             }}
           >
-            {row.original.isActive ? "Desactivar" : "Activar"}
+            {row.original.is_active ? "Desactivar" : "Activar"}
           </DropdownMenuItem>
           {canDelete && (
             <DropdownMenuItem
               variant="destructive"
               onClick={async () => {
                 try {
-                  await deleteDoc(doc(db, "bankAccounts", row.original.id));
+                  await deleteBankAccount(row.original.id);
                   toast.success("Cuenta eliminada");
-                  queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
+                  invalidate();
                 } catch {
                   toast.error("Error al eliminar la cuenta");
                 }
@@ -275,13 +275,18 @@ export default function BankAccountsPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
   const { data: bankAccounts, isLoading } = useBankAccounts(user?.id || "", {
-    allowedBranchIds: user?.type === "USER" ? user?.branchIds : undefined,
+    allowedBranchIds: user?.type === "USER" ? user?.branch_ids : undefined,
     activeOnly: false,
   });
   const { data: branches } = useBranches(user?.id || "");
   const queryClient = useQueryClient();
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
   const canDelete = can(user?.type, PERMISSIONS.dataDelete);
+
+  const invalidate = React.useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["bankAccounts"] }),
+    [queryClient],
+  );
 
   // Join bank accounts with branch names
   const accountsWithBranches: BankAccountWithBranches[] = React.useMemo(() => {
@@ -293,8 +298,8 @@ export default function BankAccountsPage() {
   }, [bankAccounts, branches]);
 
   const columns = React.useMemo(
-    () => getColumns(queryClient, canDelete),
-    [queryClient, canDelete]
+    () => getColumns(invalidate, canDelete),
+    [invalidate, canDelete]
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -349,10 +354,10 @@ export default function BankAccountsPage() {
         <Input
           placeholder="Buscar por nombre..."
           value={
-            (table.getColumn("accountName")?.getFilterValue() as string) ?? ""
+            (table.getColumn("account_name")?.getFilterValue() as string) ?? ""
           }
           onChange={(event) =>
-            table.getColumn("accountName")?.setFilterValue(event.target.value)
+            table.getColumn("account_name")?.setFilterValue(event.target.value)
           }
           className="w-full"
         />
@@ -423,7 +428,7 @@ export default function BankAccountsPage() {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className={!row.original.isActive ? "opacity-50" : ""}
+                  className={!row.original.is_active ? "opacity-50" : ""}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

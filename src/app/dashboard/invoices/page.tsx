@@ -41,17 +41,13 @@ import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NewInvoiceDialog } from "./components/new-invoice-dialog";
 import { Invoice } from "@/types/invoice.types";
-import { Client } from "@/types/client.types";
-import { User } from "@/types/auth.types";
 import { useInvoices } from "@/hooks/use-invoices";
-import { doc, getDoc, runTransaction } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { deleteInvoice } from "@/actions/invoices";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/react-query";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePrintInvoice } from "@/hooks/use-print-invoice";
 import { useAuthStore } from "@/store/auth";
-import { NCFConfig } from "@/types/ncf.types";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
@@ -63,15 +59,15 @@ import {
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     id: "No. Factura",
-    NCF: "NCF",
-    client: "Cliente",
-    description: "Descripción",
+    ncf: "NCF",
+    client_name: "Cliente",
+    description: "Descripcion",
     amount: "Monto",
-    montoExento: "Monto Exento",
-    montoGravado: "Monto Gravado",
-    ITBIS: "ITBIS",
-    createdAt: "Fecha de Creación",
-    user: "Usuario",
+    monto_exento: "Monto Exento",
+    monto_gravado: "Monto Gravado",
+    itbis: "ITBIS",
+    created_at: "Fecha de Creacion",
+    user_name: "Usuario",
   };
   return map[id] || id;
 };
@@ -80,9 +76,6 @@ const getDateTime = (value: unknown): number => {
   if (!value) return 0;
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
   return 0;
 };
 
@@ -92,9 +85,7 @@ export default function InvoicesPage() {
   const isMobile = useIsMobile();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
-  const { data: invoices, isLoading } = useInvoices(currentUser?.id || "", {
-    role: currentUser?.type,
-  });
+  const { data: invoices, isLoading } = useInvoices(currentUser?.id || "");
 
   React.useEffect(() => {
     if (currentUser?.type === "ADMIN") {
@@ -111,13 +102,14 @@ export default function InvoicesPage() {
     }
 
     return invoices.filter(
-      (invoice) => (invoice.createdBy ?? invoice.userId) === currentUser?.id,
+      (invoice) =>
+        (invoice.created_by ?? invoice.user_id) === currentUser?.id,
     );
   }, [invoices, currentUser?.id, visibilityScope]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -125,56 +117,10 @@ export default function InvoicesPage() {
 
   const { print, PrintContainer } = usePrintInvoice();
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(
-    null
+    null,
   );
   const [invoiceToEdit, setInvoiceToEdit] = React.useState<Invoice | null>(
-    null
-  );
-
-  const fetchInvoiceWithRelations = React.useCallback(
-    async (invoiceId: string): Promise<Invoice | null> => {
-      const invoiceRef = doc(db, "invoices", invoiceId);
-      const snapshot = await getDoc(invoiceRef);
-
-      if (!snapshot.exists()) {
-        return null;
-      }
-
-      const data = snapshot.data();
-
-      const [clientSnap, userSnap] = await Promise.all([
-        data.client ? getDoc(data.client) : Promise.resolve(null),
-        data.user ? getDoc(data.user) : Promise.resolve(null),
-      ]);
-
-      const clientData = clientSnap?.data();
-      const userData = userSnap?.data();
-      const client =
-        clientSnap && clientSnap.exists()
-          ? ({ id: clientSnap.id, ...(clientData ?? {}) } as Client)
-          : null;
-      const user =
-        userSnap && userSnap.exists()
-          ? ({ id: userSnap.id, ...(userData ?? {}) } as User)
-          : null;
-
-      return {
-        id: snapshot.id,
-        invoiceType: "FISCAL",
-        NCF: data.NCF ?? null,
-        clientId: data.client?.id ?? "",
-        client,
-        description: String(data.description ?? ""),
-        amount: Number(data.amount ?? 0),
-        montoExento: Number(data.montoExento ?? 0),
-        montoGravado: Number(data.montoGravado ?? 0),
-        ITBIS: Number(data.ITBIS ?? 0),
-        createdAt: data.createdAt,
-        userId: data.user?.id ?? "",
-        user,
-      };
-    },
-    []
+    null,
   );
 
   const columns: ColumnDef<Invoice>[] = [
@@ -206,7 +152,7 @@ export default function InvoicesPage() {
       cell: ({ row }) => <div className="capitalize">{row.getValue("id")}</div>,
     },
     {
-      accessorKey: "NCF",
+      accessorKey: "ncf",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -218,12 +164,12 @@ export default function InvoicesPage() {
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="capitalize font-bold">{row.getValue("NCF")}</div>
+        <div className="capitalize font-bold">{row.getValue("ncf")}</div>
       ),
     },
     {
-      id: "client",
-      accessorFn: (row) => row.client?.name?.toLowerCase() ?? "",
+      id: "client_name",
+      accessorFn: (row) => row.client_name?.toLowerCase() ?? "",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -235,31 +181,33 @@ export default function InvoicesPage() {
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="capitalize">{row.original.client?.name}</div>
+        <div className="capitalize">{row.original.client_name}</div>
       ),
     },
     {
       accessorKey: "description",
-      header: "Descripción",
+      header: "Descripcion",
       cell: ({ row }) => <div>{row.getValue("description")}</div>,
     },
     {
-      accessorKey: "ITBIS",
+      accessorKey: "itbis",
       header: "ITBIS",
-      cell: ({ row }) => <div>{Number(row.getValue("ITBIS")).toFixed(2)}</div>,
-    },
-    {
-      accessorKey: "montoExento",
-      header: "Monto Exento",
       cell: ({ row }) => (
-        <div>{Number(row.getValue("montoExento")).toFixed(2)}</div>
+        <div>{Number(row.getValue("itbis")).toFixed(2)}</div>
       ),
     },
     {
-      accessorKey: "montoGravado",
+      accessorKey: "monto_exento",
+      header: "Monto Exento",
+      cell: ({ row }) => (
+        <div>{Number(row.getValue("monto_exento")).toFixed(2)}</div>
+      ),
+    },
+    {
+      accessorKey: "monto_gravado",
       header: "Monto Gravado",
       cell: ({ row }) => (
-        <div>{Number(row.getValue("montoGravado")).toFixed(2)}</div>
+        <div>{Number(row.getValue("monto_gravado")).toFixed(2)}</div>
       ),
     },
     {
@@ -283,15 +231,16 @@ export default function InvoicesPage() {
       },
     },
     {
-      accessorKey: "user",
+      id: "user_name",
+      accessorFn: (row) => row.user_name ?? "",
       header: "Creada por",
       cell: ({ row }) => (
-        <div className="capitalize">{row.original.user?.name}</div>
+        <div className="capitalize">{row.original.user_name}</div>
       ),
     },
     {
-      id: "createdAt",
-      accessorFn: (row) => getDateTime(row.createdAt),
+      id: "created_at",
+      accessorFn: (row) => getDateTime(row.created_at),
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -306,11 +255,11 @@ export default function InvoicesPage() {
         return (
           <div className="font-medium">
             {format(
-              row.original.createdAt.toDate(),
+              new Date(row.original.created_at),
               "d 'de' MMMM yyyy hh:mm a",
               {
                 locale: es,
-              }
+              },
             )}
           </div>
         );
@@ -320,54 +269,9 @@ export default function InvoicesPage() {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
-        async function deleteInvoice(id: string): Promise<void> {
+        async function handleDeleteInvoice(id: string): Promise<void> {
           try {
-            await runTransaction(db, async (tx) => {
-              const invoiceRef = doc(db, "invoices", id);
-              const ncfConfigRef = doc(db, "configs", "NCF");
-
-              const [invoiceSnap, ncfConfigSnap] = await Promise.all([
-                tx.get(invoiceRef),
-                tx.get(ncfConfigRef),
-              ]);
-
-              if (!invoiceSnap.exists()) {
-                throw new Error("La factura no existe o ya fue eliminada.");
-              }
-
-              const invoiceData = invoiceSnap.data();
-              const invoiceNCF =
-                typeof invoiceData.NCF === "string" && invoiceData.NCF.length > 0
-                  ? invoiceData.NCF
-                  : null;
-
-              if (invoiceNCF) {
-                const ncfConfigData = ncfConfigSnap.exists()
-                  ? (ncfConfigSnap.data() as NCFConfig)
-                  : null;
-                const releasedNumbers = Array.isArray(
-                  ncfConfigData?.releasedNumbers,
-                )
-                  ? ncfConfigData.releasedNumbers.filter(
-                      (value): value is string =>
-                        typeof value === "string" && value.length > 0,
-                    )
-                  : [];
-
-                if (!releasedNumbers.includes(invoiceNCF)) {
-                  tx.set(
-                    ncfConfigRef,
-                    {
-                      releasedNumbers: [...releasedNumbers, invoiceNCF],
-                    },
-                    { merge: true },
-                  );
-                }
-              }
-
-              tx.delete(invoiceRef);
-            });
-
+            await deleteInvoice(id);
             toast.success("Factura eliminada");
             queryClient.invalidateQueries({ queryKey: ["invoices"] });
           } catch (error) {
@@ -402,8 +306,8 @@ export default function InvoicesPage() {
               {canDelete && (
                 <ConfirmDialog
                   title="Eliminar factura"
-                  description="Esta acción no se puede deshacer."
-                  onConfirm={() => deleteInvoice(row.original.id)}
+                  description="Esta accion no se puede deshacer."
+                  onConfirm={() => handleDeleteInvoice(row.original.id)}
                 >
                   <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer">
                     Eliminar
@@ -440,7 +344,7 @@ export default function InvoicesPage() {
     <div className="w-full">
       <h3 className="text-2xl font-semibold">Facturas</h3>
       <span className="text-muted-foreground text-sm">
-        Gestiona la información de las facturas
+        Gestiona la informacion de las facturas
       </span>
       <div
         className={`grid w-full py-4 mt-2 gap-4 ${
@@ -487,12 +391,15 @@ export default function InvoicesPage() {
           <NewInvoiceDialog
             invoice={invoiceToEdit}
             onEditDone={() => setInvoiceToEdit(null)}
-            onSuccess={async ({ id, mode }) => {
+            onSuccess={({ id, mode }) => {
               if (mode === "create") {
-                const printableInvoice = await fetchInvoiceWithRelations(id);
+                const printableInvoice = invoices.find((inv) => inv.id === id);
                 if (printableInvoice) {
                   setSelectedInvoice(printableInvoice);
                   setTimeout(() => print(), 200);
+                } else {
+                  // Data may not be in cache yet; invalidate and let user print manually
+                  queryClient.invalidateQueries({ queryKey: ["invoices"] });
                 }
               }
             }}
@@ -511,7 +418,7 @@ export default function InvoicesPage() {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -538,7 +445,7 @@ export default function InvoicesPage() {
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}

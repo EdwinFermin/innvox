@@ -1,13 +1,11 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface Receivable {
   id: string;
-  branchId?: string;
+  branch_id: string | null;
   name: string;
   amount: number;
-  dueDate: Timestamp;
-  description: string;
+  due_date: string;
+  description: string | null;
   status: string;
-  createdAt: Timestamp;
-  createdBy?: string;
+  created_at: string;
+  created_by: string | null;
 }

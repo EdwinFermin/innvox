@@ -24,31 +24,22 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  collection,
-  doc,
-  runTransaction,
-  type DocumentReference,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { createExpense } from "@/actions/expenses";
 import { toast } from "sonner";
 import { accountSupportsBranch } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
-import { User } from "@/types/auth.types";
 
-const newExpenseSchema = z
-  .object({
-    branchId: z.string().min(1, "La sucursal es obligatoria"),
-    expenseTypeId: z.string().min(1, "El tipo de gasto es obligatorio"),
-    date: z.string().min(1, "La fecha es obligatoria"),
-    amount: z.coerce.number().positive("Monto inválido"),
-    description: z.string().min(1, "La descripción es obligatoria"),
-    bankAccountId: z.string().min(1, "La cuenta financiera es obligatoria"),
-  });
+const newExpenseSchema = z.object({
+  branchId: z.string().min(1, "La sucursal es obligatoria"),
+  expenseTypeId: z.string().min(1, "El tipo de gasto es obligatorio"),
+  date: z.string().min(1, "La fecha es obligatoria"),
+  amount: z.coerce.number().positive("Monto inválido"),
+  description: z.string().min(1, "La descripción es obligatoria"),
+  bankAccountId: z.string().min(1, "La cuenta financiera es obligatoria"),
+});
 
 type NewExpenseValues = z.infer<typeof newExpenseSchema>;
 type NewExpenseFormValues = z.input<typeof newExpenseSchema>;
@@ -61,7 +52,7 @@ export function NewExpenseDialog({
   const { user } = useAuthStore();
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
   const { data: expenseTypes } = useExpenseTypes(user?.id || "");
   const { data: bankAccounts } = useBankAccounts(user?.id || "");
@@ -83,11 +74,15 @@ export function NewExpenseDialog({
 
   const availableAccounts = React.useMemo(() => {
     if (!selectedBranchId) return [];
-    return bankAccounts.filter((account) => accountSupportsBranch(account, selectedBranchId));
+    return bankAccounts.filter((account) =>
+      accountSupportsBranch(account, selectedBranchId),
+    );
   }, [bankAccounts, selectedBranchId]);
 
   const selectedAccount = React.useMemo(
-    () => availableAccounts.find((account) => account.id === selectedAccountId) ?? null,
+    () =>
+      availableAccounts.find((account) => account.id === selectedAccountId) ??
+      null,
     [availableAccounts, selectedAccountId],
   );
 
@@ -99,59 +94,14 @@ export function NewExpenseDialog({
 
       const [year, month, day] = data.date.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day));
-      const userRef = doc(db, "users", user.id) as DocumentReference<User>;
-      const targetAccountId = data.bankAccountId;
-      const bankTransactionId = doc(collection(db, "bankTransactions")).id;
 
-      await runTransaction(db, async (transaction) => {
-        let paymentMethod: "cash" | "bank" = "bank";
-
-        const accountRef = doc(db, "bankAccounts", targetAccountId);
-        const accountSnap = await transaction.get(accountRef);
-
-        if (!accountSnap.exists()) {
-          throw new Error("La cuenta seleccionada no existe.");
-        }
-
-        const accountData = accountSnap.data();
-        paymentMethod = accountData.accountType === "petty_cash" ? "cash" : "bank";
-        const newBalance = accountData.currentBalance - Number(data.amount);
-
-        transaction.update(accountRef, {
-          currentBalance: newBalance,
-        });
-
-        const bankTransactionRef = doc(db, "bankTransactions", bankTransactionId);
-
-        transaction.set(bankTransactionRef, {
-          bankAccountId: targetAccountId,
-          type: "withdrawal",
-          amount: Number(data.amount),
-          description: `Gasto: ${data.description}`,
-          date: utcDate,
-          balanceAfter: newBalance,
-          createdAt: new Date(),
-          createdBy: user.id,
-        });
-
-        const expenseRef = doc(collection(db, "expenses"));
-        transaction.set(expenseRef, {
-          branchId: data.branchId,
-          expenseTypeId: data.expenseTypeId,
-          amount: Number(data.amount),
-          description: data.description,
-          date: utcDate,
-          paymentMethod,
-          bankAccountId: targetAccountId,
-          bankTransactionId,
-          createdAt: new Date(),
-          createdBy: user.id,
-          createdByRef: userRef,
-        });
-
-        transaction.update(bankTransactionRef, {
-          linkedExpenseId: expenseRef.id,
-        });
+      await createExpense({
+        branchId: data.branchId,
+        expenseTypeId: data.expenseTypeId,
+        amount: Number(data.amount),
+        description: data.description,
+        date: utcDate.toISOString(),
+        bankAccountId: data.bankAccountId,
       });
     },
     onSuccess: () => {
@@ -162,12 +112,14 @@ export function NewExpenseDialog({
       reset();
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrió un error inesperado.");
     },
   });
 
-  const onSubmit = handleSubmit((values) => mutate(values as NewExpenseValues));
+  const onSubmit = handleSubmit((values) =>
+    mutate(values as NewExpenseValues),
+  );
 
   React.useEffect(() => {
     if (openOnMount) {
@@ -281,7 +233,9 @@ export function NewExpenseDialog({
               <label className="text-sm font-medium">Cuenta financiera</label>
               <Select
                 value={selectedAccountId}
-                onValueChange={(val) => setValue("bankAccountId", val, { shouldValidate: true })}
+                onValueChange={(val) =>
+                  setValue("bankAccountId", val, { shouldValidate: true })
+                }
                 disabled={isPending || !selectedBranchId}
               >
                 <SelectTrigger className="h-auto min-h-12 w-full">
@@ -293,20 +247,26 @@ export function NewExpenseDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {availableAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id} className="py-2">
+                    <SelectItem
+                      key={account.id}
+                      value={account.id}
+                      className="py-2"
+                    >
                       <BankAccountOptionContent account={account} />
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {errors.bankAccountId && (
-                <p className="text-xs text-red-500">{errors.bankAccountId.message}</p>
+                <p className="text-xs text-red-500">
+                  {errors.bankAccountId.message}
+                </p>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Descripción</label>
+            <label className="text-sm font-medium">Descripcion</label>
             <Textarea
               rows={3}
               placeholder="Detalle del gasto"

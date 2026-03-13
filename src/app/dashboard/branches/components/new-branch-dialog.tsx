@@ -15,9 +15,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { createBranch } from "@/actions/branches";
 import { toast } from "sonner";
 
 const newBranchSchema = z.object({
@@ -44,8 +42,7 @@ export function NewBranchDialog() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewBranchValues) => {
-      const ref = doc(db, "branches", data.code);
-      await setDoc(ref, { ...data, createdAt: new Date() }, { merge: false });
+      await createBranch(data);
     },
     onSuccess: () => {
       toast.success("Sucursal creada exitosamente");
@@ -53,7 +50,7 @@ export function NewBranchDialog() {
       reset();
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrió un error inesperado.");
     },
   });

@@ -1,32 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
-export type ConfigDocument = {
-  rangeStart?: string;
-  rangeEnd?: string;
-  percentage?: string;
-  [key: string]: unknown;
-};
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/supabase/types";
+
+export type ConfigDocument = Record<string, unknown>;
 
 export type ConfigsMap = Record<string, ConfigDocument>;
 
+const EMPTY_CONFIGS: ConfigsMap = {};
+
 export function useConfigs() {
-  const query = useQuery<ConfigsMap>({
+  const queryResult = useQuery<ConfigsMap>({
     queryKey: ["configs"],
     queryFn: async () => {
-      const snapshot = await getDocs(collection(db, "configs"));
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.from("configs").select("*");
+
+      if (error) throw error;
+
       const result: ConfigsMap = {};
-      snapshot.forEach((docSnap) => {
-        result[docSnap.id] = docSnap.data() as ConfigDocument;
-      });
+      for (const row of data ?? []) {
+        const value = row.value as Record<string, Json> | null;
+        result[row.key] = (value ?? {}) as ConfigDocument;
+      }
       return result;
     },
   });
 
   return {
-    ...query,
-    data: (query.data ?? {}) as ConfigsMap,
+    ...queryResult,
+    data: (queryResult.data ?? EMPTY_CONFIGS) as ConfigsMap,
   };
 }
-

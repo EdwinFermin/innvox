@@ -1,7 +1,5 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface IncomeType {
   id: string;
   name: string;
-  createdAt: Timestamp;
+  created_at: string;
 }

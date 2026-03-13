@@ -3,8 +3,6 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateDoc, doc } from "firebase/firestore";
-import { FirebaseError } from "firebase/app";
 import { ImagePlus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -19,7 +17,7 @@ import {
   getBankAccountBranchIds,
   isSafeAccountImageSrc,
 } from "@/lib/bank-accounts";
-import { db } from "@/lib/firebase";
+import { updateBankAccount } from "@/actions/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { Branch } from "@/types/branch.types";
 import { BankAccount, Currency } from "@/types/bank-account.types";
@@ -91,7 +89,7 @@ export function EditBankAccountDialog({
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const allowedBranchIds =
-    user?.type === "USER" ? user?.branchIds : undefined;
+    user?.type === "USER" ? user?.branch_ids : undefined;
   const { data: branches } = useBranches(
     user?.id || "",
     allowedBranchIds,
@@ -103,19 +101,19 @@ export function EditBankAccountDialog({
   const [removeLogo, setRemoveLogo] = React.useState(false);
   const logoInputId = React.useId();
 
-  const isBankAccount = account.accountType === "bank";
+  const isBankAccount = account.account_type === "bank";
 
   const initialValues = React.useMemo<FormValues>(() => {
     const ids = getBankAccountBranchIds(account);
     return {
       branchIds: isBankAccount ? ids : [],
       pettyCashBranchId: isBankAccount ? "" : ids[0] ?? "",
-      accountName: account.accountName ?? "",
-      bankName: account.bankName ?? "",
-      accountNumber: account.accountNumber ?? "",
+      accountName: account.account_name ?? "",
+      bankName: account.bank_name ?? "",
+      accountNumber: account.account_number ?? "",
       currency: (account.currency ?? "DOP") as Currency,
-      isActive: account.isActive ? "true" : "false",
-      isPublic: account.isPublic !== false,
+      isActive: account.is_active ? "true" : "false",
+      isPublic: account.is_public !== false,
     };
   }, [account, isBankAccount]);
 
@@ -136,11 +134,11 @@ export function EditBankAccountDialog({
   React.useEffect(() => {
     if (open) {
       reset(initialValues);
-      setPreviewUrl(account.iconUrl ?? null);
+      setPreviewUrl(account.icon_url ?? null);
       setLogoFile(null);
       setRemoveLogo(false);
     }
-  }, [open, account.iconUrl, initialValues, reset]);
+  }, [open, account.icon_url, initialValues, reset]);
 
   const selectedBranchIds = watch("branchIds") ?? [];
 
@@ -149,15 +147,15 @@ export function EditBankAccountDialog({
       const nextBranchIds = isBankAccount
         ? values.branchIds
         : [values.pettyCashBranchId!];
-      let iconUrl = account.iconUrl ?? null;
-      if (removeLogo && account.iconUrl) {
+      let iconUrl = account.icon_url ?? null;
+      if (removeLogo && account.icon_url) {
         await removeBankAccountLogo();
         iconUrl = null;
       }
       if (logoFile) {
         iconUrl = await uploadBankAccountLogo(account.id, logoFile);
       }
-      await updateDoc(doc(db, "bankAccounts", account.id), {
+      await updateBankAccount(account.id, {
         branchIds: nextBranchIds,
         accountName: values.accountName,
         bankName: isBankAccount
@@ -180,7 +178,7 @@ export function EditBankAccountDialog({
       });
       onOpenChange(false);
     },
-    onError: (error: FirebaseError | Error) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Ocurrio un error inesperado.");
     },
   });
@@ -383,7 +381,7 @@ export function EditBankAccountDialog({
                       setPreviewUrl(
                         file
                           ? URL.createObjectURL(file)
-                          : account.iconUrl ?? null,
+                          : account.icon_url ?? null,
                       );
                     }}
                   />

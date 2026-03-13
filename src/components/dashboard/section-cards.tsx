@@ -21,10 +21,10 @@ export function SectionCards() {
   const { user } = useAuthStore();
   const userId = user?.id || "";
   const userRole = user?.type;
-  const { data: incomes } = useIncomes(userId, { role: userRole });
-  const { data: expenses } = useExpenses(userId, { role: userRole });
-  const { data: receivables } = useReceivables(userId, { role: userRole });
-  const { data: payables } = usePayables(userId, { role: userRole });
+  const { data: incomes } = useIncomes(userId);
+  const { data: expenses } = useExpenses(userId);
+  const { data: receivables } = useReceivables(userId);
+  const { data: payables } = usePayables(userId);
 
   const now = new Date();
   const prev = new Date(now);
@@ -49,13 +49,9 @@ export function SectionCards() {
   const safeDate = (value: unknown): Date | null => {
     if (!value) return null;
     if (value instanceof Date) return value;
-    if (
-      typeof value === "object" &&
-      value !== null &&
-      "toDate" in value &&
-      typeof (value as { toDate: unknown }).toDate === "function"
-    ) {
-      return (value as { toDate: () => Date }).toDate();
+    if (typeof value === "string" || typeof value === "number") {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
     }
     return null;
   };

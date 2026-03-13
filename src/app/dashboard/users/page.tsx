@@ -16,7 +16,6 @@ import {
 import { ArrowUpDown, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { deleteDoc, doc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -41,12 +40,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsers } from "@/hooks/use-users";
 import { NewUserDialog } from "./components/new-user-dialog";
 import { User } from "@/types/auth.types";
-import { db } from "@/lib/firebase";
 import { EditUserDialog } from "./components/edit-user-dialog";
 import { useAuthStore } from "@/store/auth";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { deleteUser } from "@/actions/users";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -54,7 +53,7 @@ const getColumnLabel = (id: string): string => {
     name: "Nombre",
     email: "Correo",
     type: "Rol",
-    createdAt: "Fecha de creación",
+    created_at: "Fecha de creación",
   };
   return map[id] || id;
 };
@@ -63,9 +62,6 @@ const getCreatedAtTime = (value: unknown): number => {
   if (!value) return 0;
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
   return 0;
 };
 
@@ -126,8 +122,8 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     ),
   },
   {
-    id: "createdAt",
-    accessorFn: (row) => getCreatedAtTime(row.createdAt),
+    id: "created_at",
+    accessorFn: (row) => getCreatedAtTime(row.created_at),
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -140,11 +136,9 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        {row.original.createdAt
+        {row.original.created_at
           ? format(
-              typeof row.original.createdAt === "string"
-                ? new Date(row.original.createdAt)
-                : (row.original.createdAt as { toDate: () => Date }).toDate(),
+              new Date(row.original.created_at),
               "d 'de' MMMM yyyy hh:mm a",
               { locale: es }
             )
@@ -164,7 +158,7 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
             className="h-8 px-2"
             onClick={async () => {
               try {
-                await deleteDoc(doc(db, "users", row.row.original.id));
+                await deleteUser(row.row.original.id);
                 toast.success("Usuario eliminado");
               } catch {
                 toast.error("Error al eliminar el usuario");

@@ -44,8 +44,7 @@ import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { Branch } from "@/types/branch.types";
 import { useBranches } from "@/hooks/use-branches";
 import { NewBranchDialog } from "./components/new-branch-dialog";
-import { deleteDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { deleteBranch } from "@/actions/branches";
 import { toast } from "sonner";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
@@ -55,7 +54,7 @@ const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     name: "Nombre",
     code: "Código",
-    createdAt: "Fecha de creación",
+    created_at: "Fecha de creación",
   };
   return map[id] || id;
 };
@@ -64,9 +63,6 @@ const getCreatedAtTime = (value: unknown): number => {
   if (!value) return 0;
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
   return 0;
 };
 
@@ -125,8 +121,8 @@ const getColumns = (
     ),
   },
   {
-    id: "createdAt",
-    accessorFn: (row) => getCreatedAtTime(row.createdAt),
+    id: "created_at",
+    accessorFn: (row) => getCreatedAtTime(row.created_at),
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -139,7 +135,7 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        {format(row.original.createdAt.toDate(), "d 'de' MMMM yyyy hh:mm a", {
+        {format(new Date(row.original.created_at), "d 'de' MMMM yyyy hh:mm a", {
           locale: es,
         })}
       </div>
@@ -164,7 +160,7 @@ const getColumns = (
               variant="destructive"
               onClick={async () => {
                 try {
-                  await deleteDoc(doc(db, "branches", row.row.original.id));
+                  await deleteBranch(row.row.original.id);
                   toast.success("Sucursal eliminada");
                   queryClient.invalidateQueries({ queryKey: ["branches"] });
                 } catch {
@@ -186,7 +182,7 @@ export default function BranchesPage() {
   const { user } = useAuthStore();
   const { data: branches, isLoading } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
   const queryClient = useQueryClient();
   const canManageBranches = can(user?.type, PERMISSIONS.branchesManage);

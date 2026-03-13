@@ -20,9 +20,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { updateUser } from "@/actions/users";
 import { toast } from "sonner";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
@@ -31,7 +29,7 @@ import { User } from "@/types/auth.types";
 const editUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   type: z.enum(["ADMIN", "USER"]),
-  branchIds: z.array(z.string()).optional(),
+  branch_ids: z.array(z.string()).optional(),
 });
 
 type EditUserValues = z.infer<typeof editUserSchema>;
@@ -42,7 +40,7 @@ export function EditUserDialog({ user }: { user: User }) {
   const { user: currentUser } = useAuthStore();
   const { data: branches } = useBranches(
     currentUser?.id || "",
-    currentUser?.branchIds
+    currentUser?.branch_ids
   );
 
   const {
@@ -58,7 +56,7 @@ export function EditUserDialog({ user }: { user: User }) {
     defaultValues: {
       name: user.name,
       type: user.type,
-      branchIds: user.branchIds ?? [],
+      branch_ids: user.branch_ids ?? [],
     },
   });
 
@@ -66,33 +64,29 @@ export function EditUserDialog({ user }: { user: User }) {
     reset({
       name: user.name,
       type: user.type,
-      branchIds: user.branchIds ?? [],
+      branch_ids: user.branch_ids ?? [],
     });
   }, [user, reset]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (values: EditUserValues) => {
-      await setDoc(
-        doc(db, "users", user.id),
-        {
-          name: values.name,
-          type: values.type,
-          branchIds: values.branchIds ?? [],
-        },
-        { merge: true }
-      );
+      await updateUser(user.id, {
+        name: values.name,
+        type: values.type,
+        branch_ids: values.branch_ids ?? [],
+      });
     },
     onSuccess: () => {
       toast.success("Usuario actualizado");
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Error al actualizar el usuario");
     },
   });
 
-  const selectedBranches = watch("branchIds") ?? [];
+  const selectedBranches = watch("branch_ids") ?? [];
 
   const toggleBranch = (id: string) => {
     const current = new Set(selectedBranches);
@@ -101,7 +95,7 @@ export function EditUserDialog({ user }: { user: User }) {
     } else {
       current.add(id);
     }
-    setValue("branchIds", Array.from(current), { shouldValidate: true });
+    setValue("branch_ids", Array.from(current), { shouldValidate: true });
   };
 
   const onSubmit = handleSubmit((values) => mutate(values));
@@ -188,9 +182,9 @@ export function EditUserDialog({ user }: { user: User }) {
                 </span>
               )}
             </div>
-            {errors.branchIds && (
+            {errors.branch_ids && (
               <p className="text-xs text-red-500">
-                {errors.branchIds.message as string}
+                {errors.branch_ids.message as string}
               </p>
             )}
           </div>

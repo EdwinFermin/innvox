@@ -15,14 +15,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
+import { createClient } from "@/actions/clients";
 import { toast } from "sonner";
 
 const newClientSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
-  poBox: z.string().min(1, "El PO Box es obligatorio"),
+  po_box: z.string().min(1, "El PO Box es obligatorio"),
 });
 
 type NewClientValues = z.infer<typeof newClientSchema>;
@@ -44,8 +42,7 @@ export function NewClientDialog() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewClientValues) => {
-      const ref = doc(db, "clients", data.poBox);
-      await setDoc(ref, { ...data, createdAt: new Date() }, { merge: false });
+      await createClient(data);
     },
     onSuccess: () => {
       toast.success("Cliente creado exitosamente");
@@ -53,7 +50,7 @@ export function NewClientDialog() {
       reset();
       setOpen(false);
     },
-    onError: (error: FirebaseError) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Ocurrió un error inesperado.");
     },
   });
@@ -94,17 +91,17 @@ export function NewClientDialog() {
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="poBox" className="text-sm font-medium text-start">
+              <label htmlFor="po_box" className="text-sm font-medium text-start">
                 PO Box
               </label>
               <Input
-                id="poBox"
+                id="po_box"
                 placeholder="EV-123450"
                 className="w-full"
-                {...register("poBox")}
+                {...register("po_box")}
               />
-              {errors.poBox && (
-                <p className="text-red-500 text-xs">{errors.poBox.message}</p>
+              {errors.po_box && (
+                <p className="text-red-500 text-xs">{errors.po_box.message}</p>
               )}
             </div>
           </div>

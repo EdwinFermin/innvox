@@ -13,11 +13,10 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { deleteDoc, doc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { ListVisibilityControl, type VisibilityScope } from "@/components/ui/list-visibility-control";
@@ -49,10 +48,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsers } from "@/hooks/use-users";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
-import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/auth";
 import { LinkPayment } from "@/types/link-payment.types";
 import { useLinkPayments } from "@/hooks/use-link-payments";
+import { deleteLinkPayment } from "@/actions/link-payments";
 
 import { GenerateBranchQrDialog } from "./components/generate-branch-qr-dialog";
 import { NewLinkPaymentDialog } from "./components/new-link-payment-dialog";
@@ -60,13 +59,13 @@ import { NewLinkPaymentDialog } from "./components/new-link-payment-dialog";
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
     id: "ID",
-    branchId: "Sucursal",
+    branch_id: "Sucursal",
     amount: "Monto",
-    paymentUrl: "URL interna",
+    payment_url: "URL interna",
     status: "Estado",
-    createdBy: "Creado por",
-    createdAt: "Fecha de creacion",
-    completedAt: "Fecha de pago",
+    created_by: "Creado por",
+    created_at: "Fecha de creacion",
+    completed_at: "Fecha de pago",
   };
   return map[id] || id;
 };
@@ -78,11 +77,8 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
 
 const getDateTime = (value: unknown): number => {
   if (!value) return 0;
-  if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
-  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
-    return (value as { toDate: () => Date }).toDate().getTime();
-  }
+  if (value instanceof Date) return value.getTime();
   return 0;
 };
 
@@ -104,7 +100,7 @@ function StatusBadge({ status }: { status: LinkPayment["status"] }) {
 }
 
 const getColumns = (
-  queryClient: QueryClient,
+  queryClient: ReturnType<typeof useQueryClient>,
   userNameById: Record<string, string>,
   branchNameById: Record<string, string>,
   canDelete: boolean,
@@ -139,7 +135,7 @@ const getColumns = (
     ),
   },
   {
-    accessorKey: "branchId",
+    accessorKey: "branch_id",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -151,7 +147,7 @@ const getColumns = (
       </Button>
     ),
     cell: ({ row }) => (
-      <div>{branchNameById[row.original.branchId] ?? row.original.branchId}</div>
+      <div>{branchNameById[row.original.branch_id] ?? row.original.branch_id}</div>
     ),
   },
   {
@@ -173,16 +169,16 @@ const getColumns = (
     ),
   },
   {
-    accessorKey: "paymentUrl",
+    accessorKey: "payment_url",
     header: "URL interna",
     cell: ({ row }) => (
       <a
-        href={row.original.paymentUrl}
+        href={row.original.payment_url}
         target="_blank"
         rel="noreferrer"
         className="line-clamp-1 text-sm text-primary underline-offset-4 hover:underline"
       >
-        {row.original.paymentUrl}
+        {row.original.payment_url}
       </a>
     ),
   },
@@ -201,17 +197,17 @@ const getColumns = (
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
-    accessorKey: "createdBy",
+    accessorKey: "created_by",
     header: "Creado por",
     cell: ({ row }) => {
-      const userId = row.original.createdBy ?? "";
+      const userId = row.original.created_by ?? "";
       if (!userId) return <div>-</div>;
       return <div>{userNameById[userId] ?? userId}</div>;
     },
   },
   {
-    id: "createdAt",
-    accessorFn: (row) => getDateTime(row.createdAt),
+    id: "created_at",
+    accessorFn: (row) => getDateTime(row.created_at),
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -224,15 +220,15 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        {format(row.original.createdAt.toDate(), "d 'de' MMM yyyy hh:mm a", {
+        {format(new Date(row.original.created_at), "d 'de' MMM yyyy hh:mm a", {
           locale: es,
         })}
       </div>
     ),
   },
   {
-    id: "completedAt",
-    accessorFn: (row) => getDateTime(row.completedAt),
+    id: "completed_at",
+    accessorFn: (row) => getDateTime(row.completed_at),
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -244,13 +240,13 @@ const getColumns = (
       </Button>
     ),
     cell: ({ row }) => {
-      if (!row.original.completedAt) {
+      if (!row.original.completed_at) {
         return <div className="text-right text-muted-foreground">-</div>;
       }
 
       return (
         <div className="text-right font-medium">
-          {format(row.original.completedAt.toDate(), "d 'de' MMM yyyy hh:mm a", {
+          {format(new Date(row.original.completed_at), "d 'de' MMM yyyy hh:mm a", {
             locale: es,
           })}
         </div>
@@ -276,7 +272,7 @@ const getColumns = (
               variant="destructive"
               onClick={async () => {
                 try {
-                  await deleteDoc(doc(db, "linkPayments", row.row.original.id));
+                  await deleteLinkPayment(row.row.original.id);
                   toast.success("Link de pago eliminado");
                   queryClient.invalidateQueries({ queryKey: ["linkPayments"] });
                 } catch {
@@ -297,13 +293,11 @@ export default function LinkDePagoPage() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { data: linkPayments, isLoading } = useLinkPayments(user?.id || "", {
-    role: user?.type,
-  });
+  const { data: linkPayments, isLoading } = useLinkPayments(user?.id || "");
   const { data: users } = useUsers();
   const { data: branches } = useBranches(
     user?.id || "",
-    user?.type === "USER" ? user?.branchIds : undefined,
+    user?.type === "USER" ? user?.branch_ids : undefined,
   );
   const [visibilityScope, setVisibilityScope] = React.useState<VisibilityScope>("all");
 
@@ -337,11 +331,11 @@ export default function LinkDePagoPage() {
   const filteredLinkPayments = React.useMemo(() => {
     const byVisibility =
       visibilityScope === "mine"
-        ? linkPayments.filter((item) => item.createdBy === user?.id)
+        ? linkPayments.filter((item) => item.created_by === user?.id)
         : linkPayments;
 
     return [...byVisibility].sort(
-      (a, b) => getDateTime(b.createdAt) - getDateTime(a.createdAt),
+      (a, b) => getDateTime(b.created_at) - getDateTime(a.created_at),
     );
   }, [linkPayments, user?.id, visibilityScope]);
 
@@ -389,9 +383,9 @@ export default function LinkDePagoPage() {
       <div className={`grid w-full py-4 mt-2 gap-4 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
         <Input
           placeholder="Buscar por sucursal..."
-          value={(table.getColumn("branchId")?.getFilterValue() as string) ?? ""}
+          value={(table.getColumn("branch_id")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("branchId")?.setFilterValue(event.target.value)
+            table.getColumn("branch_id")?.setFilterValue(event.target.value)
           }
           className="w-full"
         />

@@ -35,9 +35,9 @@ function toUser(
     name: sessionUser.name ?? "Usuario",
     email: sessionUser.email,
     avatar: sessionUser.image ?? "",
-    createdAt: "",
+    created_at: "",
     type: sessionUser.role === "ADMIN" ? "ADMIN" : "USER",
-    branchIds: sessionUser.branchIds ?? [],
+    branch_ids: sessionUser.branchIds ?? [],
   };
 }
 
