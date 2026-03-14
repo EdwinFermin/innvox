@@ -24,6 +24,7 @@ function translateSegment(segment: string): string {
     expenses: "Gastos",
     reports: "Reportes",
     profit: "Utilidades",
+    "cuadre-del-dia": "Cuadre del dia",
     receivables: "CxC",
     payables: "CxP",
     "link-de-pago": "Link de pago",
