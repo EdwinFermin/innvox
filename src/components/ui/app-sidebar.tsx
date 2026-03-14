@@ -14,6 +14,7 @@ import {
   BanknoteArrowUp,
   BanknoteArrowDown,
   Landmark,
+  CalendarDays,
 } from "lucide-react";
 
 import {
@@ -96,6 +97,10 @@ const data = {
         {
           title: "Utilidades",
           url: "/dashboard/reports/profit",
+        },
+        {
+          title: "Cuadre del dia",
+          url: "/dashboard/reports/cuadre-del-dia",
         },
         {
           title: "Formulario DGII",
@@ -181,6 +186,16 @@ const data = {
       icon: Users,
       isActive: true,
     },
+    {
+      title: "Reportes",
+      icon: BarChart,
+      items: [
+        {
+          title: "Cuadre del dia",
+          url: "/dashboard/reports/cuadre-del-dia",
+        },
+      ],
+    },
   ],
   navSecondary: [
     {
@@ -222,7 +237,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>Acciones rápidas</SidebarGroupLabel>
           <SidebarGroupContent>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <a
                 href="/dashboard/transactions/incomes?new=1"
                 className="flex flex-col items-center gap-2 rounded-lg border bg-card p-2 text-center shadow-sm transition hover:border-primary/50 hover:shadow"
@@ -243,6 +258,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </span>
                 <span className="text-xs font-medium text-foreground">
                   Nuevo gasto
+                </span>
+              </a>
+              <a
+                href="/dashboard/reports/cuadre-del-dia"
+                className="flex flex-col items-center gap-2 rounded-lg border bg-card p-2 text-center shadow-sm transition hover:border-primary/50 hover:shadow"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                  <CalendarDays className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-medium text-foreground">
+                  Cuadre del dia
                 </span>
               </a>
             </div>
