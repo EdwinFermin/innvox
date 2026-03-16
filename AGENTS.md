@@ -7,6 +7,7 @@ This repository uses a strict context-selection workflow so model calls do not i
 1. Never read the full repository for a single task.
 2. Start with targeted discovery (`glob`/`grep`), then include only relevant files.
 3. Respect `.contextignore` for all context gathering.
+   - Exception: generated context artifacts in `.cache/context/` are approved workflow inputs.
 4. Default context budget per call:
    - max files: `10`
    - max output chars: `12000`
@@ -30,6 +31,8 @@ npm run context:pack -- --query "<task here>" --budget 12000 --max-files 10
 ```
 
 4. Use the produced pack instead of sending full repo context.
+   - Approved generated files: `.cache/context/repo-map.json`, `.cache/context/repo-summary.json`, `.cache/context/last-pack.md`, `.cache/context/last-pack.json`
+5. Optionally run `npm run context:doctor` after tooling changes to validate representative queries.
 
 ## Optional Scope
 
@@ -42,9 +45,13 @@ npm run context:pack -- --query "fix invoice export" --scope src/app,src/hooks
 ## Outputs
 
 - `npm run context:map` writes `.cache/context/repo-map.json`
+- `npm run context:map` also writes `.cache/context/repo-summary.json`
 - `npm run context:pack` writes:
   - `.cache/context/last-pack.md`
   - `.cache/context/last-pack.json`
+- `npm run context:doctor` writes:
+  - `.cache/context/doctor-report.md`
+  - `.cache/context/doctor-report.json`
 
 ## Core Context
 

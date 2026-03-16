@@ -8,6 +8,11 @@ coverage/**
 # VCS and tooling caches
 .git/**
 .cache/**
+.cache/context/
+!.cache/context/repo-map.json
+!.cache/context/repo-summary.json
+!.cache/context/last-pack.md
+!.cache/context/last-pack.json
 .vercel/**
 
 # Local env and logs

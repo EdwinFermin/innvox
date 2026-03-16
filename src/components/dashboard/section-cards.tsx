@@ -20,7 +20,6 @@ import { usePayables } from "@/hooks/use-payables";
 export function SectionCards() {
   const { user } = useAuthStore();
   const userId = user?.id || "";
-  const userRole = user?.type;
   const { data: incomes } = useIncomes(userId);
   const { data: expenses } = useExpenses(userId);
   const { data: receivables } = useReceivables(userId);

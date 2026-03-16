@@ -11,7 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpDown, Building2, Wallet } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -165,7 +165,6 @@ export default function BankAccountDetailPage() {
   const router = useRouter();
   const accountId = params.id;
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
   const allowedBranchIds = user?.type === "USER" ? user?.branch_ids : undefined;
   const { data: branches } = useBranches(user?.id || "", allowedBranchIds);
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);

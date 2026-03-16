@@ -52,7 +52,6 @@ export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
   const user = useAuthStore((state) => state.user);
   const userId = user?.id ?? "";
-  const userRole = user?.type;
   const { data: invoices } = useInvoices(userId);
   const { data: incomes } = useIncomes(userId);
   const { data: expenses } = useExpenses(userId);
