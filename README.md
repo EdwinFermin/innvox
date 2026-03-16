@@ -1,17 +1,32 @@
 # Innvox
 
-Innvox is a branch-aware finance and operations dashboard built with Next.js, Firebase, React Query, and shadcn/ui.
+Innvox is a branch-aware finance and operations dashboard for managing branches, users, clients, invoices, incomes, expenses, receivables, payables, reports, bank accounts, and branch payment links.
 
-## Main areas
+## Stack
 
-- Dashboard metrics and reports
-- Income and expense tracking
-- Receivables and payables
-- Invoices and clients
-- Users, branches, and settings
-- `Link de pago` for branch-based QR payment links
+- Next.js App Router + React 19 + TypeScript
+- Supabase for PostgreSQL data, auth-backed access, and RPC functions
+- NextAuth credentials auth normalized into the app session/store
+- React Query for client-side reads
+- Server Actions in `src/actions/` for writes
+- shadcn/ui + Tailwind CSS for UI primitives
 
-## Getting started
+## Start Here
+
+- Product and architecture overview: `docs/app-overview.md`
+- Agent workflow and context policy: `AGENTS.md`
+- Generated context artifacts: `.cache/context/repo-map.json`, `.cache/context/repo-summary.json`, `.cache/context/last-pack.md`, `.cache/context/last-pack.json`
+
+## Project Shape
+
+- `src/app/` route tree for public pages, auth pages, and dashboard pages
+- `src/actions/` server actions for mutations
+- `src/hooks/` React Query hooks and print helpers
+- `src/lib/` auth, Supabase clients, and domain helpers
+- `src/types/` app and database-facing types
+- `supabase/migrations/` schema and RPC definitions
+
+## Local Setup
 
 ```bash
 npm install
@@ -20,37 +35,31 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## Required environment variables
+## Required Environment Variables
 
 - `AUTH_SECRET`
 - `NEXT_PUBLIC_APP_URL`
-- `NEXT_PUBLIC_FIREBASE_API_KEY`
-- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-## Auth and routing
+Check local auth and data access config before running privileged flows.
 
-- Login uses NextAuth credentials backed by Firebase
-- Protected routes are enforced in `src/proxy.ts`
-- Server guards live in `src/lib/auth/guards.ts`
-- Public payment pages live outside `/dashboard`
+## Validation
 
-## Fast architecture overview
+```bash
+npm run typecheck
+npm run lint
+```
 
-Read `docs/app-overview.md` first. It is the shortest reliable way to understand the app structure, major collections, route layout, and module conventions.
+## Agent Context Workflow
 
-## Context workflow for agents
-
-This repository uses a scoped context workflow to avoid scanning the whole project.
+Use the scoped context flow instead of scanning the whole repo.
 
 ```bash
 npm run context:map
 npm run context:pack -- --query "your task here" --budget 12000 --max-files 10
+npm run context:doctor
 ```
 
-Generated files:
-
-- `.cache/context/repo-map.json`
-- `.cache/context/last-pack.md`
-- `.cache/context/last-pack.json`
+Read the generated pack first, then expand only if the task still needs more context.

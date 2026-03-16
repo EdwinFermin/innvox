@@ -2,19 +2,57 @@
 
 ## What the app does
 
-Innvox is an internal finance and operations dashboard for managing branches, users, clients, invoices, income, expenses, receivables, payables, reports, and payment links.
+Innvox is an internal finance and operations dashboard for managing branches, users, clients, invoices, incomes, expenses, receivables, payables, reports, bank accounts, and payment links.
 
 ## Stack
 
 - Next.js App Router in `src/app`
 - React 19 + TypeScript
 - Supabase (PostgreSQL + Auth) for data and authentication
-- Supabase client in `src/lib/supabase/` (client.ts, server.ts, admin.ts)
+- Supabase clients in `src/lib/supabase/` (`client.ts`, `server.ts`, `admin.ts`)
 - NextAuth credentials auth backed by Supabase in `src/auth.ts`
-- React Query for client-side data fetching
-- Server Actions in `src/actions/` for all mutations
-- PostgreSQL functions (RPC) for atomic operations
+- React Query for client-side reads
+- Server Actions in `src/actions/` for mutations
+- PostgreSQL functions (RPC) for atomic finance operations
 - shadcn/ui + Tailwind for UI primitives
+
+## Fast repo structure
+
+- `src/app/`
+  - `dashboard/` private finance and admin routes
+  - `pay/[branchId]/` public branch payment page used by QR scans
+  - `accounts/[branchId]/` public bank-account listing by branch
+  - `login/` auth entry
+- `src/actions/` server actions for create/delete/update flows
+- `src/hooks/` React Query hooks for reads and print/export helpers
+- `src/lib/`
+  - `auth/` route guards, permissions, and role checks
+  - `supabase/` browser, server, and admin clients
+  - other domain helpers such as bank accounts, payment links, and movements
+- `src/types/` shared table-aligned types
+- `src/store/auth.ts` client auth/session shape
+- `src/components/` shared dashboard, print, and UI primitives
+- `supabase/migrations/001_initial_schema.sql` schema, tables, and RPC source of truth
+
+## Main dashboard domains
+
+- `src/app/dashboard/page.tsx` dashboard home
+- `src/app/dashboard/users/` users and branch assignments
+- `src/app/dashboard/branches/` branches
+- `src/app/dashboard/clients/` clients
+- `src/app/dashboard/invoices/` invoices
+- `src/app/dashboard/transactions/incomes/` incomes
+- `src/app/dashboard/transactions/expenses/` expenses
+- `src/app/dashboard/receivables/` receivables
+- `src/app/dashboard/payables/` payables
+- `src/app/dashboard/bank-accounts/` bank accounts, transfers, balance adjustments, QR sheets
+- `src/app/dashboard/link-de-pago/` internal payment-link management
+- `src/app/dashboard/reports/profit/` profit report
+- `src/app/dashboard/reports/cuadre-del-dia/` daily close report
+- `src/app/dashboard/reports/formulario-dgii/` DGII invoice export helper
+- `src/app/dashboard/parameters/` configurable catalog tables
+- `src/app/dashboard/settings/` app-level settings
+- `src/app/dashboard/account/` current-user account view
 
 ## How auth works
 
@@ -22,33 +60,33 @@ Innvox is an internal finance and operations dashboard for managing branches, us
 - `/dashboard/**` and `/login` are gated in `src/proxy.ts`
 - Server-side guards live in `src/lib/auth/guards.ts`
 - Session shape is normalized in `src/store/auth.ts`
-- Users have `type: ADMIN | USER` and branch assignments in `user_branches` junction table
-- NextAuth JWT strategy stores `id`, `role`, `branchIds` in the session token
+- Users have `type: ADMIN | USER` and branch assignments in `user_branches`
+- NextAuth JWT stores `id`, `role`, and `branchIds` in the session token
 
 ## Main route layout
 
-- `src/app/dashboard/layout.tsx` wraps all private pages with the sidebar and breadcrumb
+- `src/app/dashboard/layout.tsx` wraps private pages with sidebar and breadcrumb
 - `src/components/ui/app-sidebar.tsx` defines dashboard navigation
-- `src/components/ui/dynamic-breadcrumb.tsx` translates route segments into labels
+- `src/components/ui/dynamic-breadcrumb.tsx` maps route segments to labels
 - `src/app/pay/[branchId]/page.tsx` is the public payment page for QR scans
 
 ## Data patterns
 
-- Most modules follow a 4-file pattern:
+- Most business modules follow this pattern:
   - page in `src/app/dashboard/.../page.tsx`
-  - create dialog in `src/app/dashboard/.../components/...`
-  - data hook in `src/hooks/...` (reads via Supabase browser client + React Query)
-  - server action in `src/actions/...` (writes via Supabase server/admin client)
-  - interface in `src/types/...`
-- Reads are client-side with React Query and Supabase `.from().select()`
-- Writes go through Server Actions (`"use server"` in `src/actions/`)
+  - create/edit dialog in `src/app/dashboard/.../components/...`
+  - read hook in `src/hooks/...`
+  - write action in `src/actions/...`
+  - type in `src/types/...`
+- Reads are usually client-side with React Query and Supabase `.from().select()`
+- Writes go through Server Actions in `src/actions/`
 - Complex atomic operations use PostgreSQL functions via `supabase.rpc()`
-- Row Level Security (RLS) handles per-role data visibility
-- All types use `snake_case` field names matching PostgreSQL column names
+- Row Level Security handles per-role visibility
+- Types use `snake_case` field names aligned to PostgreSQL column names
 
 ## Key tables
 
-- `users`, `user_branches` (junction)
+- `users`, `user_branches`
 - `branches`
 - `clients`
 - `invoices`
@@ -57,41 +95,46 @@ Innvox is an internal finance and operations dashboard for managing branches, us
 - `receivables`
 - `payables`
 - `link_payments`
-- `bank_accounts`, `bank_account_branches` (junction), `bank_transactions`
+- `bank_accounts`, `bank_account_branches`, `bank_transactions`
 - `configs`, `ncf_released_numbers`
 
 ## PostgreSQL functions (RPC)
 
-- `create_income` / `create_expense` — atomic balance update + bank tx + movement
-- `transfer_funds` — atomic inter-account transfer
-- `adjust_balance` — atomic balance adjustment
-- `generate_ncf` / `generate_cf` — atomic sequential number generation
-- `delete_financial_movement` — atomic reversal of income/expense
-- `delete_invoice` — NCF release + deletion
-- `repair_bank_transaction_balances` — recalculate running balances
+- `create_income` / `create_expense` - atomic balance update, bank transaction, and movement
+- `transfer_funds` - atomic inter-account transfer
+- `adjust_balance` - atomic balance adjustment
+- `generate_ncf` / `generate_cf` - atomic sequential number generation
+- `delete_financial_movement` - atomic reversal of income/expense
+- `delete_invoice` - NCF release plus deletion
+- `repair_bank_transaction_balances` - recalculate running balances
 
-## Existing module references
+## Good reference files
 
-- `src/app/dashboard/payables/page.tsx` is a strong template for table-based CRUD modules
-- `src/app/dashboard/payables/components/new-payable-dialog.tsx` is a strong template for form dialogs
-- `src/hooks/use-payables.ts` shows the standard collection hook shape
-- `src/actions/payables.ts` shows the standard server action shape
-- `src/app/dashboard/branches/components/new-branch-dialog.tsx` shows that branch ids match branch codes
+- `src/app/dashboard/payables/page.tsx` table-based CRUD template
+- `src/app/dashboard/payables/components/new-payable-dialog.tsx` form dialog template
+- `src/hooks/use-payables.ts` standard collection hook shape
+- `src/actions/payables.ts` standard server action shape
+- `src/app/dashboard/reports/cuadre-del-dia/page.tsx` report page reference
+- `src/hooks/use-daily-close-report.ts` cross-module report hook reference
+- `src/app/dashboard/branches/components/new-branch-dialog.tsx` shows branch ids matching branch codes
 
 ## Link de pago feature
 
 - Admin/internal route: `src/app/dashboard/link-de-pago/page.tsx`
-- Public route for QR scans: `src/app/pay/[branchId]/page.tsx`
+- Public QR target: `src/app/pay/[branchId]/page.tsx`
+- Public branch account list: `src/app/accounts/[branchId]/page.tsx`
 - Table: `link_payments`
 - Flow:
   - create a pending payment link by branch
   - share the public branch URL or QR
-  - customer scans QR and sees amount + pay button
-  - clicking pay calls `completeLinkPayment` server action, then redirects to the payment URL
+  - customer scans QR and sees amount plus pay button
+  - clicking pay calls `completeLinkPayment` and redirects to the internal payment URL
 
-## Recommended agent workflow
+## Agent workflow
 
-1. Read this file first for product and architecture context.
-2. Refresh the repo map with `npm run context:map` when needed.
-3. Build a task pack with `npm run context:pack -- --query "<task>"`.
-4. Read only the files in the generated pack before expanding scope.
+1. Read this file first for product and structure context.
+2. Read `AGENTS.md` for the context-selection rules.
+3. Refresh the repo map with `npm run context:map` when needed.
+4. Build a task pack with `npm run context:pack -- --query "<task>"`.
+5. Read only the generated pack before expanding scope.
+6. For schema or RPC tasks, inspect `supabase/migrations/001_initial_schema.sql` early.

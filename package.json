@@ -7,8 +7,10 @@
     "build": "node scripts/run-next.mjs build",
     "start": "node scripts/run-next.mjs start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "context:map": "node scripts/context/repo-map.mjs",
-    "context:pack": "node scripts/context/build-context.mjs"
+    "context:pack": "node scripts/context/build-context.mjs",
+    "context:doctor": "node scripts/context/context-doctor.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

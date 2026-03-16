@@ -2,18 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { BankTransaction } from "@/types/bank-transaction.types";
-import { toMillis } from "@/utils/dates";
 
 const EMPTY_TRANSACTIONS: BankTransaction[] = [];
-
-function sortTransactionsDesc(transactions: BankTransaction[]): BankTransaction[] {
-  return [...transactions].sort(
-    (a, b) =>
-      toMillis(b.date) - toMillis(a.date) ||
-      toMillis(b.created_at) - toMillis(a.created_at) ||
-      b.id.localeCompare(a.id),
-  );
-}
 
 export function useBankTransactions(
   userId: string,

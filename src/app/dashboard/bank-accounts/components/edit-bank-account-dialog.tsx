@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, X } from "lucide-react";
@@ -348,14 +349,14 @@ export function EditBankAccountDialog({
             <div className="rounded-xl border border-dashed bg-muted/20 p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   {isSafeAccountImageSrc(previewUrl) ? (
-                    <img
+                    <Image
                       src={previewUrl!}
                       alt="Logo de cuenta"
                       width={80}
                       height={80}
                       className="h-full w-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
