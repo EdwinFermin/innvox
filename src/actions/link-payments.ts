@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/lib/auth/guards";
+import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 interface CreateLinkPaymentData {
@@ -15,13 +16,14 @@ export async function createLinkPayment(data: CreateLinkPaymentData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   const { error } = await supabase.from("link_payments").insert({
     branch_id: data.branch_id,
     amount: data.amount,
     payment_url: data.payment_url,
     status: "pending",
-    created_by: session.user.id,
+    created_by: createdBy,
   });
 
   if (error) {

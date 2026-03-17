@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAuth, requirePermission } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
+import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 interface CreateExpenseData {
@@ -24,6 +25,7 @@ export async function createExpense(data: CreateExpenseData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   const { error } = await supabase.rpc("create_expense", {
     p_branch_id: data.branchId,
@@ -32,7 +34,7 @@ export async function createExpense(data: CreateExpenseData) {
     p_description: data.description ?? null,
     p_date: data.date,
     p_bank_account_id: data.bankAccountId ?? null,
-    p_created_by: session.user.id,
+    p_created_by: createdBy,
   });
 
   if (error) {
