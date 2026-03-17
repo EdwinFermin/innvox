@@ -79,7 +79,50 @@ const getTransactionTypeBadgeClassName = (
   }
 };
 
-const getColumns = (currency: string): ColumnDef<BankTransaction>[] => [
+const canTransferTransaction = (transaction: BankTransaction): boolean =>
+  transaction.type === "deposit" && transaction.amount > 0;
+
+const getTransferDescription = (transaction: BankTransaction): string => {
+  const parts = [`Transferencia basada en transaccion ${transaction.id}`];
+
+  if (transaction.linked_income_id) {
+    parts.push(`ingreso ${transaction.linked_income_id}`);
+  }
+
+  return parts.join(" - ");
+};
+
+const getColumns = (
+  currency: string,
+  onTransferTransaction: (transaction: BankTransaction) => void,
+): ColumnDef<BankTransaction>[] => [
+  {
+    accessorKey: "id",
+    header: "ID transaccion",
+    cell: ({ row }) => (
+      <div className="text-muted-foreground max-w-[180px] truncate font-mono text-xs">
+        {row.original.id}
+      </div>
+    ),
+  },
+  {
+    id: "movement_id",
+    header: "ID ingreso/gasto",
+    cell: ({ row }) => {
+      const movementId =
+        row.original.linked_income_id ?? row.original.linked_expense_id;
+
+      if (!movementId) {
+        return <div className="text-muted-foreground">-</div>;
+      }
+
+      return (
+        <div className="text-muted-foreground max-w-[180px] truncate font-mono text-xs">
+          {movementId}
+        </div>
+      );
+    },
+  },
   {
     accessorKey: "date",
     header: ({ column }) => (
@@ -158,6 +201,27 @@ const getColumns = (currency: string): ColumnDef<BankTransaction>[] => [
       </div>
     ),
   },
+  {
+    id: "actions",
+    header: () => <div className="text-right">Acciones</div>,
+    cell: ({ row }) => {
+      if (!canTransferTransaction(row.original)) {
+        return <div className="text-right text-muted-foreground">-</div>;
+      }
+
+      return (
+        <div className="text-right">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onTransferTransaction(row.original)}
+          >
+            Mover
+          </Button>
+        </div>
+      );
+    },
+  },
 ];
 
 export default function BankAccountDetailPage() {
@@ -208,17 +272,35 @@ export default function BankAccountDetailPage() {
     return getAccountBranchNames(account, branchMap).join(", ");
   }, [account, branches]);
 
-  const columns = React.useMemo(
-    () => getColumns(account?.currency || "DOP"),
-    [account?.currency]
-  );
-
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "date", desc: true },
   ]);
   const [editOpen, setEditOpen] = React.useState(false);
   const [transferOpen, setTransferOpen] = React.useState(false);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    React.useState<BankTransaction | null>(null);
+
+  const handleOpenTransfer = React.useCallback(
+    (transaction: BankTransaction | null = null) => {
+      setSelectedTransaction(transaction);
+      setTransferOpen(true);
+    },
+    [],
+  );
+
+  const handleTransferOpenChange = React.useCallback((open: boolean) => {
+    setTransferOpen(open);
+
+    if (!open) {
+      setSelectedTransaction(null);
+    }
+  }, []);
+
+  const columns = React.useMemo(
+    () => getColumns(account?.currency || "DOP", handleOpenTransfer),
+    [account?.currency, handleOpenTransfer]
+  );
 
   const table = useReactTable({
     data: transactions,
@@ -345,7 +427,7 @@ export default function BankAccountDetailPage() {
         <Button variant="outline" onClick={() => setEditOpen(true)}>
           Editar cuenta
         </Button>
-        <Button onClick={() => setTransferOpen(true)}>
+        <Button onClick={() => handleOpenTransfer()}>
           Transferir
         </Button>
         <Button variant="outline" onClick={() => setAdjustOpen(true)}>
@@ -362,7 +444,14 @@ export default function BankAccountDetailPage() {
       <TransferFundsDialog
         account={account}
         open={transferOpen}
-        onOpenChange={setTransferOpen}
+        onOpenChange={handleTransferOpenChange}
+        initialAmount={selectedTransaction?.amount}
+        initialDescription={
+          selectedTransaction
+            ? getTransferDescription(selectedTransaction)
+            : undefined
+        }
+        lockAmount={!!selectedTransaction}
       />
       <AdjustBalanceDialog
         account={account}

@@ -277,6 +277,7 @@ export default function InvoicesPage() {
           } catch (error) {
             console.error("Error al eliminar la factura", error);
             toast.error("No se pudo eliminar la factura");
+            throw error;
           }
         }
 

@@ -21,11 +21,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -148,20 +148,28 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar tipo de ingreso"
+              description="Esta accion eliminara el tipo de ingreso de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deleteIncomeType(row.row.original.id);
                   toast.success("Tipo de ingreso eliminado");
                   queryClient.invalidateQueries({ queryKey: ["incomeTypes"] });
-                } catch {
+                } catch (error) {
                   toast.error("Error al eliminar el tipo de ingreso");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

@@ -44,12 +44,18 @@ interface TransferFundsDialogProps {
   account: BankAccount;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialAmount?: number;
+  initialDescription?: string;
+  lockAmount?: boolean;
 }
 
 export function TransferFundsDialog({
   account,
   open,
   onOpenChange,
+  initialAmount,
+  initialDescription,
+  lockAmount = false,
 }: TransferFundsDialogProps) {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -57,7 +63,7 @@ export function TransferFundsDialog({
     user?.type === "USER" ? user?.branch_ids : undefined;
   const { data: allAccounts } = useBankAccounts(user?.id || "", {
     allowedBranchIds,
-    activeOnly: false,
+    activeOnly: true,
   });
 
   const {
@@ -82,11 +88,11 @@ export function TransferFundsDialog({
     if (open) {
       reset({
         destinationAccountId: "",
-        amount: 0,
-        description: "",
+        amount: initialAmount ?? 0,
+        description: initialDescription ?? "",
       });
     }
-  }, [open, reset]);
+  }, [initialAmount, initialDescription, open, reset]);
 
   const availableDestinations = React.useMemo(
     () =>
@@ -144,7 +150,7 @@ export function TransferFundsDialog({
       <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-bold text-2xl">
-            Transferir fondos
+            Mover fondos
           </DialogTitle>
           <DialogDescription>
             Desde: <span className="font-medium">{account.account_name}</span>
@@ -207,7 +213,7 @@ export function TransferFundsDialog({
               min="0.01"
               max={account.current_balance}
               {...register("amount", { valueAsNumber: true })}
-              disabled={isPending}
+              disabled={isPending || lockAmount}
             />
             {errors.amount ? (
               <p className="text-xs text-red-500">
@@ -237,7 +243,7 @@ export function TransferFundsDialog({
               </Button>
             </DialogClose>
             <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Transfiriendo..." : "Transferir"}
+              {isPending ? "Moviendo..." : "Mover"}
             </Button>
           </div>
         </form>

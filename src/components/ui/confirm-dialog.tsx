@@ -1,8 +1,10 @@
 "use client";
 
+import * as React from "react";
+
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -15,18 +17,41 @@ import {
 interface ConfirmDialogProps {
   title: string;
   description?: string;
-  onConfirm: () => void;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => Promise<void> | void;
   children: React.ReactNode;
 }
 
 export function ConfirmDialog({
   title,
   description,
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
   onConfirm,
   children,
 }: ConfirmDialogProps) {
+  const [open, setOpen] = React.useState(false);
+  const [isPending, setIsPending] = React.useState(false);
+
+  const handleConfirm = React.useCallback(async () => {
+    try {
+      setIsPending(true);
+      await onConfirm();
+      setOpen(false);
+    } finally {
+      setIsPending(false);
+    }
+  }, [onConfirm]);
+
   return (
-    <AlertDialog>
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (isPending) return;
+        setOpen(nextOpen);
+      }}
+    >
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 
       <AlertDialogContent>
@@ -38,13 +63,22 @@ export function ConfirmDialog({
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-red-500 hover:bg-red-400 cursor-pointer"
+          <AlertDialogCancel asChild>
+            <Button variant="outline" disabled={isPending}>
+              {cancelLabel}
+            </Button>
+          </AlertDialogCancel>
+          <Button
+            type="button"
+            variant="destructive"
+            className="cursor-pointer"
+            onClick={() => {
+              void handleConfirm();
+            }}
+            disabled={isPending}
           >
-            Confirmar
-          </AlertDialogAction>
+            {isPending ? "Procesando..." : confirmLabel}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

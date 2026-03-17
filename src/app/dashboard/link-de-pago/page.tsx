@@ -23,11 +23,11 @@ import { ListVisibilityControl, type VisibilityScope } from "@/components/ui/lis
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -268,20 +268,28 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar link de pago"
+              description="Esta accion eliminara el link de pago de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deleteLinkPayment(row.row.original.id);
                   toast.success("Link de pago eliminado");
                   queryClient.invalidateQueries({ queryKey: ["linkPayments"] });
-                } catch {
+                } catch (error) {
                   toast.error("Error al eliminar el link de pago");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
