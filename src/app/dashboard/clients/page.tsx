@@ -18,11 +18,11 @@ import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -157,20 +157,28 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar cliente"
+              description="Esta accion eliminara el cliente de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deleteClient(row.row.original.id);
                   toast.success("Cliente eliminado");
                   queryClient.invalidateQueries({ queryKey: ["clients"] });
-                } catch {
-                   toast.error("Error al eliminar el cliente");
+                } catch (error) {
+                  toast.error("Error al eliminar el cliente");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

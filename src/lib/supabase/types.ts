@@ -539,6 +539,20 @@ export interface Database {
         };
         Returns: string;
       };
+      update_income_account: {
+        Args: {
+          p_income_id: string;
+          p_bank_account_id: string;
+        };
+        Returns: undefined;
+      };
+      update_expense_account: {
+        Args: {
+          p_expense_id: string;
+          p_bank_account_id: string;
+        };
+        Returns: undefined;
+      };
       transfer_funds: {
         Args: {
           p_source_account_id: string;

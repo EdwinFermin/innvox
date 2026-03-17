@@ -18,11 +18,11 @@ import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -156,20 +156,28 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar sucursal"
+              description="Esta accion eliminara la sucursal de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deleteBranch(row.row.original.id);
                   toast.success("Sucursal eliminada");
                   queryClient.invalidateQueries({ queryKey: ["branches"] });
-                } catch {
-                   toast.error("Error al eliminar la sucursal");
+                } catch (error) {
+                  toast.error("Error al eliminar la sucursal");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

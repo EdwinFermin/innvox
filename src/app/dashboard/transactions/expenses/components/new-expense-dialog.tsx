@@ -24,13 +24,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createExpense } from "@/actions/expenses";
+import { createExpense, updateExpenseAccount } from "@/actions/expenses";
 import { toast } from "sonner";
 import { accountSupportsBranch } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
+import { Expense } from "@/types/expense.types";
 
 const newExpenseSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -44,9 +45,21 @@ const newExpenseSchema = z.object({
 type NewExpenseValues = z.infer<typeof newExpenseSchema>;
 type NewExpenseFormValues = z.input<typeof newExpenseSchema>;
 
+type ExpenseDialogMode = "create" | "edit-account";
+
+interface NewExpenseDialogProps {
+  openOnMount?: boolean;
+  mode?: ExpenseDialogMode;
+  initialData?: Expense;
+  trigger?: React.ReactNode;
+}
+
 export function NewExpenseDialog({
   openOnMount,
-}: { openOnMount?: boolean } = {}) {
+  mode = "create",
+  initialData,
+  trigger,
+}: NewExpenseDialogProps = {}) {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -68,6 +81,8 @@ export function NewExpenseDialog({
     resolver: zodResolver(newExpenseSchema),
     mode: "onChange",
   });
+
+  const isEditMode = mode === "edit-account";
 
   const selectedBranchId = watch("branchId");
   const selectedAccountId = watch("bankAccountId");
@@ -92,6 +107,19 @@ export function NewExpenseDialog({
         throw new Error("No se encontró el usuario autenticado.");
       }
 
+      if (isEditMode) {
+        if (!initialData) {
+          throw new Error("No se encontró el gasto a actualizar.");
+        }
+
+        await updateExpenseAccount({
+          expenseId: initialData.id,
+          bankAccountId: data.bankAccountId,
+        });
+
+        return;
+      }
+
       const [year, month, day] = data.date.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day));
 
@@ -105,7 +133,9 @@ export function NewExpenseDialog({
       });
     },
     onSuccess: () => {
-      toast.success("Gasto registrado");
+      toast.success(
+        isEditMode ? "Cuenta del gasto actualizada" : "Gasto registrado",
+      );
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
       queryClient.invalidateQueries({ queryKey: ["bankTransactions"] });
@@ -128,18 +158,42 @@ export function NewExpenseDialog({
     }
   }, [openOnMount, reset]);
 
+  React.useEffect(() => {
+    if (!open) return;
+
+    if (isEditMode && initialData) {
+      const date = new Date(initialData.date).toISOString().slice(0, 10);
+
+      reset({
+        branchId: initialData.branch_id,
+        expenseTypeId: initialData.expense_type_id,
+        date,
+        amount: initialData.amount,
+        description: initialData.description ?? "",
+        bankAccountId: initialData.bank_account_id ?? "",
+      });
+      return;
+    }
+
+    reset();
+  }, [initialData, isEditMode, open, reset]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="w-full" onClick={() => reset()}>
-          <PlusCircle className="mr-1" />
-          Nuevo gasto
-        </Button>
+        {trigger ?? (
+          <Button variant="default" className="w-full" onClick={() => reset()}>
+            <PlusCircle className="mr-1" />
+            Nuevo gasto
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-w-lg w-[calc(100vw-2rem)] overflow-x-hidden">
         <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">Nuevo gasto</DialogTitle>
+          <DialogTitle className="font-bold text-2xl">
+            {isEditMode ? "Cambiar cuenta del gasto" : "Nuevo gasto"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -151,7 +205,7 @@ export function NewExpenseDialog({
                 onValueChange={(val) =>
                   setValue("branchId", val, { shouldValidate: true })
                 }
-                disabled={isPending}
+                disabled={isPending || isEditMode}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona una sucursal" />
@@ -178,7 +232,7 @@ export function NewExpenseDialog({
                 onValueChange={(val) =>
                   setValue("expenseTypeId", val, { shouldValidate: true })
                 }
-                disabled={isPending}
+                disabled={isPending || isEditMode}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona un tipo" />
@@ -205,7 +259,7 @@ export function NewExpenseDialog({
               <input
                 type="date"
                 {...register("date")}
-                disabled={isPending}
+                disabled={isPending || isEditMode}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
               {errors.date && (
@@ -220,7 +274,7 @@ export function NewExpenseDialog({
                 min="0"
                 placeholder="0.00"
                 {...register("amount")}
-                disabled={isPending}
+                disabled={isPending || isEditMode}
               />
               {errors.amount && (
                 <p className="text-xs text-red-500">{errors.amount.message}</p>
@@ -271,7 +325,7 @@ export function NewExpenseDialog({
               rows={3}
               placeholder="Detalle del gasto"
               {...register("description")}
-              disabled={isPending}
+              disabled={isPending || isEditMode}
             />
             {errors.description && (
               <p className="text-xs text-red-500">
@@ -282,7 +336,11 @@ export function NewExpenseDialog({
 
           <div className="mt-6 flex justify-end gap-2">
             <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
+              {isPending
+                ? "Guardando..."
+                : isEditMode
+                  ? "Actualizar cuenta"
+                  : "Guardar"}
             </Button>
           </div>
         </form>

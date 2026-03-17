@@ -14,6 +14,11 @@ interface CreateIncomeData {
   bankAccountId?: string | null;
 }
 
+interface UpdateIncomeAccountData {
+  incomeId: string;
+  bankAccountId: string;
+}
+
 export async function createIncome(data: CreateIncomeData) {
   const session = await requireAuth();
 
@@ -69,4 +74,21 @@ export async function deleteIncome(id: string) {
   }
 
   revalidatePath("/dashboard/ingresos");
+}
+
+export async function updateIncomeAccount(data: UpdateIncomeAccountData) {
+  await requireAuth();
+
+  const supabase = await getSupabaseServerClient();
+
+  const { error } = await supabase.rpc("update_income_account", {
+    p_income_id: data.incomeId,
+    p_bank_account_id: data.bankAccountId,
+  });
+
+  if (error) {
+    throw new Error(`Error al actualizar la cuenta del ingreso: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/transactions/incomes");
 }

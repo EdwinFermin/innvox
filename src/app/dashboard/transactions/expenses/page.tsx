@@ -22,11 +22,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -93,7 +93,7 @@ const getColumns = (
   expenseTypeNameById: Record<string, string>,
   accountById: Record<string, BankAccount>,
   userNameById: Record<string, string>,
-  canDelete: boolean,
+  canManage: boolean,
   toLocalMidnight: (value: Expense["date"]) => Date | null,
   onDelete: (expenseId: string) => Promise<void>,
 ): ColumnDef<Expense>[] => [
@@ -228,9 +228,14 @@ const getColumns = (
         .toLowerCase()
         .trim();
       if (!search) return true;
+      const id = String(row.original.id ?? "").toLowerCase();
       const description = String(row.getValue(columnId) ?? "").toLowerCase();
       const amount = String(row.original.amount ?? "").toLowerCase();
-      return description.includes(search) || amount.includes(search);
+      return (
+        id.includes(search) ||
+        description.includes(search) ||
+        amount.includes(search)
+      );
     },
   },
   {
@@ -256,15 +261,34 @@ const getColumns = (
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => {
-                void onDelete(row.row.original.id);
-              }}
+          {canManage && (
+            <NewExpenseDialog
+              mode="edit-account"
+              initialData={row.row.original}
+              trigger={
+                <button
+                  type="button"
+                  className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent"
+                >
+                  Cambiar cuenta
+                </button>
+              }
+            />
+          )}
+          {canManage && (
+            <ConfirmDialog
+              title="Eliminar gasto"
+              description="Se revertira el movimiento y se ajustara el balance de la cuenta relacionada."
+              confirmLabel="Eliminar"
+              onConfirm={() => onDelete(row.row.original.id)}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -299,9 +323,8 @@ export default function ExpensesPage() {
     setVisibilityScope("mine");
   }, [user?.type]);
 
-  const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const [startDate, setStartDate] = React.useState<string>(today);
-  const [endDate, setEndDate] = React.useState<string>(today);
+  const [startDate, setStartDate] = React.useState<string>("");
+  const [endDate, setEndDate] = React.useState<string>("");
   const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
   const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
   const [openDialog, setOpenDialog] = React.useState(false);
@@ -421,6 +444,7 @@ export default function ExpensesPage() {
         toast.error(
           error instanceof Error ? error.message : "Error al eliminar el gasto",
         );
+        throw error;
       }
     },
     [queryClient],
@@ -487,7 +511,7 @@ export default function ExpensesPage() {
         }`}
       >
         <Input
-          placeholder="Buscar por descripción..."
+          placeholder="Buscar por ID, descripcion o monto..."
           value={
             (table.getColumn("description")?.getFilterValue() as string) ?? ""
           }

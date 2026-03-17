@@ -18,6 +18,7 @@ import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -250,20 +251,28 @@ const getColumns = (
             {row.original.is_active ? "Desactivar" : "Activar"}
           </DropdownMenuItem>
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar cuenta"
+              description="Esta accion eliminara la cuenta y sus datos relacionados de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deleteBankAccount(row.original.id);
                   toast.success("Cuenta eliminada");
                   invalidate();
-                } catch {
+                } catch (error) {
                   toast.error("Error al eliminar la cuenta");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

@@ -21,11 +21,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -79,6 +79,15 @@ const getDateTime = (value: unknown): number => {
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
   return 0;
+};
+
+const matchesSearch = (receivable: Receivable, search: string) => {
+  const normalizedSearch = search.toLowerCase().trim();
+  if (!normalizedSearch) return true;
+
+  return [receivable.id, receivable.name, receivable.description, receivable.amount]
+    .map((value) => String(value ?? "").toLowerCase())
+    .some((value) => value.includes(normalizedSearch));
 };
 
 const getColumns = (
@@ -211,20 +220,28 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar cuenta por cobrar"
+              description="Esta accion eliminara el registro de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deleteReceivable(row.row.original.id);
                   toast.success("Cuenta por cobrar eliminada");
                   queryClient.invalidateQueries({ queryKey: ["receivables"] });
-                } catch {
+                } catch (error) {
                   toast.error("Error al eliminar la cuenta");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -237,6 +254,7 @@ export default function ReceivablesPage() {
   const { user } = useAuthStore();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const { data: receivables, isLoading } = useReceivables(user?.id || "");
   const { data: users } = useUsers();
   const queryClient = useQueryClient();
@@ -260,12 +278,15 @@ export default function ReceivablesPage() {
   );
 
   const filteredReceivables = React.useMemo(() => {
-    if (visibilityScope !== "mine") {
-      return receivables;
-    }
+    const visibleReceivables =
+      visibilityScope !== "mine"
+        ? receivables
+        : receivables.filter((receivable) => receivable.created_by === user?.id);
 
-    return receivables.filter((receivable) => receivable.created_by === user?.id);
-  }, [receivables, user?.id, visibilityScope]);
+    return visibleReceivables.filter((receivable) =>
+      matchesSearch(receivable, searchQuery)
+    );
+  }, [receivables, searchQuery, user?.id, visibilityScope]);
 
   const columns = React.useMemo(
     () =>
@@ -316,11 +337,9 @@ export default function ReceivablesPage() {
         }`}
       >
         <Input
-          placeholder="Buscar por nombre..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
+          placeholder="Buscar por ID, nombre, descripcion o monto..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
           className="w-full"
         />
 

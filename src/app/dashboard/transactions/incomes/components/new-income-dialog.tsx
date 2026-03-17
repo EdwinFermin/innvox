@@ -24,13 +24,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createIncome } from "@/actions/incomes";
+import { createIncome, updateIncomeAccount } from "@/actions/incomes";
 import { toast } from "sonner";
 import { accountSupportsBranch } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
+import { Income } from "@/types/income.types";
 
 const newIncomeSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -44,9 +45,21 @@ const newIncomeSchema = z.object({
 type NewIncomeValues = z.infer<typeof newIncomeSchema>;
 type NewIncomeFormValues = z.input<typeof newIncomeSchema>;
 
+type IncomeDialogMode = "create" | "edit-account";
+
+interface NewIncomeDialogProps {
+  openOnMount?: boolean;
+  mode?: IncomeDialogMode;
+  initialData?: Income;
+  trigger?: React.ReactNode;
+}
+
 export function NewIncomeDialog({
   openOnMount,
-}: { openOnMount?: boolean } = {}) {
+  mode = "create",
+  initialData,
+  trigger,
+}: NewIncomeDialogProps = {}) {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -68,6 +81,8 @@ export function NewIncomeDialog({
     resolver: zodResolver(newIncomeSchema),
     mode: "onChange",
   });
+
+  const isEditMode = mode === "edit-account";
 
   const selectedBranchId = watch("branchId");
   const selectedAccountId = watch("bankAccountId");
@@ -92,6 +107,19 @@ export function NewIncomeDialog({
         throw new Error("No se encontró el usuario autenticado.");
       }
 
+       if (isEditMode) {
+        if (!initialData) {
+          throw new Error("No se encontró el ingreso a actualizar.");
+        }
+
+        await updateIncomeAccount({
+          incomeId: initialData.id,
+          bankAccountId: data.bankAccountId,
+        });
+
+        return;
+      }
+
       const [year, month, day] = data.date.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day));
 
@@ -105,7 +133,9 @@ export function NewIncomeDialog({
       });
     },
     onSuccess: () => {
-      toast.success("Ingreso registrado");
+      toast.success(
+        isEditMode ? "Cuenta del ingreso actualizada" : "Ingreso registrado",
+      );
       queryClient.invalidateQueries({ queryKey: ["incomes"] });
       queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
       queryClient.invalidateQueries({ queryKey: ["bankTransactions"] });
@@ -126,19 +156,41 @@ export function NewIncomeDialog({
     }
   }, [openOnMount, reset]);
 
+  React.useEffect(() => {
+    if (!open) return;
+
+    if (isEditMode && initialData) {
+      const date = new Date(initialData.date).toISOString().slice(0, 10);
+
+      reset({
+        branchId: initialData.branch_id,
+        incomeTypeId: initialData.income_type_id,
+        date,
+        amount: initialData.amount,
+        description: initialData.description ?? "",
+        bankAccountId: initialData.bank_account_id ?? "",
+      });
+      return;
+    }
+
+    reset();
+  }, [initialData, isEditMode, open, reset]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="w-full" onClick={() => reset()}>
-          <PlusCircle className="mr-1" />
-          Nuevo ingreso
-        </Button>
+        {trigger ?? (
+          <Button variant="default" className="w-full" onClick={() => reset()}>
+            <PlusCircle className="mr-1" />
+            Nuevo ingreso
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-w-lg w-[calc(100vw-2rem)] overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="font-bold text-2xl">
-            Nuevo ingreso
+            {isEditMode ? "Cambiar cuenta del ingreso" : "Nuevo ingreso"}
           </DialogTitle>
         </DialogHeader>
 
@@ -151,7 +203,7 @@ export function NewIncomeDialog({
                 onValueChange={(val) =>
                   setValue("branchId", val, { shouldValidate: true })
                 }
-                disabled={isPending}
+                disabled={isPending || isEditMode}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona una sucursal" />
@@ -178,7 +230,7 @@ export function NewIncomeDialog({
                 onValueChange={(val) =>
                   setValue("incomeTypeId", val, { shouldValidate: true })
                 }
-                disabled={isPending}
+                disabled={isPending || isEditMode}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona un tipo" />
@@ -205,7 +257,7 @@ export function NewIncomeDialog({
               <input
                 type="date"
                 {...register("date")}
-                disabled={isPending}
+                disabled={isPending || isEditMode}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
               {errors.date && (
@@ -220,7 +272,7 @@ export function NewIncomeDialog({
                 min="0"
                 placeholder="0.00"
                 {...register("amount")}
-                disabled={isPending}
+                disabled={isPending || isEditMode}
               />
               {errors.amount && (
                 <p className="text-xs text-red-500">{errors.amount.message}</p>
@@ -271,7 +323,7 @@ export function NewIncomeDialog({
               rows={3}
               placeholder="Detalle del ingreso"
               {...register("description")}
-              disabled={isPending}
+              disabled={isPending || isEditMode}
             />
             {errors.description && (
               <p className="text-xs text-red-500">
@@ -282,7 +334,11 @@ export function NewIncomeDialog({
 
           <div className="mt-6 flex justify-end gap-2">
             <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
+              {isPending
+                ? "Guardando..."
+                : isEditMode
+                  ? "Actualizar cuenta"
+                  : "Guardar"}
             </Button>
           </div>
         </form>

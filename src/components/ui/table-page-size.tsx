@@ -17,7 +17,7 @@ type TablePageSizeProps<TData> = {
 
 export function TablePageSize<TData>({
   table,
-  options = [10, 15, 30],
+  options = [10, 15, 30, 50],
 }: TablePageSizeProps<TData>) {
   return (
     <div className="flex items-center gap-2">

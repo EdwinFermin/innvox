@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <DynamicBreadcrumb />
         </header>
 
-        <main className="flex flex-1 flex-col gap-4 p-4 pt-6">{children}</main>
+        <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 pt-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

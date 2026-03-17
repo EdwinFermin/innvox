@@ -14,6 +14,11 @@ interface CreateExpenseData {
   bankAccountId?: string | null;
 }
 
+interface UpdateExpenseAccountData {
+  expenseId: string;
+  bankAccountId: string;
+}
+
 export async function createExpense(data: CreateExpenseData) {
   const session = await requireAuth();
 
@@ -69,4 +74,21 @@ export async function deleteExpense(id: string) {
   }
 
   revalidatePath("/dashboard/gastos");
+}
+
+export async function updateExpenseAccount(data: UpdateExpenseAccountData) {
+  await requireAuth();
+
+  const supabase = await getSupabaseServerClient();
+
+  const { error } = await supabase.rpc("update_expense_account", {
+    p_expense_id: data.expenseId,
+    p_bank_account_id: data.bankAccountId,
+  });
+
+  if (error) {
+    throw new Error(`Error al actualizar la cuenta del gasto: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/transactions/expenses");
 }

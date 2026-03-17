@@ -20,6 +20,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -150,26 +151,30 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     id: "actions",
     enableHiding: false,
     cell: (row) => (
-      <div className="flex gap-2">
-        <EditUserDialog user={row.row.original} />
-        {canDelete && (
-          <Button
-            variant="ghost"
-            className="h-8 px-2"
-            onClick={async () => {
-              try {
-                await deleteUser(row.row.original.id);
-                toast.success("Usuario eliminado");
-              } catch {
-                toast.error("Error al eliminar el usuario");
-              }
-            }}
-          >
-            Eliminar
-          </Button>
-        )}
-      </div>
-    ),
+        <div className="flex gap-2">
+          <EditUserDialog user={row.row.original} />
+          {canDelete && (
+            <ConfirmDialog
+              title="Eliminar usuario"
+              description="Esta accion eliminara el acceso del usuario al sistema."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
+                try {
+                  await deleteUser(row.row.original.id);
+                  toast.success("Usuario eliminado");
+                } catch (error) {
+                  toast.error("Error al eliminar el usuario");
+                  throw error;
+                }
+              }}
+            >
+              <Button variant="ghost" className="h-8 px-2 text-red-600">
+                Eliminar
+              </Button>
+            </ConfirmDialog>
+          )}
+        </div>
+      ),
   },
 ];
 

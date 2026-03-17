@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,13 +97,20 @@ export function NavUser({ user }: { user: User | null }) {
               </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={handleSignOut}
+            <ConfirmDialog
+              title="Cerrar sesion"
+              description="Tu sesion actual se cerrara y volveras a la pantalla de acceso."
+              confirmLabel="Cerrar sesion"
+              onConfirm={handleSignOut}
             >
-              <LogOut />
-              Cerrar sesión
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                <LogOut className="size-4" />
+                Cerrar sesion
+              </button>
+            </ConfirmDialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

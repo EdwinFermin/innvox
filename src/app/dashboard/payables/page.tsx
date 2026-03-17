@@ -21,11 +21,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -79,6 +79,15 @@ const getDateTime = (value: unknown): number => {
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
   return 0;
+};
+
+const matchesSearch = (payable: Payable, search: string) => {
+  const normalizedSearch = search.toLowerCase().trim();
+  if (!normalizedSearch) return true;
+
+  return [payable.id, payable.name, payable.description, payable.amount]
+    .map((value) => String(value ?? "").toLowerCase())
+    .some((value) => value.includes(normalizedSearch));
 };
 
 const getColumns = (
@@ -211,20 +220,28 @@ const getColumns = (
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canDelete && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={async () => {
+            <ConfirmDialog
+              title="Eliminar cuenta por pagar"
+              description="Esta accion eliminara el registro de forma permanente."
+              confirmLabel="Eliminar"
+              onConfirm={async () => {
                 try {
                   await deletePayable(row.row.original.id);
                   toast.success("Cuenta por pagar eliminada");
                   queryClient.invalidateQueries({ queryKey: ["payables"] });
-                } catch {
+                } catch (error) {
                   toast.error("Error al eliminar la cuenta");
+                  throw error;
                 }
               }}
             >
-              Eliminar
-            </DropdownMenuItem>
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
+                Eliminar
+              </button>
+            </ConfirmDialog>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -237,6 +254,7 @@ export default function PayablesPage() {
   const { user } = useAuthStore();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const { data: payables, isLoading } = usePayables(user?.id || "");
   const { data: users } = useUsers();
   const queryClient = useQueryClient();
@@ -260,12 +278,13 @@ export default function PayablesPage() {
   );
 
   const filteredPayables = React.useMemo(() => {
-    if (visibilityScope !== "mine") {
-      return payables;
-    }
+    const visiblePayables =
+      visibilityScope !== "mine"
+        ? payables
+        : payables.filter((payable) => payable.created_by === user?.id);
 
-    return payables.filter((payable) => payable.created_by === user?.id);
-  }, [payables, user?.id, visibilityScope]);
+    return visiblePayables.filter((payable) => matchesSearch(payable, searchQuery));
+  }, [payables, searchQuery, user?.id, visibilityScope]);
 
   const columns = React.useMemo(
     () =>
@@ -316,11 +335,9 @@ export default function PayablesPage() {
         }`}
       >
         <Input
-          placeholder="Buscar por nombre..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
+          placeholder="Buscar por ID, nombre, descripcion o monto..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
           className="w-full"
         />
 
