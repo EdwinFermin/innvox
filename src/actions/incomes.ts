@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAuth } from "@/lib/auth/guards";
+import { requireAuth, requirePermission } from "@/lib/auth/guards";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 interface CreateIncomeData {
@@ -77,7 +78,7 @@ export async function deleteIncome(id: string) {
 }
 
 export async function updateIncomeAccount(data: UpdateIncomeAccountData) {
-  await requireAuth();
+  await requirePermission(PERMISSIONS.dataDelete);
 
   const supabase = await getSupabaseServerClient();
 

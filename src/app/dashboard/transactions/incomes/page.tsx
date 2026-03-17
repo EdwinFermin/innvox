@@ -101,7 +101,8 @@ const getColumns = (
   incomeTypeNameById: Record<string, string>,
   accountById: Record<string, BankAccount>,
   userNameById: Record<string, string>,
-  canManage: boolean,
+  canChangeAccount: boolean,
+  canDelete: boolean,
   toLocalMidnight: (value: Income["date"]) => Date | null,
   onDelete: (incomeId: string) => Promise<void>,
 ): ColumnDef<Income>[] => [
@@ -269,7 +270,7 @@ const getColumns = (
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {canManage && (
+          {canChangeAccount && (
             <NewIncomeDialog
               mode="edit-account"
               initialData={row.row.original}
@@ -283,7 +284,7 @@ const getColumns = (
               }
             />
           )}
-          {canManage && (
+          {canDelete && (
             <ConfirmDialog
               title="Eliminar ingreso"
               description="Se revertira el movimiento y se ajustara el balance de la cuenta relacionada."
@@ -485,6 +486,7 @@ export default function IncomesPage() {
         incomeTypeNameById,
         accountById,
         userNameById,
+        user?.type === "ADMIN",
         can(user?.type, PERMISSIONS.dataDelete),
         toLocalMidnight,
         handleDeleteIncome,
