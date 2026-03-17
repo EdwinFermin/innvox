@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth/guards";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChangePasswordCard } from "./components/change-password-card";
 
 function initials(name?: string | null, email?: string | null) {
   const source = (name || email || "U").trim();
@@ -52,6 +53,8 @@ export default async function AccountPage() {
           </div>
         </CardContent>
       </Card>
+
+      <ChangePasswordCard />
     </div>
   );
 }
