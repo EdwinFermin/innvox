@@ -32,6 +32,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { Expense } from "@/types/expense.types";
+import { dateOnlyToISOString, extractDateOnlyKey } from "@/utils/dates";
 
 const newExpenseSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -120,15 +121,12 @@ export function NewExpenseDialog({
         return;
       }
 
-      const [year, month, day] = data.date.split("-").map(Number);
-      const utcDate = new Date(Date.UTC(year, month - 1, day));
-
       await createExpense({
         branchId: data.branchId,
         expenseTypeId: data.expenseTypeId,
         amount: Number(data.amount),
         description: data.description,
-        date: utcDate.toISOString(),
+        date: dateOnlyToISOString(data.date),
         bankAccountId: data.bankAccountId,
       });
     },
@@ -162,7 +160,7 @@ export function NewExpenseDialog({
     if (!open) return;
 
     if (isEditMode && initialData) {
-      const date = new Date(initialData.date).toISOString().slice(0, 10);
+      const date = extractDateOnlyKey(initialData.date) ?? "";
 
       reset({
         branchId: initialData.branch_id,

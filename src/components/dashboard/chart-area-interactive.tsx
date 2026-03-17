@@ -30,6 +30,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  extractDateOnlyKey,
+  getTodayDateKey,
+  getTimestampDateKey,
+  parseDateOnly,
+} from "@/utils/dates";
 
 export const description = "An interactive area chart";
 
@@ -67,15 +73,8 @@ export function ChartAreaInteractive() {
     const incomeTotals = new Map<string, number>();
     const expenseTotals = new Map<string, number>();
 
-    const normalizeDate = (value: unknown) => {
-      if (!value) return null;
-      const date = new Date(value as string | number | Date);
-      if (Number.isNaN(date.getTime())) return null;
-      return date.toISOString().slice(0, 10);
-    };
-
     invoices?.forEach((invoice) => {
-      const key = normalizeDate(invoice.created_at);
+      const key = getTimestampDateKey(invoice.created_at);
       if (!key) return;
       incomeTotals.set(
         key,
@@ -84,7 +83,7 @@ export function ChartAreaInteractive() {
     });
 
     incomes?.forEach((income) => {
-      const key = normalizeDate(income.date ?? income.created_at);
+      const key = extractDateOnlyKey(income.date);
       if (!key) return;
       incomeTotals.set(
         key,
@@ -93,7 +92,7 @@ export function ChartAreaInteractive() {
     });
 
     expenses?.forEach((expense) => {
-      const key = normalizeDate(expense.date ?? expense.created_at);
+      const key = extractDateOnlyKey(expense.date);
       if (!key) return;
       expenseTotals.set(
         key,
@@ -103,7 +102,7 @@ export function ChartAreaInteractive() {
 
     const allDates = Array.from(
       new Set([...incomeTotals.keys(), ...expenseTotals.keys()])
-    ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    ).sort();
 
     return allDates.map((date) => ({
       date,
@@ -113,7 +112,7 @@ export function ChartAreaInteractive() {
     }));
   }, [expenses, incomes, invoices]);
 
-  const referenceDate = React.useMemo(() => new Date(), []);
+  const referenceDate = React.useMemo(() => parseDateOnly(getTodayDateKey()), []);
 
   const filteredData = React.useMemo(() => {
     let daysToSubtract = 90;
@@ -123,11 +122,14 @@ export function ChartAreaInteractive() {
       daysToSubtract = 7;
     }
 
+    if (!referenceDate) return [];
+
     const startDate = new Date(referenceDate);
     startDate.setDate(startDate.getDate() - daysToSubtract);
 
     return dailyRollups.filter((item) => {
-      const pointDate = new Date(item.date);
+      const pointDate = parseDateOnly(item.date);
+      if (!pointDate) return false;
       return pointDate >= startDate && pointDate <= referenceDate;
     });
   }, [dailyRollups, referenceDate, timeRange]);
@@ -227,11 +229,11 @@ export function ChartAreaInteractive() {
               tickMargin={8}
               minTickGap={32}
               tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString("en-US", {
+                const date = parseDateOnly(value);
+                return date?.toLocaleDateString("es-DO", {
                   month: "short",
                   day: "numeric",
-                });
+                }) ?? value;
               }}
             />
             <ChartTooltip
@@ -239,10 +241,11 @@ export function ChartAreaInteractive() {
               content={
                 <ChartTooltipContent
                   labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("en-US", {
+                    const date = parseDateOnly(value);
+                    return date?.toLocaleDateString("es-DO", {
                       month: "short",
                       day: "numeric",
-                    });
+                    }) ?? value;
                   }}
                   indicator="dot"
                   formatter={(value) =>

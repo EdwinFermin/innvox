@@ -32,6 +32,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { Income } from "@/types/income.types";
+import { dateOnlyToISOString, extractDateOnlyKey } from "@/utils/dates";
 
 const newIncomeSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -120,15 +121,12 @@ export function NewIncomeDialog({
         return;
       }
 
-      const [year, month, day] = data.date.split("-").map(Number);
-      const utcDate = new Date(Date.UTC(year, month - 1, day));
-
       await createIncome({
         branchId: data.branchId,
         incomeTypeId: data.incomeTypeId,
         amount: Number(data.amount),
         description: data.description,
-        date: utcDate.toISOString(),
+        date: dateOnlyToISOString(data.date),
         bankAccountId: data.bankAccountId,
       });
     },
@@ -160,7 +158,7 @@ export function NewIncomeDialog({
     if (!open) return;
 
     if (isEditMode && initialData) {
-      const date = new Date(initialData.date).toISOString().slice(0, 10);
+      const date = extractDateOnlyKey(initialData.date) ?? "";
 
       reset({
         branchId: initialData.branch_id,

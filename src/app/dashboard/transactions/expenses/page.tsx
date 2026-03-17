@@ -67,6 +67,11 @@ import {
   type VisibilityScope,
 } from "@/components/ui/list-visibility-control";
 import { deleteExpense } from "@/lib/financial-movements";
+import {
+  extractDateOnlyKey,
+  getTodayDateKey,
+  parseDateOnly,
+} from "@/utils/dates";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -87,14 +92,6 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
   currency: "DOP",
 });
-
-const getTodayDateInputValue = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  const day = `${now.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 const getColumns = (
   branchNameById: Record<string, string>,
@@ -332,8 +329,8 @@ export default function ExpensesPage() {
     setVisibilityScope("mine");
   }, [user?.type]);
 
-  const [startDate, setStartDate] = React.useState<string>(getTodayDateInputValue);
-  const [endDate, setEndDate] = React.useState<string>(getTodayDateInputValue);
+  const [startDate, setStartDate] = React.useState<string>(getTodayDateKey);
+  const [endDate, setEndDate] = React.useState<string>(getTodayDateKey);
   const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
   const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -347,24 +344,11 @@ export default function ExpensesPage() {
   }, [pathname, router, searchParams]);
 
   const normalizeDateKey = React.useCallback((value: Expense["date"]) => {
-    if (!value) return null;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    const y = date.getUTCFullYear();
-    const m = `${date.getUTCMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getUTCDate()}`.padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return extractDateOnlyKey(value);
   }, []);
 
   const toLocalMidnight = React.useCallback((value: Expense["date"]) => {
-    if (!value) return null;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    return new Date(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate(),
-    );
+    return parseDateOnly(value);
   }, []);
 
   const filteredExpenses = React.useMemo(() => {

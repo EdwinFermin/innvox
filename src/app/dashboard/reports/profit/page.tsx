@@ -37,6 +37,11 @@ import { useExpenses } from "@/hooks/use-expenses";
 import { useReceivables } from "@/hooks/use-receivables";
 import { usePayables } from "@/hooks/use-payables";
 import {
+  extractDateOnlyKey,
+  formatDateOnly,
+  parseDateOnly,
+} from "@/utils/dates";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -103,19 +108,9 @@ export default function ProfitReportPage() {
   );
 
   const normalizedRows: ReportRow[] = React.useMemo(() => {
-    const toDate = (d: unknown) => {
-      if (!d) return null;
-      if (d instanceof Date) return d;
-      if (typeof d === "string" || typeof d === "number") {
-        const parsed = new Date(d);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-      }
-      return null;
-    };
-
     const list: ReportRow[] = [];
     incomes.forEach((i) => {
-      const d = toDate(i.date);
+      const d = parseDateOnly(i.date);
       if (!d) return;
       list.push({
         id: `income-${i.id}`,
@@ -128,7 +123,7 @@ export default function ProfitReportPage() {
       });
     });
     expenses.forEach((e) => {
-      const d = toDate(e.date);
+      const d = parseDateOnly(e.date);
       if (!d) return;
       list.push({
         id: `expense-${e.id}`,
@@ -141,7 +136,7 @@ export default function ProfitReportPage() {
       });
     });
     receivables.forEach((r) => {
-      const d = toDate(r.due_date);
+      const d = parseDateOnly(r.due_date);
       if (!d) return;
       list.push({
         id: `receivable-${r.id}`,
@@ -154,7 +149,7 @@ export default function ProfitReportPage() {
       });
     });
     payables.forEach((p) => {
-      const d = toDate(p.due_date);
+      const d = parseDateOnly(p.due_date);
       if (!d) return;
       list.push({
         id: `payable-${p.id}`,
@@ -169,28 +164,16 @@ export default function ProfitReportPage() {
     return list;
   }, [incomes, expenses, receivables, payables]);
 
-  const toDateKeyUTC = React.useCallback((d: Date) => {
-    const y = d.getUTCFullYear();
-    const m = `${d.getUTCMonth() + 1}`.padStart(2, "0");
-    const day = `${d.getUTCDate()}`.padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }, []);
-
-  const parseInputDate = React.useCallback((value: string) => {
-    if (!value) return null;
-    const parsed = new Date(`${value}T00:00:00`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }, []);
-
   const filteredRows = React.useMemo(() => {
     return normalizedRows.filter((row) => {
-      const key = toDateKeyUTC(row.date);
+      const key = extractDateOnlyKey(row.date);
+      if (!key) return false;
       if (branchId !== "ALL" && row.branchId !== branchId) return false;
       if (startDate && key < startDate) return false;
       if (endDate && key > endDate) return false;
       return true;
     });
-  }, [normalizedRows, startDate, endDate, branchId, toDateKeyUTC]);
+  }, [normalizedRows, startDate, endDate, branchId]);
 
   const totals = React.useMemo(() => {
     let ingresos = 0;
@@ -218,7 +201,8 @@ export default function ProfitReportPage() {
       { ingresos: number; gastos: number; cxc: number; cxp: number }
     >();
     filteredRows.forEach((row) => {
-      const key = toDateKeyUTC(row.date);
+      const key = extractDateOnlyKey(row.date);
+      if (!key) return;
       if (!map.has(key))
         map.set(key, { ingresos: 0, gastos: 0, cxc: 0, cxp: 0 });
       const entry = map.get(key)!;
@@ -230,14 +214,12 @@ export default function ProfitReportPage() {
     return Array.from(map.entries())
       .map(([key, val]) => ({
         key,
-        label: format(new Date(`${key}T00:00:00`), "d 'de' MMM yyyy", {
-          locale: es,
-        }),
+        label: formatDateOnly(key, "d 'de' MMM yyyy", es) ?? key,
         ...val,
         utilidad: val.ingresos + val.cxc - val.gastos - val.cxp,
       }))
       .sort((a, b) => (a.key < b.key ? -1 : 1));
-  }, [filteredRows, toDateKeyUTC]);
+  }, [filteredRows]);
 
   const columns: ColumnDef<ReportRow>[] = [
     {
@@ -316,8 +298,7 @@ export default function ProfitReportPage() {
 
   const dateRangeLabel = React.useMemo(() => {
     const formatLabel = (value: string) => {
-      const d = parseInputDate(value);
-      return d ? format(d, "d 'de' MMM yyyy", { locale: es }) : value;
+      return formatDateOnly(value, "d 'de' MMM yyyy", es) ?? value;
     };
     if (startDate && endDate) {
       return `${formatLabel(startDate)} - ${formatLabel(endDate)}`;
@@ -325,7 +306,7 @@ export default function ProfitReportPage() {
     if (startDate) return `Desde ${formatLabel(startDate)}`;
     if (endDate) return `Hasta ${formatLabel(endDate)}`;
     return "Todas las fechas";
-  }, [startDate, endDate, parseInputDate]);
+  }, [startDate, endDate]);
 
   const branchLabel = React.useMemo(() => {
     if (branchId === "ALL") return "Todas las sucursales";
@@ -344,7 +325,7 @@ export default function ProfitReportPage() {
       transactions: filteredRows.map((row) => ({
         id: row.id,
         type: typeLabel[row.type],
-        date: parseInputDate(toDateKeyUTC(row.date)) ?? row.date,
+        date: row.date,
         branch: row.branchId
           ? (branchNameById[row.branchId] ?? row.branchId)
           : "Sin sucursal",
@@ -361,8 +342,6 @@ export default function ProfitReportPage() {
       branchNameById,
       dateRangeLabel,
       branchLabel,
-      parseInputDate,
-      toDateKeyUTC,
     ],
   );
 

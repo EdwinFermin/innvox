@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/lib/auth/guards";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { dateOnlyToISOString } from "@/utils/dates";
 
 interface CreateReceivableData {
   branch_id?: string | null;
@@ -23,7 +24,7 @@ export async function createReceivable(data: CreateReceivableData) {
     branch_id: data.branch_id ?? null,
     name: data.name,
     amount: data.amount,
-    due_date: data.due_date,
+    due_date: dateOnlyToISOString(data.due_date),
     description: data.description ?? null,
     status: data.status,
     created_by: session.user.id,

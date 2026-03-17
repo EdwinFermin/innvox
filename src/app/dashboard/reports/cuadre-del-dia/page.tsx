@@ -36,14 +36,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { usePrintDailyClose } from "@/hooks/use-print-daily-close";
 import { useAuthStore } from "@/store/auth";
 import type { Currency } from "@/types/bank-account.types";
-
-function getTodayKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  const day = `${now.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { formatDateOnly, getTodayDateKey } from "@/utils/dates";
 
 function formatMoney(currency: Currency, amount: number) {
   return new Intl.NumberFormat("es-DO", {
@@ -87,7 +80,7 @@ export default function DailyCloseReportPage() {
   const [selectedBranchId, setSelectedBranchId] = React.useState("");
 
   React.useEffect(() => {
-    setSelectedDate((currentDate) => currentDate || getTodayKey());
+    setSelectedDate((currentDate) => currentDate || getTodayDateKey());
   }, []);
 
   React.useEffect(() => {
@@ -125,9 +118,7 @@ export default function DailyCloseReportPage() {
   const dateLabel = React.useMemo(() => {
     if (!selectedDate) return "Sin fecha";
 
-    return format(new Date(`${selectedDate}T00:00:00`), "d 'de' MMM yyyy", {
-      locale: es,
-    });
+    return formatDateOnly(selectedDate, "d 'de' MMM yyyy", es) ?? "Sin fecha";
   }, [selectedDate]);
 
   const { print, PrintContainer } = usePrintDailyClose();
@@ -207,7 +198,7 @@ export default function DailyCloseReportPage() {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button variant="outline" onClick={() => setSelectedDate(getTodayKey())}>
+            <Button variant="outline" onClick={() => setSelectedDate(getTodayDateKey())}>
               <RefreshCcw className="mr-2 h-4 w-4" />
               Hoy
             </Button>

@@ -15,7 +15,6 @@ import {
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
-import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -54,6 +53,7 @@ import {
   type VisibilityScope,
 } from "@/components/ui/list-visibility-control";
 import { deleteReceivable } from "@/actions/receivables";
+import { formatDateOnly, parseDateOnly } from "@/utils/dates";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -75,10 +75,7 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
 });
 
 const getDateTime = (value: unknown): number => {
-  if (!value) return 0;
-  if (value instanceof Date) return value.getTime();
-  if (typeof value === "string") return new Date(value).getTime();
-  return 0;
+  return parseDateOnly(value as string | Date | null | undefined)?.getTime() ?? 0;
 };
 
 const matchesSearch = (receivable: Receivable, search: string) => {
@@ -171,9 +168,7 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        {format(new Date(row.original.due_date), "d 'de' MMMM yyyy", {
-          locale: es,
-        })}
+        {formatDateOnly(row.original.due_date, "d 'de' MMMM yyyy", es) ?? "-"}
       </div>
     ),
   },
