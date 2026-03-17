@@ -7,6 +7,7 @@ export type BankTransactionType =
 
 export interface BankTransaction {
   id: string;
+  friendly_id: string;
   bank_account_id: string;
   type: BankTransactionType;
   amount: number;
@@ -19,4 +20,7 @@ export interface BankTransaction {
   related_account_id: string | null;
   created_at: string;
   created_by: string | null;
+  linked_income_friendly_id?: string | null;
+  linked_expense_friendly_id?: string | null;
+  related_transfer_friendly_id?: string | null;
 }

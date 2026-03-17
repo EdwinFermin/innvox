@@ -14,7 +14,10 @@ export function useClients(userId: string) {
 
       if (error) throw error;
 
-      return data as Client[];
+      return (data ?? []).map((row) => ({
+        ...row,
+        po_box: row.id,
+      })) as Client[];
     },
     enabled: !!userId,
   });

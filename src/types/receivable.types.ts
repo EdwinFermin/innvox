@@ -1,5 +1,6 @@
 export interface Receivable {
   id: string;
+  friendly_id: string;
   branch_id: string | null;
   name: string;
   amount: number;

@@ -70,7 +70,7 @@ import { deleteIncome } from "@/lib/financial-movements";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
-    id: "ID",
+    friendly_id: "Codigo",
     branch_id: "Sucursal",
     income_type_id: "Tipo",
     bank_account_id: "Cuenta",
@@ -87,6 +87,14 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
   currency: "DOP",
 });
+
+const getTodayDateInputValue = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = `${now.getMonth() + 1}`.padStart(2, "0");
+  const day = `${now.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const getColumns = (
   branchNameById: Record<string, string>,
@@ -120,10 +128,10 @@ const getColumns = (
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: "ID",
+    accessorKey: "friendly_id",
+    header: "Codigo",
     cell: ({ row }) => (
-      <div className="text-xs text-muted-foreground">{row.original.id}</div>
+      <div className="text-xs text-muted-foreground">{row.original.friendly_id}</div>
     ),
   },
   {
@@ -228,11 +236,11 @@ const getColumns = (
         .toLowerCase()
         .trim();
       if (!search) return true;
-      const id = String(row.original.id ?? "").toLowerCase();
+      const friendlyId = String(row.original.friendly_id ?? "").toLowerCase();
       const description = String(row.getValue(columnId) ?? "").toLowerCase();
       const amount = String(row.original.amount ?? "").toLowerCase();
       return (
-        id.includes(search) ||
+        friendlyId.includes(search) ||
         description.includes(search) ||
         amount.includes(search)
       );
@@ -323,10 +331,11 @@ export default function IncomesPage() {
     setVisibilityScope("mine");
   }, [user?.type]);
 
-  const [startDate, setStartDate] = React.useState<string>("");
-  const [endDate, setEndDate] = React.useState<string>("");
+  const [startDate, setStartDate] = React.useState<string>(getTodayDateInputValue);
+  const [endDate, setEndDate] = React.useState<string>(getTodayDateInputValue);
   const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
   const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
+  const [searchTerm, setSearchTerm] = React.useState("");
   const [openDialog, setOpenDialog] = React.useState(false);
 
   React.useEffect(() => {
@@ -362,16 +371,32 @@ export default function IncomesPage() {
       user?.type === "USER" && user?.branch_ids && user.branch_ids.length > 0
         ? new Set(user.branch_ids)
         : null;
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
     return incomes.filter((income) => {
       if (visibilityScope === "mine" && income.created_by !== user?.id) {
         return false;
       }
       if (allowedBranches && !allowedBranches.has(income.branch_id))
         return false;
+
+      if (normalizedSearch) {
+        const matchesSearch =
+          income.friendly_id.toLowerCase().includes(normalizedSearch) ||
+          String(income.description ?? "").toLowerCase().includes(normalizedSearch) ||
+          String(income.amount ?? "").toLowerCase().includes(normalizedSearch);
+
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
       const dateKey = normalizeDateKey(income.date);
       if (!dateKey) return false;
-      if (startDate && dateKey < startDate) return false;
-      if (endDate && dateKey > endDate) return false;
+      if (!normalizedSearch) {
+        if (startDate && dateKey < startDate) return false;
+        if (endDate && dateKey > endDate) return false;
+      }
       if (branchFilter !== "ALL" && income.branch_id !== branchFilter)
         return false;
       if (typeFilter !== "ALL" && income.income_type_id !== typeFilter)
@@ -383,6 +408,7 @@ export default function IncomesPage() {
     endDate,
     incomes,
     normalizeDateKey,
+    searchTerm,
     startDate,
     typeFilter,
     visibilityScope,
@@ -421,7 +447,7 @@ export default function IncomesPage() {
   const userNameById = React.useMemo(
     () =>
       users.reduce<Record<string, string>>((acc, item) => {
-        acc[item.id] = item.name || item.email || item.id;
+        acc[item.id] = item.name || item.email || item.friendly_id || item.id;
         return acc;
       }, {}),
     [users],
@@ -514,12 +540,8 @@ export default function IncomesPage() {
       >
         <Input
           placeholder="Buscar por ID, descripcion o monto..."
-          value={
-            (table.getColumn("description")?.getFilterValue() as string) ?? ""
-          }
-          onChange={(event) =>
-            table.getColumn("description")?.setFilterValue(event.target.value)
-          }
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
           className="w-full"
         />
 

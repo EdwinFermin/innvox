@@ -128,10 +128,10 @@ const getColumns = (
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: "ID",
+    accessorKey: "friendly_id",
+    header: "Codigo",
     cell: ({ row }) => (
-      <div className="text-xs text-muted-foreground">{row.original.id}</div>
+      <div className="text-xs text-muted-foreground">{row.original.friendly_id}</div>
     ),
   },
   {
@@ -321,7 +321,7 @@ export default function LinkDePagoPage() {
   const userNameById = React.useMemo(
     () =>
       users.reduce<Record<string, string>>((acc, item) => {
-        acc[item.id] = item.name || item.email || item.id;
+        acc[item.id] = item.name || item.email || item.friendly_id || item.id;
         return acc;
       }, {}),
     [users],

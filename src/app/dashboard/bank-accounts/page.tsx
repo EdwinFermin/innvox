@@ -140,7 +140,7 @@ const getColumns = (
           <div className="min-w-0">
             <div className="font-medium truncate">{row.getValue("account_name")}</div>
             <div className="text-xs text-muted-foreground truncate">
-              {row.original.account_type === "bank"
+              {row.original.friendly_id} - {row.original.account_type === "bank"
                 ? row.original.bank_name || "Cuenta bancaria"
                 : "Caja"}
             </div>

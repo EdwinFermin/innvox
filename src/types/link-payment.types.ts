@@ -2,6 +2,7 @@ export type LinkPaymentStatus = "pending" | "completed";
 
 export interface LinkPayment {
   id: string;
+  friendly_id: string;
   branch_id: string;
   amount: number;
   payment_url: string;
