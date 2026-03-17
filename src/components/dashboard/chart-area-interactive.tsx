@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
+import { DashboardChartSkeleton } from "@/components/dashboard/dashboard-loading";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useIncomes } from "@/hooks/use-incomes";
@@ -42,25 +43,31 @@ export const description = "An interactive area chart";
 const chartConfig = {
   growth: {
     label: "Crecimiento neto",
-    color: "var(--primary)",
+    color: "#0f766e",
   },
   income: {
     label: "Ingresos acumulados",
-    color: "var(--chart-income, #0ea5e9)",
+    color: "#0ea5e9",
   },
   expense: {
     label: "Gastos acumulados",
-    color: "var(--chart-expense, #ef4444)",
+    color: "#f97316",
   },
 } satisfies ChartConfig;
+
+const currencyFormatter = new Intl.NumberFormat("es-DO", {
+  style: "currency",
+  currency: "DOP",
+  maximumFractionDigits: 0,
+});
 
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
   const user = useAuthStore((state) => state.user);
   const userId = user?.id ?? "";
-  const { data: invoices } = useInvoices(userId);
-  const { data: incomes } = useIncomes(userId);
-  const { data: expenses } = useExpenses(userId);
+  const { data: invoices, isLoading: invoicesLoading } = useInvoices(userId);
+  const { data: incomes, isLoading: incomesLoading } = useIncomes(userId);
+  const { data: expenses, isLoading: expensesLoading } = useExpenses(userId);
   const [timeRange, setTimeRange] = React.useState("90d");
 
   React.useEffect(() => {
@@ -157,9 +164,36 @@ export function ChartAreaInteractive() {
     }, []);
   }, [filteredData]);
 
+  const periodSummary = React.useMemo(() => {
+    const incomeTotal = filteredData.reduce((acc, item) => acc + item.income, 0);
+    const expenseTotal = filteredData.reduce((acc, item) => acc + item.expense, 0);
+    const netTotal = incomeTotal - expenseTotal;
+
+    const strongestDay = filteredData.reduce<(typeof filteredData)[number] | null>(
+      (best, item) => {
+        if (!best || item.net > best.net) {
+          return item;
+        }
+        return best;
+      },
+      null,
+    );
+
+    return {
+      incomeTotal,
+      expenseTotal,
+      netTotal,
+      strongestDay,
+    };
+  }, [filteredData]);
+
+  if (!userId || invoicesLoading || incomesLoading || expensesLoading) {
+    return <DashboardChartSkeleton />;
+  }
+
   return (
-    <Card className="@container/card mt-6">
-      <CardHeader>
+    <Card className="@container/card mt-6 overflow-hidden border-border/60 bg-gradient-to-br from-slate-50 via-background to-teal-50/60 shadow-sm dark:from-slate-950 dark:to-slate-950">
+      <CardHeader className="gap-4 border-b border-border/50 pb-5">
         <CardTitle>Crecimiento del negocio</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
@@ -167,6 +201,35 @@ export function ChartAreaInteractive() {
           </span>
           <span className="@[540px]/card:hidden">Crecimiento neto</span>
         </CardDescription>
+        <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+          <div className="rounded-xl border border-emerald-200/60 bg-white/70 p-3 backdrop-blur dark:border-emerald-900/40 dark:bg-background/60">
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">
+              Ingresos
+            </div>
+            <div className="mt-1 text-lg font-semibold text-foreground">
+              {currencyFormatter.format(periodSummary.incomeTotal)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-orange-200/60 bg-white/70 p-3 backdrop-blur dark:border-orange-900/40 dark:bg-background/60">
+            <div className="text-xs uppercase tracking-[0.18em] text-orange-700 dark:text-orange-400">
+              Gastos
+            </div>
+            <div className="mt-1 text-lg font-semibold text-foreground">
+              {currencyFormatter.format(periodSummary.expenseTotal)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-sky-200/60 bg-white/70 p-3 backdrop-blur dark:border-sky-900/40 dark:bg-background/60">
+            <div className="text-xs uppercase tracking-[0.18em] text-sky-700 dark:text-sky-400">
+              Neto acumulado
+            </div>
+            <div className="mt-1 text-lg font-semibold text-foreground">
+              {currencyFormatter.format(periodSummary.netTotal)}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Mejor dia: {currencyFormatter.format(periodSummary.strongestDay?.net ?? 0)}
+            </div>
+          </div>
+        </div>
         <CardAction>
           <ToggleGroup
             type="single"
@@ -183,19 +246,19 @@ export function ChartAreaInteractive() {
             <SelectTrigger
               className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
               size="sm"
-              aria-label="Select a value"
+              aria-label="Selecciona un periodo"
             >
-              <SelectValue placeholder="Last 3 months" />
+              <SelectValue placeholder="Ultimos 3 meses" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="90d" className="rounded-lg">
-                Last 3 months
+                Ultimos 3 meses
               </SelectItem>
               <SelectItem value="30d" className="rounded-lg">
-                Last 30 days
+                Ultimos 30 dias
               </SelectItem>
               <SelectItem value="7d" className="rounded-lg">
-                Last 7 days
+                Ultimos 7 dias
               </SelectItem>
             </SelectContent>
           </Select>
@@ -249,11 +312,7 @@ export function ChartAreaInteractive() {
                   }}
                   indicator="dot"
                   formatter={(value) =>
-                    new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                      minimumFractionDigits: 0,
-                    }).format(Number(value))
+                    currencyFormatter.format(Number(value))
                   }
                 />
               }
