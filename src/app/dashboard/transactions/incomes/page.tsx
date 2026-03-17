@@ -69,6 +69,7 @@ import {
 import { deleteIncome } from "@/lib/financial-movements";
 import {
   extractDateOnlyKey,
+  getDateInputValue,
   getTodayDateKey,
   parseDateOnly,
 } from "@/utils/dates";
@@ -568,7 +569,7 @@ export default function IncomesPage() {
           <input
             className="w-full border border-input rounded-md pl-1 h-9"
             type="date"
-            value={startDate}
+            value={getDateInputValue(startDate)}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
@@ -577,7 +578,7 @@ export default function IncomesPage() {
           <input
             className="w-full border border-input rounded-md pl-1 h-9"
             type="date"
-            value={endDate}
+            value={getDateInputValue(endDate)}
             onChange={(e) => setEndDate(e.target.value)}
           />
         </div>

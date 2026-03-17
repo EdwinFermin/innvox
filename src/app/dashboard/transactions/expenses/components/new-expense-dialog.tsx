@@ -32,7 +32,12 @@ import { useBranches } from "@/hooks/use-branches";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { Expense } from "@/types/expense.types";
-import { dateOnlyToISOString, extractDateOnlyKey } from "@/utils/dates";
+import {
+  dateOnlyToISOString,
+  extractDateOnlyKey,
+  getDateInputValue,
+  getTodayDateKey,
+} from "@/utils/dates";
 
 const newExpenseSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -257,7 +262,9 @@ export function NewExpenseDialog({
               <input
                 type="date"
                 {...register("date")}
+                value={getDateInputValue(watch("date"))}
                 disabled={isPending || isEditMode}
+                max={getTodayDateKey()}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
               {errors.date && (

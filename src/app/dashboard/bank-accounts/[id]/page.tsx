@@ -20,6 +20,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
   Table,
   TableBody,
   TableCell,
@@ -50,6 +59,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePrintBankAccountDetail } from "@/hooks/use-print-bank-account-detail";
+import {
+  extractDateOnlyKey,
+  getDateInputValue,
+  getMonthStartDateKey,
+  formatDateOnly,
+  getTodayDateKey,
+  parseDateOnly,
+} from "@/utils/dates";
 import Link from "next/link";
 
 const formatCurrency = (amount: number, currency: string): string => {
@@ -95,6 +112,13 @@ const getTransferDescription = (transaction: BankTransaction): string => {
   const parts = [
     `Transferencia basada en transaccion ${transaction.friendly_id}`,
   ];
+
+  if (transaction.related_account_name) {
+    const suffix = transaction.related_account_number_last4
+      ? ` ****${transaction.related_account_number_last4}`
+      : "";
+    parts.push(`cuenta destino ${transaction.related_account_name}${suffix}`);
+  }
 
   if (transaction.linked_income_id) {
     parts.push(
@@ -158,9 +182,7 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div>
-        {format(new Date(row.original.date), "d 'de' MMMM yyyy", {
-          locale: es,
-        })}
+        {formatDateOnly(row.original.date, "d 'de' MMMM yyyy", es) ?? "-"}
       </div>
     ),
   },
@@ -182,9 +204,25 @@ const getColumns = (
   {
     accessorKey: "description",
     header: "Descripción",
-    cell: ({ row }) => (
-      <div className="max-w-[300px] truncate">{row.getValue("description")}</div>
-    ),
+    cell: ({ row }) => {
+      const transaction = row.original;
+      const destinationLabel = transaction.related_account_name;
+      const destinationSuffix = transaction.related_account_number_last4
+        ? ` ****${transaction.related_account_number_last4}`
+        : "";
+      const description = transaction.description || "-";
+
+      return (
+        <div className="max-w-[320px] space-y-1">
+          <div className="truncate">{description}</div>
+          {destinationLabel ? (
+            <div className="text-xs text-muted-foreground">
+              {transaction.type === "transfer_out" ? "Cuenta destino" : "Cuenta origen"}: {destinationLabel}{destinationSuffix}
+            </div>
+          ) : null}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "amount",
@@ -307,8 +345,12 @@ export default function BankAccountDetailPage() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [transferOpen, setTransferOpen] = React.useState(false);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
+  const [printDialogOpen, setPrintDialogOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<BankTransaction | null>(null);
+  const [printFromDate, setPrintFromDate] = React.useState(() =>
+    getMonthStartDateKey(),
+  );
 
   const handleOpenTransfer = React.useCallback(
     (transaction: BankTransaction | null = null) => {
@@ -345,9 +387,32 @@ export default function BankAccountDetailPage() {
   });
 
   const printableTransactions = React.useMemo(
-    () => table.getSortedRowModel().rows.map((row) => row.original),
-    [table],
+    () => {
+      const fromDate = parseDateOnly(printFromDate);
+
+      return table
+        .getSortedRowModel()
+        .rows.map((row) => row.original)
+        .filter((transaction) => {
+          if (!fromDate) return true;
+
+          const transactionDateKey = extractDateOnlyKey(transaction.date);
+          return transactionDateKey ? transactionDateKey >= printFromDate : false;
+        });
+    },
+    [printFromDate, table],
   );
+
+  const printableFromDate = React.useMemo(
+    () => parseDateOnly(printFromDate),
+    [printFromDate],
+  );
+
+  const handlePrintConfirm = React.useCallback(async () => {
+    setPrintDialogOpen(false);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await print();
+  }, [print]);
 
   if (!canManageSettings) {
     return (
@@ -469,11 +534,53 @@ export default function BankAccountDetailPage() {
         <Button variant="outline" onClick={() => setAdjustOpen(true)}>
           Ajustar balance
         </Button>
-        <Button variant="outline" onClick={() => void print()}>
+        <Button variant="outline" onClick={() => setPrintDialogOpen(true)}>
           <Printer className="mr-2 h-4 w-4" />
           Imprimir
         </Button>
       </div>
+
+      <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Imprimir movimientos</DialogTitle>
+            <DialogDescription>
+              Elige desde que fecha necesitas incluir movimientos en la impresion.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label htmlFor="print-from-date" className="text-sm font-medium">
+              Movimientos desde
+            </label>
+            <Input
+              id="print-from-date"
+              name="print-from-date"
+              type="date"
+              value={getDateInputValue(printFromDate)}
+              onChange={(event) => setPrintFromDate(event.target.value)}
+              max={getTodayDateKey()}
+            />
+            <p className="text-sm text-muted-foreground">
+              Se imprimiran {printableTransactions.length} movimiento
+              {printableTransactions.length === 1 ? "" : "s"}
+              {printableFromDate
+                ? ` desde el ${format(printableFromDate, "d 'de' MMMM yyyy", { locale: es })}`
+                : ""}
+              .
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void handlePrintConfirm()}>
+              Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialogs */}
       <EditBankAccountDialog
@@ -503,6 +610,7 @@ export default function BankAccountDetailPage() {
         branchNames={branchNames}
         transactions={printableTransactions}
         generatedAt={new Date()}
+        fromDate={printableFromDate}
       />
 
       {/* Transactions Table */}

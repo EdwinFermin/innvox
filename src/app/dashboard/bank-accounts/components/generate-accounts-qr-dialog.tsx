@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
 import { Download, Printer, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +10,8 @@ import { Branch } from "@/types/branch.types";
 import {
   buildPublicAccountsLink,
   buildAccountsQrCodeUrl,
+  fetchPublicBranchAccounts,
+  type PublicBankAccount,
 } from "@/lib/public-accounts";
 import { getAppBaseUrl } from "@/lib/link-payments";
 import { Button } from "@/components/ui/button";
@@ -59,6 +62,20 @@ export function GenerateAccountsQrDialog({
   const qrCodeUrl = publicLink ? buildAccountsQrCodeUrl(publicLink) : "";
   const selectedBranch = branches.find((branch) => branch.id === branchId);
   const branchName = selectedBranch?.name ?? branchId;
+  const publicAccountsQuery = useQuery({
+    queryKey: ["public-branch-accounts", branchId],
+    queryFn: () => fetchPublicBranchAccounts(branchId),
+    enabled: !!branchId,
+  });
+  const publicAccounts = React.useMemo(
+    () => publicAccountsQuery.data ?? [],
+    [publicAccountsQuery.data],
+  );
+
+  const printableAccounts = React.useMemo<PublicBankAccount[]>(
+    () => publicAccounts.slice(0, 4),
+    [publicAccounts],
+  );
 
   const handleCopy = async () => {
     if (!publicLink) {
@@ -192,30 +209,95 @@ export function GenerateAccountsQrDialog({
       34,
     );
 
+    // Accounts list panel
+    context.fillStyle = "#f8fbf7";
+    context.strokeStyle = "#dce6db";
+    roundRect(context, 70, 1168, width - 140, 210, 18);
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = "#8a9b95";
+    context.font = "700 18px Arial";
+    context.fillText("CUENTAS DISPONIBLES", width / 2, 1200);
+
+    if (printableAccounts.length > 0) {
+      printableAccounts.forEach((account, index) => {
+        const rowY = 1224 + index * 38;
+
+        context.fillStyle = "#ffffff";
+        context.strokeStyle = "#d9e5db";
+        roundRect(context, 105, rowY, width - 210, 30, 12);
+        context.fill();
+        context.stroke();
+
+        context.textAlign = "left";
+        context.fillStyle = "#0d2d4f";
+        context.font = "700 16px Arial";
+        const bankLabel = account.bank_name || account.account_name;
+        context.fillText(bankLabel, 126, rowY + 20);
+
+        context.fillStyle = "#556a63";
+        context.font = "400 14px Arial";
+        const accountLabel = account.account_number || "Numero no disponible";
+        context.fillText(accountLabel, 430, rowY + 20);
+
+        context.textAlign = "right";
+        context.fillStyle = "#0f6b46";
+        context.font = "700 14px Arial";
+        context.fillText(account.currency, width - 126, rowY + 20);
+      });
+
+      if (publicAccounts.length > printableAccounts.length) {
+        context.textAlign = "center";
+        context.fillStyle = "#556a63";
+        context.font = "400 14px Arial";
+        context.fillText(
+          `y ${publicAccounts.length - printableAccounts.length} cuenta${publicAccounts.length - printableAccounts.length === 1 ? "" : "s"} mas en el enlace`,
+          width / 2,
+          1370,
+        );
+      }
+    } else {
+      context.textAlign = "center";
+      context.fillStyle = "#556a63";
+      context.font = "400 16px Arial";
+      context.fillText(
+        "No hay cuentas publicas disponibles en este momento",
+        width / 2,
+        1288,
+      );
+    }
+
     // Dashed separator
     context.strokeStyle = "#d6ded4";
     context.setLineDash([8, 8]);
     context.beginPath();
-    context.moveTo(70, 1155);
-    context.lineTo(width - 70, 1155);
+    context.moveTo(70, 1408);
+    context.lineTo(width - 70, 1408);
     context.stroke();
     context.setLineDash([]);
 
     // Public link label
     context.fillStyle = "#8a9b95";
     context.font = "700 18px Arial";
-    context.fillText("LINK PUBLICO", width / 2, 1188);
+    context.textAlign = "center";
+    context.fillText("LINK PUBLICO", width / 2, 1438);
 
     // Public link URL
     context.fillStyle = "#5a6f67";
     context.font = "400 16px Arial";
-    wrapText(context, publicLink, width / 2, 1218, width - 160, 20);
+    wrapText(context, publicLink, width / 2, 1464, width - 160, 20);
 
     return canvas.toDataURL("image/png");
-  }, [branchName, loadImage, publicLink, qrCodeUrl]);
+  }, [branchName, loadImage, printableAccounts, publicAccounts.length, publicLink, qrCodeUrl]);
 
   const handleDownloadImage = async () => {
     try {
+      if (publicAccountsQuery.isFetching) {
+        toast.error("Espera a que carguen las cuentas de la sucursal");
+        return;
+      }
+
       setIsDownloading(true);
       const dataUrl = await buildPosterDataUrl();
       const link = document.createElement("a");
@@ -241,6 +323,11 @@ export function GenerateAccountsQrDialog({
 
   const handlePrint = async () => {
     try {
+      if (publicAccountsQuery.isFetching) {
+        toast.error("Espera a que carguen las cuentas de la sucursal");
+        return;
+      }
+
       const dataUrl = await buildPosterDataUrl();
       const printWindow = window.open("", "_blank", "width=900,height=1200");
 
@@ -340,6 +427,64 @@ export function GenerateAccountsQrDialog({
                 cuentas bancarias disponibles.
               </div>
 
+              <div className="rounded-[0.7rem] border border-[#dce6db] bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Cuentas en el afiche
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {publicAccountsQuery.isLoading
+                        ? "Cargando cuentas..."
+                        : publicAccounts.length > 0
+                          ? `${Math.min(publicAccounts.length, 4)} de ${publicAccounts.length} cuentas visibles`
+                          : "Sin cuentas publicas"}
+                    </p>
+                  </div>
+                  {publicAccounts.length > 0 ? (
+                    <span className="rounded-full border border-[#d9e5db] bg-[#f2f7f0] px-2.5 py-0.5 text-xs font-semibold text-[#0f6b46]">
+                      {publicAccounts.length} total
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {publicAccountsQuery.isLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="h-12 rounded-lg bg-muted animate-pulse" />
+                      ))}
+                    </div>
+                  ) : printableAccounts.length > 0 ? (
+                    printableAccounts.map((account) => (
+                      <div
+                        key={account.id}
+                        className="rounded-lg border border-[#d9e5db] bg-[#f8fbf7] px-3 py-2"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="min-w-0 truncate text-sm font-semibold text-[#0d2d4f]">
+                            {account.bank_name || account.account_name}
+                          </p>
+                          <span className="shrink-0 text-xs font-semibold text-[#0f6b46]">
+                            {account.currency}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {account.account_name}
+                        </p>
+                        <p className="mt-1 font-mono text-sm text-[#0d2d4f]">
+                          {account.account_number || "Numero no disponible"}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-[#d9e5db] px-3 py-4 text-sm text-muted-foreground">
+                      Esta sucursal no tiene cuentas publicas disponibles para mostrar en el afiche.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                 <Button
                   type="button"
@@ -394,6 +539,7 @@ export function GenerateAccountsQrDialog({
             branchName={branchName}
             qrCodeUrl={qrCodeUrl}
             publicLink={publicLink}
+            accounts={printableAccounts}
           />
         </div>
       ) : null}

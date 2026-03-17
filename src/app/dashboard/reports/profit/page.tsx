@@ -38,6 +38,7 @@ import { useReceivables } from "@/hooks/use-receivables";
 import { usePayables } from "@/hooks/use-payables";
 import {
   extractDateOnlyKey,
+  getDateInputValue,
   formatDateOnly,
   parseDateOnly,
 } from "@/utils/dates";
@@ -382,7 +383,7 @@ export default function ProfitReportPage() {
               <label className="text-sm font-medium">Desde</label>
               <input
                 type="date"
-                value={startDate}
+                value={getDateInputValue(startDate)}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
@@ -391,7 +392,7 @@ export default function ProfitReportPage() {
               <label className="text-sm font-medium">Hasta</label>
               <input
                 type="date"
-                value={endDate}
+                value={getDateInputValue(endDate)}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />

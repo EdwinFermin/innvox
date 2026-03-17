@@ -69,6 +69,7 @@ import {
 import { deleteExpense } from "@/lib/financial-movements";
 import {
   extractDateOnlyKey,
+  getDateInputValue,
   getTodayDateKey,
   parseDateOnly,
 } from "@/utils/dates";
@@ -565,7 +566,7 @@ export default function ExpensesPage() {
           <label className="text-sm font-medium text-foreground">Desde</label>
           <input
             type="date"
-            value={startDate}
+            value={getDateInputValue(startDate)}
             onChange={(e) => setStartDate(e.target.value)}
             className="w-full border border-input rounded-md pl-1 h-9"
           />
@@ -574,7 +575,7 @@ export default function ExpensesPage() {
           <label className="text-sm font-medium text-foreground">Hasta</label>
           <input
             type="date"
-            value={endDate}
+            value={getDateInputValue(endDate)}
             onChange={(e) => setEndDate(e.target.value)}
             className="w-full border border-input rounded-md pl-1 h-9"
           />

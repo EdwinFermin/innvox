@@ -9,12 +9,14 @@ import type {
   BankTransaction,
   BankTransactionType,
 } from "@/types/bank-transaction.types";
+import { formatDateOnly } from "@/utils/dates";
 
 export type BankAccountDetailPrintProps = {
   account: BankAccount;
   branchNames: string;
   transactions: BankTransaction[];
   generatedAt: Date;
+  fromDate?: Date | null;
 };
 
 const getTransactionTypeLabel = (type: BankTransactionType): string => {
@@ -40,7 +42,7 @@ const formatCurrency = (amount: number, currency: string): string => {
 export const BankAccountDetailPrint = forwardRef<
   HTMLDivElement,
   BankAccountDetailPrintProps
->(({ account, branchNames, transactions, generatedAt }, ref) => {
+>(({ account, branchNames, transactions, generatedAt, fromDate }, ref) => {
   return (
     <div
       ref={ref}
@@ -61,6 +63,11 @@ export const BankAccountDetailPrint = forwardRef<
         <p style={{ margin: "4px 0", color: "#555" }}>
           Impreso el {format(generatedAt, "d 'de' MMMM yyyy, h:mm a", { locale: es })}
         </p>
+        {fromDate ? (
+          <p style={{ margin: "4px 0", color: "#555" }}>
+            Movimientos desde el {format(fromDate, "d 'de' MMMM yyyy", { locale: es })}
+          </p>
+        ) : null}
       </div>
 
       <section style={{ marginBottom: "16px" }}>
@@ -141,15 +148,23 @@ export const BankAccountDetailPrint = forwardRef<
                         {movementId}
                       </span>
                     </td>
-                    <td style={{ padding: "6px", borderBottom: "1px solid #eee" }}>
-                      {format(new Date(transaction.date), "d/MM/yyyy", { locale: es })}
-                    </td>
+                     <td style={{ padding: "6px", borderBottom: "1px solid #eee" }}>
+                      {formatDateOnly(transaction.date, "d/MM/yyyy", es) ?? "-"}
+                     </td>
                     <td style={{ padding: "6px", borderBottom: "1px solid #eee" }}>
                       {getTransactionTypeLabel(transaction.type)}
                     </td>
-                    <td style={{ padding: "6px", borderBottom: "1px solid #eee" }}>
-                      {transaction.description || "-"}
-                    </td>
+                     <td style={{ padding: "6px", borderBottom: "1px solid #eee" }}>
+                      <div>{transaction.description || "-"}</div>
+                      {transaction.related_account_name ? (
+                        <div style={{ color: "#71717a", fontSize: "11px" }}>
+                          {transaction.type === "transfer_out" ? "Cuenta destino" : "Cuenta origen"}: {transaction.related_account_name}
+                          {transaction.related_account_number_last4
+                            ? ` ****${transaction.related_account_number_last4}`
+                            : ""}
+                        </div>
+                      ) : null}
+                     </td>
                     <td
                       style={{
                         padding: "6px",

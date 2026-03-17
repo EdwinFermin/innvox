@@ -36,7 +36,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { usePrintDailyClose } from "@/hooks/use-print-daily-close";
 import { useAuthStore } from "@/store/auth";
 import type { Currency } from "@/types/bank-account.types";
-import { formatDateOnly, getTodayDateKey } from "@/utils/dates";
+import { formatDateOnly, getDateInputValue, getTodayDateKey } from "@/utils/dates";
 
 function formatMoney(currency: Currency, amount: number) {
   return new Intl.NumberFormat("es-DO", {
@@ -177,7 +177,7 @@ export default function DailyCloseReportPage() {
             <label className="text-sm font-medium">Fecha</label>
             <input
               type="date"
-              value={selectedDate}
+              value={getDateInputValue(selectedDate)}
               onChange={(event) => setSelectedDate(event.target.value)}
               className="h-9 w-full rounded-md border border-input px-2"
             />

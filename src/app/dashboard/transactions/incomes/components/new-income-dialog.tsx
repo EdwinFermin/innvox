@@ -32,7 +32,12 @@ import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { Income } from "@/types/income.types";
-import { dateOnlyToISOString, extractDateOnlyKey } from "@/utils/dates";
+import {
+  dateOnlyToISOString,
+  extractDateOnlyKey,
+  getDateInputValue,
+  getTodayDateKey,
+} from "@/utils/dates";
 
 const newIncomeSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -255,7 +260,9 @@ export function NewIncomeDialog({
               <input
                 type="date"
                 {...register("date")}
+                value={getDateInputValue(watch("date"))}
                 disabled={isPending || isEditMode}
+                max={getTodayDateKey()}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
               {errors.date && (

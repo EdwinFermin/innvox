@@ -25,6 +25,7 @@ import { createPayable } from "@/actions/payables";
 import { toast } from "sonner";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
+import { getDateInputValue } from "@/utils/dates";
 
 const newPayableSchema = z.object({
   branch_id: z.string().min(1, "La sucursal es obligatoria"),
@@ -169,6 +170,7 @@ export function NewPayableDialog() {
               <input
                 type="date"
                 {...register("due_date")}
+                value={getDateInputValue(watch("due_date"))}
                 disabled={isPending}
                 className="w-full border border-input rounded-md pl-1 h-9"
               />
