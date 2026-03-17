@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/lib/auth/guards";
+import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 interface CreateReceivableData {
@@ -18,6 +19,7 @@ export async function createReceivable(data: CreateReceivableData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   const { error } = await supabase.from("receivables").insert({
     branch_id: data.branch_id ?? null,
@@ -26,7 +28,7 @@ export async function createReceivable(data: CreateReceivableData) {
     due_date: data.due_date,
     description: data.description ?? null,
     status: data.status,
-    created_by: session.user.id,
+    created_by: createdBy,
   });
 
   if (error) {

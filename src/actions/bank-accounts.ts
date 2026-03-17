@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/lib/auth/guards";
+import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 
@@ -48,6 +49,7 @@ export async function createBankAccount(data: CreateBankAccountData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   const { data: inserted, error } = await supabase
     .from("bank_accounts")
@@ -61,7 +63,7 @@ export async function createBankAccount(data: CreateBankAccountData) {
       currency: data.currency ?? "DOP",
       is_active: data.isActive ?? true,
       is_public: data.isPublic ?? null,
-      created_by: session.user.id,
+      created_by: createdBy,
     })
     .select("id")
     .single();
@@ -208,13 +210,14 @@ export async function transferFunds(data: TransferFundsData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   const { error } = await supabase.rpc("transfer_funds", {
     p_source_account_id: data.sourceAccountId,
     p_dest_account_id: data.destAccountId,
     p_amount: data.amount,
     p_description: data.description ?? null,
-    p_created_by: session.user.id,
+    p_created_by: createdBy,
   });
 
   if (error) {
@@ -228,12 +231,13 @@ export async function adjustBalance(data: AdjustBalanceData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   const { error } = await supabase.rpc("adjust_balance", {
     p_bank_account_id: data.bankAccountId,
     p_amount: data.amount,
     p_description: data.description ?? null,
-    p_created_by: session.user.id,
+    p_created_by: createdBy,
   });
 
   if (error) {

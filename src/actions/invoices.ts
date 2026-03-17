@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAuth, requirePermission } from "@/lib/auth/guards";
 import { PERMISSIONS } from "@/lib/auth/permissions";
+import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 interface CreateInvoiceData {
@@ -22,6 +23,7 @@ export async function createInvoice(data: CreateInvoiceData) {
   const session = await requireAuth();
 
   const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
 
   // Generate NCF via RPC
   const { data: ncf, error: ncfError } = await supabase.rpc("generate_ncf");
@@ -42,7 +44,7 @@ export async function createInvoice(data: CreateInvoiceData) {
     monto_gravado: data.montoGravado ?? 0,
     itbis: data.itbis ?? 0,
     user_id: data.userId ?? null,
-    created_by: session.user.id,
+    created_by: createdBy,
   });
 
   if (error) {
