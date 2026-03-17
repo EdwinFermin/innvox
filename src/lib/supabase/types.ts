@@ -20,6 +20,7 @@ export interface Database {
       users: {
         Row: {
           id: string;
+          friendly_id: string;
           name: string;
           email: string;
           avatar: string;
@@ -28,6 +29,7 @@ export interface Database {
         };
         Insert: {
           id: string;
+          friendly_id?: string;
           name: string;
           email: string;
           avatar?: string;
@@ -36,6 +38,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           name?: string;
           email?: string;
           avatar?: string;
@@ -98,6 +101,7 @@ export interface Database {
       bank_accounts: {
         Row: {
           id: string;
+          friendly_id: string;
           branch_id: string | null;
           account_type: "bank" | "petty_cash";
           bank_name: string | null;
@@ -113,6 +117,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string | null;
           account_type: "bank" | "petty_cash";
           bank_name?: string | null;
@@ -128,6 +133,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string | null;
           account_type?: "bank" | "petty_cash";
           bank_name?: string | null;
@@ -161,6 +167,7 @@ export interface Database {
       bank_transactions: {
         Row: {
           id: string;
+          friendly_id: string;
           bank_account_id: string;
           type: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment";
           amount: number;
@@ -176,6 +183,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           bank_account_id: string;
           type: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment";
           amount: number;
@@ -191,6 +199,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           bank_account_id?: string;
           type?: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment";
           amount?: number;
@@ -209,16 +218,19 @@ export interface Database {
       income_types: {
         Row: {
           id: string;
+          friendly_id: string;
           name: string;
           created_at: string;
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           name: string;
           created_at?: string;
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           name?: string;
           created_at?: string;
         };
@@ -227,16 +239,19 @@ export interface Database {
       expense_types: {
         Row: {
           id: string;
+          friendly_id: string;
           name: string;
           created_at: string;
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           name: string;
           created_at?: string;
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           name?: string;
           created_at?: string;
         };
@@ -245,6 +260,7 @@ export interface Database {
       incomes: {
         Row: {
           id: string;
+          friendly_id: string;
           branch_id: string;
           income_type_id: string;
           amount: number;
@@ -258,6 +274,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           branch_id: string;
           income_type_id: string;
           amount: number;
@@ -271,6 +288,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string;
           income_type_id?: string;
           amount?: number;
@@ -287,6 +305,7 @@ export interface Database {
       expenses: {
         Row: {
           id: string;
+          friendly_id: string;
           branch_id: string;
           expense_type_id: string;
           amount: number;
@@ -300,6 +319,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           branch_id: string;
           expense_type_id: string;
           amount: number;
@@ -313,6 +333,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string;
           expense_type_id?: string;
           amount?: number;
@@ -374,6 +395,7 @@ export interface Database {
       receivables: {
         Row: {
           id: string;
+          friendly_id: string;
           branch_id: string | null;
           name: string;
           amount: number;
@@ -385,6 +407,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string | null;
           name: string;
           amount: number;
@@ -396,6 +419,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string | null;
           name?: string;
           amount?: number;
@@ -410,6 +434,7 @@ export interface Database {
       payables: {
         Row: {
           id: string;
+          friendly_id: string;
           branch_id: string | null;
           name: string;
           amount: number;
@@ -421,6 +446,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string | null;
           name: string;
           amount: number;
@@ -432,6 +458,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string | null;
           name?: string;
           amount?: number;
@@ -446,6 +473,7 @@ export interface Database {
       link_payments: {
         Row: {
           id: string;
+          friendly_id: string;
           branch_id: string;
           amount: number;
           payment_url: string;
@@ -456,6 +484,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          friendly_id?: string;
           branch_id: string;
           amount: number;
           payment_url: string;
@@ -466,6 +495,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          friendly_id?: string;
           branch_id?: string;
           amount?: number;
           payment_url?: string;

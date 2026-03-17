@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  friendly_id?: string;
   name: string;
   email: string;
   avatar: string;

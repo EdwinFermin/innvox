@@ -90,10 +90,10 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: "ID",
+    accessorKey: "friendly_id",
+    header: "Codigo",
     cell: ({ row }) => (
-      <div className="text-xs text-muted-foreground">{row.original.id}</div>
+      <div className="text-xs text-muted-foreground">{row.original.friendly_id}</div>
     ),
   },
   {

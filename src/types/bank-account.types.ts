@@ -4,6 +4,7 @@ export type PaymentMethod = "cash" | "bank";
 
 export interface BankAccount {
   id: string;
+  friendly_id: string;
   branch_id: string | null;
   account_type: AccountType;
   bank_name: string | null;

@@ -12,7 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpDown, Building2, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Building2, MoreHorizontal, Printer, Wallet } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -41,6 +41,15 @@ import { TablePageSize } from "@/components/ui/table-page-size";
 import { EditBankAccountDialog } from "@/app/dashboard/bank-accounts/components/edit-bank-account-dialog";
 import { TransferFundsDialog } from "@/app/dashboard/bank-accounts/components/transfer-funds-dialog";
 import { AdjustBalanceDialog } from "@/app/dashboard/bank-accounts/components/adjust-balance-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { usePrintBankAccountDetail } from "@/hooks/use-print-bank-account-detail";
 import Link from "next/link";
 
 const formatCurrency = (amount: number, currency: string): string => {
@@ -83,10 +92,20 @@ const canTransferTransaction = (transaction: BankTransaction): boolean =>
   transaction.type === "deposit" && transaction.amount > 0;
 
 const getTransferDescription = (transaction: BankTransaction): string => {
-  const parts = [`Transferencia basada en transaccion ${transaction.id}`];
+  const parts = [
+    `Transferencia basada en transaccion ${transaction.friendly_id}`,
+  ];
 
   if (transaction.linked_income_id) {
-    parts.push(`ingreso ${transaction.linked_income_id}`);
+    parts.push(
+      `ingreso ${transaction.linked_income_friendly_id ?? "-"}`,
+    );
+  }
+
+  if (transaction.linked_expense_id) {
+    parts.push(
+      `gasto ${transaction.linked_expense_friendly_id ?? "-"}`,
+    );
   }
 
   return parts.join(" - ");
@@ -97,20 +116,22 @@ const getColumns = (
   onTransferTransaction: (transaction: BankTransaction) => void,
 ): ColumnDef<BankTransaction>[] => [
   {
-    accessorKey: "id",
-    header: "ID transaccion",
+    accessorKey: "friendly_id",
+    header: "Codigo transaccion",
     cell: ({ row }) => (
       <div className="text-muted-foreground max-w-[180px] truncate font-mono text-xs">
-        {row.original.id}
+        {row.original.friendly_id}
       </div>
     ),
   },
   {
     id: "movement_id",
-    header: "ID ingreso/gasto",
+    header: "Codigo ingreso/gasto",
     cell: ({ row }) => {
       const movementId =
-        row.original.linked_income_id ?? row.original.linked_expense_id;
+        row.original.linked_income_friendly_id ??
+        row.original.linked_expense_friendly_id ??
+        null;
 
       if (!movementId) {
         return <div className="text-muted-foreground">-</div>;
@@ -211,13 +232,21 @@ const getColumns = (
 
       return (
         <div className="text-right">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onTransferTransaction(row.original)}
-          >
-            Mover
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onTransferTransaction(row.original)}>
+                Mover
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },
@@ -301,6 +330,7 @@ export default function BankAccountDetailPage() {
     () => getColumns(account?.currency || "DOP", handleOpenTransfer),
     [account?.currency, handleOpenTransfer]
   );
+  const { print, PrintContainer } = usePrintBankAccountDetail();
 
   const table = useReactTable({
     data: transactions,
@@ -313,6 +343,11 @@ export default function BankAccountDetailPage() {
       sorting,
     },
   });
+
+  const printableTransactions = React.useMemo(
+    () => table.getSortedRowModel().rows.map((row) => row.original),
+    [table],
+  );
 
   if (!canManageSettings) {
     return (
@@ -373,6 +408,7 @@ export default function BankAccountDetailPage() {
         )}
         <div>
           <h3 className="text-2xl font-semibold">{account.account_name}</h3>
+          <p className="text-sm font-medium text-muted-foreground">{account.friendly_id}</p>
           <span className="text-muted-foreground text-sm">
              {account.account_type === "bank"
                ? `${account.bank_name || "Cuenta bancaria"}${account.account_number ? ` - ${account.account_number}` : ""}`
@@ -433,6 +469,10 @@ export default function BankAccountDetailPage() {
         <Button variant="outline" onClick={() => setAdjustOpen(true)}>
           Ajustar balance
         </Button>
+        <Button variant="outline" onClick={() => void print()}>
+          <Printer className="mr-2 h-4 w-4" />
+          Imprimir
+        </Button>
       </div>
 
       {/* Dialogs */}
@@ -457,6 +497,12 @@ export default function BankAccountDetailPage() {
         account={account}
         open={adjustOpen}
         onOpenChange={setAdjustOpen}
+      />
+      <PrintContainer
+        account={account}
+        branchNames={branchNames}
+        transactions={printableTransactions}
+        generatedAt={new Date()}
       />
 
       {/* Transactions Table */}

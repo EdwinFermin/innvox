@@ -48,7 +48,57 @@ export function useBankTransactions(
 
       if (error) throw error;
 
-      return data as BankTransaction[];
+      const transactions = (data ?? []) as BankTransaction[];
+
+      const incomeIds = Array.from(
+        new Set(
+          transactions
+            .map((transaction) => transaction.linked_income_id)
+            .filter((value): value is string => !!value),
+        ),
+      );
+      const expenseIds = Array.from(
+        new Set(
+          transactions
+            .map((transaction) => transaction.linked_expense_id)
+            .filter((value): value is string => !!value),
+        ),
+      );
+
+      const [incomeResult, expenseResult] = await Promise.all([
+        incomeIds.length > 0
+          ? supabase.from("incomes").select("id, friendly_id").in("id", incomeIds)
+          : Promise.resolve({ data: [], error: null }),
+        expenseIds.length > 0
+          ? supabase.from("expenses").select("id, friendly_id").in("id", expenseIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (incomeResult.error) throw incomeResult.error;
+      if (expenseResult.error) throw expenseResult.error;
+
+      const incomeFriendlyIdById = new Map(
+        (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+      );
+      const expenseFriendlyIdById = new Map(
+        (expenseResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+      );
+      const transactionFriendlyIdById = new Map(
+        transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
+      );
+
+      return transactions.map((transaction) => ({
+        ...transaction,
+        linked_income_friendly_id: transaction.linked_income_id
+          ? incomeFriendlyIdById.get(transaction.linked_income_id) ?? null
+          : null,
+        linked_expense_friendly_id: transaction.linked_expense_id
+          ? expenseFriendlyIdById.get(transaction.linked_expense_id) ?? null
+          : null,
+        related_transfer_friendly_id: transaction.related_transfer_id
+          ? transactionFriendlyIdById.get(transaction.related_transfer_id) ?? null
+          : null,
+      }));
     },
     enabled: enabled && !!userId && !!bankAccountId,
     staleTime: 30_000,
@@ -117,7 +167,57 @@ export function useBranchTransactions(
 
       if (error) throw error;
 
-      return data as BankTransaction[];
+      const transactions = (data ?? []) as BankTransaction[];
+
+      const incomeIds = Array.from(
+        new Set(
+          transactions
+            .map((transaction) => transaction.linked_income_id)
+            .filter((value): value is string => !!value),
+        ),
+      );
+      const expenseIds = Array.from(
+        new Set(
+          transactions
+            .map((transaction) => transaction.linked_expense_id)
+            .filter((value): value is string => !!value),
+        ),
+      );
+
+      const [incomeResult, expenseResult] = await Promise.all([
+        incomeIds.length > 0
+          ? supabase.from("incomes").select("id, friendly_id").in("id", incomeIds)
+          : Promise.resolve({ data: [], error: null }),
+        expenseIds.length > 0
+          ? supabase.from("expenses").select("id, friendly_id").in("id", expenseIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (incomeResult.error) throw incomeResult.error;
+      if (expenseResult.error) throw expenseResult.error;
+
+      const incomeFriendlyIdById = new Map(
+        (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+      );
+      const expenseFriendlyIdById = new Map(
+        (expenseResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+      );
+      const transactionFriendlyIdById = new Map(
+        transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
+      );
+
+      return transactions.map((transaction) => ({
+        ...transaction,
+        linked_income_friendly_id: transaction.linked_income_id
+          ? incomeFriendlyIdById.get(transaction.linked_income_id) ?? null
+          : null,
+        linked_expense_friendly_id: transaction.linked_expense_id
+          ? expenseFriendlyIdById.get(transaction.linked_expense_id) ?? null
+          : null,
+        related_transfer_friendly_id: transaction.related_transfer_id
+          ? transactionFriendlyIdById.get(transaction.related_transfer_id) ?? null
+          : null,
+      }));
     },
     enabled: !!userId && !!branchId,
   });

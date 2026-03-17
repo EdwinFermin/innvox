@@ -2,6 +2,7 @@ import type { PaymentMethod } from "./bank-account.types";
 
 export interface Income {
   id: string;
+  friendly_id: string;
   branch_id: string;
   income_type_id: string;
   amount: number;
