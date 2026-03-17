@@ -16,6 +16,7 @@ import { useIncomes } from "@/hooks/use-incomes";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useReceivables } from "@/hooks/use-receivables";
 import { usePayables } from "@/hooks/use-payables";
+import { getDateOnlyMonthKey, getTodayDateKey } from "@/utils/dates";
 
 export function SectionCards() {
   const { user } = useAuthStore();
@@ -25,60 +26,45 @@ export function SectionCards() {
   const { data: receivables } = useReceivables(userId);
   const { data: payables } = usePayables(userId);
 
-  const now = new Date();
-  const prev = new Date(now);
-  prev.setMonth(prev.getMonth() - 1);
-
-  const isSameMonth = (date: Date, ref: Date) =>
-    date.getFullYear() === ref.getFullYear() &&
-    date.getMonth() === ref.getMonth();
+  const currentMonthKey = getTodayDateKey().slice(0, 7);
+  const [currentYear, currentMonth] = currentMonthKey.split("-").map(Number);
+  const previousMonthDate = new Date(currentYear, currentMonth - 2, 1);
+  const previousMonthKey = `${previousMonthDate.getFullYear()}-${`${previousMonthDate.getMonth() + 1}`.padStart(2, "0")}`;
 
   const sumForMonth = <T,>(
     items: T[] | undefined,
-    ref: Date,
-    getDate: (item: T) => Date | null,
+    monthKey: string,
+    getMonthKey: (item: T) => string | null,
     getAmount: (item: T) => number,
   ) =>
     (items ?? []).reduce((acc, item) => {
-      const d = getDate(item);
-      if (!d) return acc;
-      return isSameMonth(d, ref) ? acc + getAmount(item) : acc;
+      return getMonthKey(item) === monthKey ? acc + getAmount(item) : acc;
     }, 0);
-
-  const safeDate = (value: unknown): Date | null => {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    if (typeof value === "string" || typeof value === "number") {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    return null;
-  };
 
   const ingresosMes = sumForMonth(
     incomes,
-    now,
-    (i) => safeDate(i.date),
+    currentMonthKey,
+    (i) => getDateOnlyMonthKey(i.date),
     (i) => Number(i.amount || 0),
   );
   const gastosMes = sumForMonth(
     expenses,
-    now,
-    (e) => safeDate(e.date),
+    currentMonthKey,
+    (e) => getDateOnlyMonthKey(e.date),
     (e) => Number(e.amount || 0),
   );
   const utilidadMes = ingresosMes - gastosMes;
 
   const ingresosPrev = sumForMonth(
     incomes,
-    prev,
-    (i) => safeDate(i.date),
+    previousMonthKey,
+    (i) => getDateOnlyMonthKey(i.date),
     (i) => Number(i.amount || 0),
   );
   const gastosPrev = sumForMonth(
     expenses,
-    prev,
-    (e) => safeDate(e.date),
+    previousMonthKey,
+    (e) => getDateOnlyMonthKey(e.date),
     (e) => Number(e.amount || 0),
   );
   const utilidadPrev = ingresosPrev - gastosPrev;

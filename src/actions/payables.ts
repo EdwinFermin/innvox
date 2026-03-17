@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/guards";
 import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { dateOnlyToISOString } from "@/utils/dates";
 
 interface CreatePayableData {
   branch_id?: string | null;
@@ -25,7 +26,7 @@ export async function createPayable(data: CreatePayableData) {
     branch_id: data.branch_id ?? null,
     name: data.name,
     amount: data.amount,
-    due_date: data.due_date,
+    due_date: dateOnlyToISOString(data.due_date),
     description: data.description ?? null,
     status: data.status,
     created_by: createdBy,

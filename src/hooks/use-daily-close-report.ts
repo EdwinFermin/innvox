@@ -3,7 +3,7 @@ import * as React from "react";
 import type { BankAccount, Currency, PaymentMethod } from "@/types/bank-account.types";
 import type { Expense } from "@/types/expense.types";
 import type { Income } from "@/types/income.types";
-import { parseDate } from "@/utils/dates";
+import { extractDateOnlyKey, parseDate, parseDateOnly } from "@/utils/dates";
 
 export type DailyCloseIncomeMethod = Extract<PaymentMethod, "cash" | "bank">;
 
@@ -39,10 +39,7 @@ export type DailyCloseExpenseRow = {
 export type DailyCloseMovementRow = DailyCloseIncomeRow | DailyCloseExpenseRow;
 
 function getDateKey(value: string | Date | null | undefined) {
-  const parsed = parseDate(value);
-  if (!parsed) return null;
-
-  return parsed.toISOString().slice(0, 10);
+  return extractDateOnlyKey(value);
 }
 
 function sortRows(a: DailyCloseMovementRow, b: DailyCloseMovementRow) {
@@ -97,7 +94,7 @@ export function useDailyCloseReport(params: {
       if (income.branch_id !== selectedBranchId) return;
       if (getDateKey(income.date) !== selectedDate) return;
 
-      const parsedDate = parseDate(income.date);
+      const parsedDate = parseDate(income.created_at) ?? parseDateOnly(income.date);
       if (!parsedDate) return;
 
       const row: DailyCloseIncomeRow = {
@@ -122,7 +119,7 @@ export function useDailyCloseReport(params: {
       if (expense.branch_id !== selectedBranchId) return;
       if (getDateKey(expense.date) !== selectedDate) return;
 
-      const parsedDate = parseDate(expense.date);
+      const parsedDate = parseDate(expense.created_at) ?? parseDateOnly(expense.date);
       if (!parsedDate) return;
 
       expenseRows.push({
