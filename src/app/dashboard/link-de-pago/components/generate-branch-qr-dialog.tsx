@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Download, Printer, QrCode } from "lucide-react";
+import { Copy, Download, ExternalLink, Printer, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { Branch } from "@/types/branch.types";
@@ -272,7 +272,7 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
             </div>
 
             {publicLink ? (
-              <div className="space-y-4 rounded-[1.2rem] border border-border/70 bg-slate-50/70 p-4">
+              <div className="space-y-4 rounded-[1.2rem] border border-border/70 bg-slate-50/70 p-5 sm:p-6">
                 <div className="flex justify-center">
                   <Image
                     src={qrCodeUrl}
@@ -293,14 +293,15 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
                   Descarga una imagen lista para imprimir y colocar en la sucursal.
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  <Button type="button" variant="outline" className="rounded-2xl px-4" onClick={handleCopy}>
-                    Copiar link
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <Button type="button" variant="outline" className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-4 py-3 text-center whitespace-normal" onClick={handleCopy}>
+                    <Copy className="h-4 w-4" />
+                    Copiar
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    className="justify-center gap-2 rounded-2xl px-4"
+                    className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-3 py-3 text-center text-xs leading-tight whitespace-normal"
                     disabled={isDownloading}
                     onClick={handleDownloadImage}
                   >
@@ -310,7 +311,7 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
                   <Button
                     type="button"
                     variant="outline"
-                    className="justify-center gap-2 rounded-2xl px-4"
+                    className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-3 py-3 text-center text-xs leading-tight whitespace-normal"
                     onClick={handlePrint}
                   >
                     <Printer className="h-4 w-4" />
@@ -318,10 +319,11 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
                   </Button>
                   <Button
                     type="button"
-                    className="rounded-2xl px-4"
+                    className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-4 py-3 text-center whitespace-normal"
                     onClick={() => window.open(publicLink, "_blank", "noopener,noreferrer")}
                   >
-                    Abrir pagina
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir
                   </Button>
                 </div>
               </div>

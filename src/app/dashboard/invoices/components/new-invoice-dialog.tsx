@@ -217,7 +217,7 @@ export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceD
 
         <form onSubmit={onSubmit}>
           <div className="dashboard-dialog-body">
-            <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="grid gap-4">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
                   <label className="dashboard-field-label">Tipo de factura</label>
@@ -280,24 +280,42 @@ export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceD
                   </p>
                 </div>
 
-                <div className="grid gap-3">
-                  <div className="rounded-[1rem] border border-border/60 bg-background/80 p-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="flex h-full flex-col rounded-[1rem] border border-border/60 bg-background/80 p-4">
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Monto exento ({excentoPercentage || 0}%)
                     </div>
-                    <Input value={Number(watchedAmount ?? 0) ? Number((Number(watchedAmount) * (excentoPercentage / 100)).toFixed(2)) : 0} readOnly className="mt-3 h-11 rounded-2xl border-border/70 bg-background" />
+                    <div className="mt-auto pt-4">
+                      <Input
+                        value={Number(watchedAmount ?? 0) ? Number((Number(watchedAmount) * (excentoPercentage / 100)).toFixed(2)) : 0}
+                        readOnly
+                        className="h-11 rounded-2xl border-border/70 bg-background"
+                      />
+                    </div>
                   </div>
-                  <div className="rounded-[1rem] border border-border/60 bg-background/80 p-4">
+                  <div className="flex h-full flex-col rounded-[1rem] border border-border/60 bg-background/80 p-4">
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Monto gravado ({gravadoPercentage || 0}%)
                     </div>
-                    <Input value={Number(watchedAmount ?? 0) ? Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) : 0} readOnly className="mt-3 h-11 rounded-2xl border-border/70 bg-background" />
+                    <div className="mt-auto pt-4">
+                      <Input
+                        value={Number(watchedAmount ?? 0) ? Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) : 0}
+                        readOnly
+                        className="h-11 rounded-2xl border-border/70 bg-background"
+                      />
+                    </div>
                   </div>
-                  <div className="rounded-[1rem] border border-border/60 bg-background/80 p-4">
+                  <div className="flex h-full flex-col rounded-[1rem] border border-border/60 bg-background/80 p-4">
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       ITBIS ({itbisPercentage || 0}%)
                     </div>
-                    <Input value={Number(watchedAmount ?? 0) ? Number((Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) * (itbisPercentage / 100)).toFixed(2)) : 0} readOnly className="mt-3 h-11 rounded-2xl border-border/70 bg-background" />
+                    <div className="mt-auto pt-4">
+                      <Input
+                        value={Number(watchedAmount ?? 0) ? Number((Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) * (itbisPercentage / 100)).toFixed(2)) : 0}
+                        readOnly
+                        className="h-11 rounded-2xl border-border/70 bg-background"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

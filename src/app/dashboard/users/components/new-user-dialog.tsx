@@ -108,120 +108,111 @@ export function NewUserDialog() {
 
         <form onSubmit={onSubmit}>
           <div className="dashboard-dialog-body">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="dashboard-form-card grid gap-4">
-                <div className="dashboard-field">
-                  <label htmlFor="new-user-name" className="dashboard-field-label">
-                    Nombre
-                  </label>
-                  <Input
-                    id="new-user-name"
-                    placeholder="Nombre completo…"
-                    className="h-11 rounded-2xl border-border/70 bg-background"
-                    {...register("name")}
-                    disabled={isPending}
-                  />
-                  {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
-                </div>
-
-                <div className="dashboard-field">
-                  <label htmlFor="new-user-email" className="dashboard-field-label">
-                    Correo
-                  </label>
-                  <Input
-                    id="new-user-email"
-                    type="email"
-                    placeholder="usuario@correo.com…"
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="h-11 rounded-2xl border-border/70 bg-background"
-                    {...register("email")}
-                    disabled={isPending}
-                  />
-                  {errors.email && <p className="dashboard-field-error">{errors.email.message}</p>}
-                </div>
-
-                <div className="dashboard-field">
-                  <label className="dashboard-field-label">Rol</label>
-                  <Select
-                    value={role}
-                    onValueChange={(val) =>
-                      setValue("type", val as NewUserValues["type"], {
-                        shouldValidate: true,
-                      })
-                    }
-                    disabled={isPending}
-                  >
-                    <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background">
-                      <SelectValue placeholder="Selecciona un rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">ADMIN</SelectItem>
-                      <SelectItem value="USER">USER</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}
-                </div>
-
-                <div className="dashboard-field">
-                  <label htmlFor="new-user-password" className="dashboard-field-label">
-                    Contraseña inicial
-                  </label>
-                  <Input
-                    id="new-user-password"
-                    type="password"
-                    placeholder="Mínimo 6 caracteres…"
-                    className="h-11 rounded-2xl border-border/70 bg-background"
-                    {...register("password")}
-                    disabled={isPending}
-                  />
-                  {errors.password && (
-                    <p className="dashboard-field-error">{errors.password.message}</p>
-                  )}
-                </div>
+            <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
+              <div className="dashboard-field">
+                <label htmlFor="new-user-name" className="dashboard-field-label">
+                  Nombre
+                </label>
+                <Input
+                  id="new-user-name"
+                  placeholder="Nombre completo…"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("name")}
+                  disabled={isPending}
+                />
+                {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
               </div>
 
-              <div className="dashboard-form-card space-y-4">
-                <div>
-                  <div className="dashboard-field-label">Sucursales permitidas</div>
-                  <p className="dashboard-field-hint mt-1">
-                    Selecciona qué sucursales puede ver y operar este usuario.
-                  </p>
-                </div>
-                <div className="grid max-h-72 gap-2 overflow-auto rounded-[1rem] border border-border/70 bg-background/85 p-3">
-                  {branches.map((branch) => (
-                    <label
-                      key={branch.id}
-                      className="flex items-center gap-3 rounded-xl border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/40"
-                    >
-                      <Checkbox
-                        checked={selectedBranches.includes(branch.id)}
-                        onCheckedChange={() => {
-                          const current = new Set(selectedBranches);
-                          if (current.has(branch.id)) {
-                            current.delete(branch.id);
-                          } else {
-                            current.add(branch.id);
-                          }
-                          setValue("branch_ids", Array.from(current), {
-                            shouldValidate: true,
-                          });
-                        }}
-                        disabled={isPending}
-                      />
-                      <span>
-                        {branch.name} ({branch.code})
-                      </span>
-                    </label>
-                  ))}
-                  {!branches.length && (
-                    <span className="dashboard-field-hint">No hay sucursales disponibles.</span>
-                  )}
-                </div>
-                {errors.branch_ids && (
-                  <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
+              <div className="dashboard-field">
+                <label htmlFor="new-user-email" className="dashboard-field-label">
+                  Correo
+                </label>
+                <Input
+                  id="new-user-email"
+                  type="email"
+                  placeholder="usuario@correo.com…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("email")}
+                  disabled={isPending}
+                />
+                {errors.email && <p className="dashboard-field-error">{errors.email.message}</p>}
+              </div>
+
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Rol</label>
+                <Select
+                  value={role}
+                  onValueChange={(val) =>
+                    setValue("type", val as NewUserValues["type"], {
+                      shouldValidate: true,
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background">
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                    <SelectItem value="USER">USER</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}
+              </div>
+
+              <div className="dashboard-field">
+                <label htmlFor="new-user-password" className="dashboard-field-label">
+                  Contraseña inicial
+                </label>
+                <Input
+                  id="new-user-password"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres…"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("password")}
+                  disabled={isPending}
+                />
+                {errors.password && (
+                  <p className="dashboard-field-error">{errors.password.message}</p>
                 )}
               </div>
+            </div>
+
+            <div className="dashboard-form-card space-y-3">
+              <div className="dashboard-field-label">Sucursales permitidas</div>
+              <div className="flex max-h-48 flex-wrap gap-2 overflow-auto rounded-[1rem] border border-border/70 bg-background/85 p-3">
+                {branches.map((branch) => (
+                  <label
+                    key={branch.id}
+                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={selectedBranches.includes(branch.id)}
+                      onCheckedChange={() => {
+                        const current = new Set(selectedBranches);
+                        if (current.has(branch.id)) {
+                          current.delete(branch.id);
+                        } else {
+                          current.add(branch.id);
+                        }
+                        setValue("branch_ids", Array.from(current), {
+                          shouldValidate: true,
+                        });
+                      }}
+                      disabled={isPending}
+                    />
+                    <span>{branch.name} ({branch.code})</span>
+                  </label>
+                ))}
+                {!branches.length && (
+                  <span className="dashboard-field-hint">No hay sucursales disponibles.</span>
+                )}
+              </div>
+              {errors.branch_ids && (
+                <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
+              )}
             </div>
           </div>
 

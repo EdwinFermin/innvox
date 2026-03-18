@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Printer, QrCode } from "lucide-react";
+import { Copy, Download, ExternalLink, Printer, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { Branch } from "@/types/branch.types";
@@ -485,19 +485,20 @@ export function GenerateAccountsQrDialog({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <Button
                   type="button"
                   variant="outline"
-                  className="px-4"
+                  className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-4 py-3 text-center whitespace-normal"
                   onClick={handleCopy}
                 >
-                  Copiar link
+                  <Copy className="h-4 w-4" />
+                  Copiar
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="px-4 justify-center gap-2"
+                  className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-3 py-3 text-center text-xs leading-tight whitespace-normal"
                   disabled={isDownloading}
                   onClick={handleDownloadImage}
                 >
@@ -507,7 +508,7 @@ export function GenerateAccountsQrDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="px-4 justify-center gap-2"
+                  className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-3 py-3 text-center text-xs leading-tight whitespace-normal"
                   onClick={handlePrint}
                 >
                   <Printer className="h-4 w-4" />
@@ -515,12 +516,13 @@ export function GenerateAccountsQrDialog({
                 </Button>
                 <Button
                   type="button"
-                  className="px-4"
+                  className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-4 py-3 text-center whitespace-normal"
                   onClick={() =>
                     window.open(publicLink, "_blank", "noopener,noreferrer")
                   }
                 >
-                  Abrir pagina
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir
                 </Button>
               </div>
             </div>

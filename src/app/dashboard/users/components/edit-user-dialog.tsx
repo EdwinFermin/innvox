@@ -119,82 +119,73 @@ export function EditUserDialog({ user }: { user: User }) {
         </DialogHeader>
         <form onSubmit={onSubmit}>
           <div className="dashboard-dialog-body">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="dashboard-form-card grid gap-4">
-                <div className="dashboard-field">
-                  <label htmlFor="edit-user-name" className="dashboard-field-label">
-                    Nombre
-                  </label>
-                  <Input
-                    id="edit-user-name"
-                    placeholder="Nombre completo…"
-                    className="h-11 rounded-2xl border-border/70 bg-background"
-                    {...register("name")}
-                    disabled={isPending}
-                  />
-                  {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
-                </div>
-
-                <div className="dashboard-field">
-                  <label className="dashboard-field-label">Correo</label>
-                  <Input value={user.email} disabled className="h-11 rounded-2xl border-border/70 bg-muted/30" />
-                  <p className="dashboard-field-hint">El correo no se puede modificar desde aquí.</p>
-                </div>
-
-                <div className="dashboard-field">
-                  <label className="dashboard-field-label">Rol</label>
-                  <Select
-                    value={role}
-                    onValueChange={(val) =>
-                      setValue("type", val as EditUserValues["type"], {
-                        shouldValidate: true,
-                      })
-                    }
-                    disabled={isPending}
-                  >
-                    <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background">
-                      <SelectValue placeholder="Selecciona un rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">ADMIN</SelectItem>
-                      <SelectItem value="USER">USER</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}
-                </div>
+            <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
+              <div className="dashboard-field">
+                <label htmlFor="edit-user-name" className="dashboard-field-label">
+                  Nombre
+                </label>
+                <Input
+                  id="edit-user-name"
+                  placeholder="Nombre completo…"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("name")}
+                  disabled={isPending}
+                />
+                {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
               </div>
 
-              <div className="dashboard-form-card space-y-4">
-                <div>
-                  <div className="dashboard-field-label">Sucursales permitidas</div>
-                  <p className="dashboard-field-hint mt-1">
-                    Ajusta las sucursales operativas visibles para este usuario.
-                  </p>
-                </div>
-                <div className="grid max-h-72 gap-2 overflow-auto rounded-[1rem] border border-border/70 bg-background/85 p-3">
-                  {branches.map((branch) => (
-                    <label
-                      key={branch.id}
-                      className="flex items-center gap-3 rounded-xl border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/40"
-                    >
-                      <Checkbox
-                        checked={selectedBranches.includes(branch.id)}
-                        onCheckedChange={() => toggleBranch(branch.id)}
-                        disabled={isPending}
-                      />
-                      <span>
-                        {branch.name} ({branch.code})
-                      </span>
-                    </label>
-                  ))}
-                  {!branches.length && (
-                    <span className="dashboard-field-hint">No hay sucursales disponibles.</span>
-                  )}
-                </div>
-                {errors.branch_ids && (
-                  <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Correo</label>
+                <Input value={user.email} disabled className="h-11 rounded-2xl border-border/70 bg-muted/30" />
+                <p className="dashboard-field-hint">El correo no se puede modificar desde aquí.</p>
+              </div>
+
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Rol</label>
+                <Select
+                  value={role}
+                  onValueChange={(val) =>
+                    setValue("type", val as EditUserValues["type"], {
+                      shouldValidate: true,
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background">
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                    <SelectItem value="USER">USER</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}
+              </div>
+            </div>
+
+            <div className="dashboard-form-card space-y-3">
+              <div className="dashboard-field-label">Sucursales permitidas</div>
+              <div className="flex max-h-48 flex-wrap gap-2 overflow-auto rounded-[1rem] border border-border/70 bg-background/85 p-3">
+                {branches.map((branch) => (
+                  <label
+                    key={branch.id}
+                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={selectedBranches.includes(branch.id)}
+                      onCheckedChange={() => toggleBranch(branch.id)}
+                      disabled={isPending}
+                    />
+                    <span>{branch.name} ({branch.code})</span>
+                  </label>
+                ))}
+                {!branches.length && (
+                  <span className="dashboard-field-hint">No hay sucursales disponibles.</span>
                 )}
               </div>
+              {errors.branch_ids && (
+                <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
+              )}
             </div>
           </div>
 
