@@ -368,7 +368,7 @@ export function GenerateAccountsQrDialog({
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full sm:w-auto"
           onClick={() => {
             setBranchId("");
             setOpen(true);

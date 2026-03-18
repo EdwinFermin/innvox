@@ -1,8 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Building2, CircleAlert, ClipboardList, UsersRound } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Building2,
+  CircleAlert,
+  ClipboardList,
+  UsersRound,
+} from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { DashboardWidgetsSkeleton } from "@/components/dashboard/dashboard-loading";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useBranches } from "@/hooks/use-branches";
 import { useClients } from "@/hooks/use-clients";
 import { useExpenses } from "@/hooks/use-expenses";
@@ -46,17 +46,6 @@ const barChartConfig = {
   expense: {
     label: "Gastos",
     color: "#fb923c",
-  },
-} satisfies ChartConfig;
-
-const pieChartConfig = {
-  receivable: {
-    label: "Por cobrar",
-    color: "#0ea5e9",
-  },
-  payable: {
-    label: "Por pagar",
-    color: "#f97316",
   },
 } satisfies ChartConfig;
 
@@ -148,21 +137,6 @@ export function BusinessWidgets() {
     0,
   );
 
-  const balanceChartData = [
-    {
-      key: "receivable",
-      label: "Por cobrar",
-      value: receivablesPendingTotal,
-      fill: "var(--color-receivable)",
-    },
-    {
-      key: "payable",
-      label: "Por pagar",
-      value: payablesPendingTotal,
-      fill: "var(--color-payable)",
-    },
-  ].filter((item) => item.value > 0);
-
   const monthInvoices = invoices.filter(
     (invoice) => getTimestampMonthKey(invoice.created_at) === currentMonthKey,
   );
@@ -198,6 +172,39 @@ export function BusinessWidgets() {
       .slice(0, 5);
   }, [payablesPending, receivablesPending]);
 
+  const recentActivity = React.useMemo(() => {
+    const items = [
+      ...invoices.map((invoice) => ({
+        id: `invoice-${invoice.id}`,
+        title: invoice.client_name || invoice.description || invoice.id,
+        type: "Factura",
+        amount: Number(invoice.amount || 0),
+        date: invoice.created_at,
+        tone: "positive" as const,
+      })),
+      ...incomes.map((income) => ({
+        id: `income-${income.id}`,
+        title: income.description || income.friendly_id,
+        type: "Ingreso",
+        amount: Number(income.amount || 0),
+        date: income.created_at || income.date,
+        tone: "positive" as const,
+      })),
+      ...expenses.map((expense) => ({
+        id: `expense-${expense.id}`,
+        title: expense.description || expense.friendly_id,
+        type: "Gasto",
+        amount: Number(expense.amount || 0),
+        date: expense.created_at || expense.date,
+        tone: "negative" as const,
+      })),
+    ];
+
+    return items
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 6);
+  }, [expenses, incomes, invoices]);
+
   const isLoading =
     !userId ||
     branchesLoading ||
@@ -213,17 +220,139 @@ export function BusinessWidgets() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 xl:grid-cols-[1.2fr_0.8fr]">
-      <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-slate-50 via-background to-cyan-50/60 shadow-sm dark:from-slate-950 dark:to-slate-950">
+    <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.96))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:from-slate-950 dark:to-slate-950">
+          <CardHeader>
+            <CardTitle className="text-xl tracking-[-0.03em]">Actividad reciente</CardTitle>
+            <CardDescription>
+              Ultimos eventos que impactan ventas, cobros y egresos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentActivity.length > 0 ? (
+              recentActivity.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-border/60 bg-white/72 p-3 backdrop-blur-sm"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                        item.tone === "positive"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-rose-100 text-rose-700"
+                      }`}
+                    >
+                      {item.tone === "positive" ? (
+                        <ArrowUpRight className="size-4" aria-hidden="true" />
+                      ) : (
+                        <ArrowDownLeft className="size-4" aria-hidden="true" />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-foreground">{item.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.type} · {new Intl.DateTimeFormat("es-DO", {
+                          month: "short",
+                          day: "numeric",
+                        }).format(new Date(item.date))}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={`shrink-0 text-right text-sm font-semibold ${
+                      item.tone === "positive" ? "text-emerald-700" : "text-rose-700"
+                    }`}
+                  >
+                    {item.tone === "positive" ? "+" : "-"}
+                    {currencyFormatter.format(item.amount)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex h-[220px] items-center justify-center rounded-xl border border-dashed border-border/70 text-sm text-muted-foreground">
+                Aun no hay actividad reciente para mostrar.
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="justify-between border-t border-border/50 text-sm">
+            <span className="text-muted-foreground">Ticket promedio</span>
+            <span className="font-semibold text-foreground">{currencyFormatter.format(averageTicket)}</span>
+          </CardFooter>
+        </Card>
+
+        <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.12),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.96))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:from-slate-950 dark:to-slate-950">
+          <CardHeader>
+            <CardTitle className="text-xl tracking-[-0.03em]">Pendientes y alertas</CardTitle>
+            <CardDescription>
+              Balancea cartera abierta y compromisos que requieren seguimiento inmediato.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[1.2rem] border border-sky-200/70 bg-sky-50/80 p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-sky-800/80">Por cobrar</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-sky-950">
+                  {currencyFormatter.format(receivablesPendingTotal)}
+                </div>
+              </div>
+              <div className="rounded-[1.2rem] border border-orange-200/70 bg-orange-50/80 p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-orange-800/80">Por pagar</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-orange-950">
+                  {currencyFormatter.format(payablesPendingTotal)}
+                </div>
+              </div>
+            </div>
+            {alerts.length > 0 ? (
+              alerts.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-border/60 bg-white/72 p-3 dark:bg-background/40"
+                >
+                  <div>
+                    <div className="font-medium text-foreground">{item.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {item.type} - vence {item.daysUntil <= 0 ? "hoy" : `en ${item.daysUntil} dias`}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-foreground">
+                      {currencyFormatter.format(item.amount)}
+                    </div>
+                    <Badge variant="outline">
+                      {item.type}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed border-border/70 p-6 text-sm text-muted-foreground">
+                No hay vencimientos criticos en los proximos 10 dias.
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="justify-between border-t border-border/50 text-sm">
+            <span className="text-muted-foreground">Cobertura abierta</span>
+            <span className="font-semibold text-foreground">
+              {payablesPendingTotal === 0
+                ? "100%"
+                : `${((receivablesPendingTotal / payablesPendingTotal) * 100).toFixed(0)}%`}
+            </span>
+          </CardFooter>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.95))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:from-slate-950 dark:to-slate-950">
         <CardHeader>
-          <CardTitle>Pulso operativo por sucursal</CardTitle>
+          <CardTitle className="text-xl tracking-[-0.03em]">Pulso operativo por sucursal</CardTitle>
           <CardDescription>
             Compara ingresos y gastos acumulados para detectar sucursales con mejor traccion.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {branchPerformance.length > 0 ? (
-            <ChartContainer config={barChartConfig} className="h-[300px] w-full">
+            <ChartContainer config={barChartConfig} className="h-[260px] w-full">
               <BarChart data={branchPerformance} layout="vertical" margin={{ left: 8, right: 8 }}>
                 <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                 <XAxis type="number" tickLine={false} axisLine={false} hide />
@@ -248,12 +377,12 @@ export function BusinessWidgets() {
               </BarChart>
             </ChartContainer>
           ) : (
-            <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed border-border/70 text-sm text-muted-foreground">
+            <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-border/70 text-sm text-muted-foreground">
               Aun no hay suficiente actividad para comparar sucursales.
             </div>
           )}
         </CardContent>
-        <CardFooter className="grid grid-cols-1 gap-3 border-t border-border/50 bg-white/60 sm:grid-cols-2 lg:grid-cols-4 dark:bg-background/30">
+        <CardFooter className="grid grid-cols-1 gap-3 border-t border-border/50 bg-white/70 sm:grid-cols-2 xl:grid-cols-4 dark:bg-background/30">
           <div className="rounded-lg border border-border/60 p-3">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
               <Building2 className="size-4" />
@@ -286,100 +415,6 @@ export function BusinessWidgets() {
           </div>
         </CardFooter>
       </Card>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-orange-50 via-background to-sky-50/70 shadow-sm dark:from-slate-950 dark:to-slate-950">
-          <CardHeader>
-            <CardTitle>Balance pendiente</CardTitle>
-            <CardDescription>
-              Mide la presion entre lo que queda por cobrar y las obligaciones abiertas.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {balanceChartData.length > 0 ? (
-              <ChartContainer config={pieChartConfig} className="mx-auto h-[220px] max-w-[260px]">
-                <PieChart>
-                  <ChartTooltip
-                    cursor={false}
-                    content={
-                      <ChartTooltipContent
-                        hideLabel
-                        formatter={(value) => currencyFormatter.format(Number(value))}
-                      />
-                    }
-                  />
-                  <Pie
-                    data={balanceChartData}
-                    dataKey="value"
-                    nameKey="key"
-                    innerRadius={56}
-                    outerRadius={84}
-                    paddingAngle={4}
-                  >
-                    {balanceChartData.map((item, index) => (
-                      <Cell
-                        key={item.key}
-                        fill={index === 0 ? "var(--color-receivable)" : "var(--color-payable)"}
-                      />
-                    ))}
-                  </Pie>
-                  <ChartLegend content={<ChartLegendContent />} verticalAlign="bottom" />
-                </PieChart>
-              </ChartContainer>
-            ) : (
-              <div className="flex h-[220px] items-center justify-center rounded-xl border border-dashed border-border/70 text-sm text-muted-foreground">
-                Sin cuentas pendientes por el momento.
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="justify-between border-t border-border/50 text-sm">
-            <span className="text-muted-foreground">Cobertura abierta</span>
-            <span className="font-semibold text-foreground">
-              {payablesPendingTotal === 0
-                ? "100%"
-                : `${((receivablesPendingTotal / payablesPendingTotal) * 100).toFixed(0)}%`}
-            </span>
-          </CardFooter>
-        </Card>
-
-        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-amber-50 via-background to-background shadow-sm dark:from-slate-950 dark:to-slate-950">
-          <CardHeader>
-            <CardTitle>Alertas operativas</CardTitle>
-            <CardDescription>
-              Prioridades para cobros y pagos que requieren seguimiento inmediato.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {alerts.length > 0 ? (
-              alerts.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-white/70 p-3 dark:bg-background/40"
-                >
-                  <div>
-                    <div className="font-medium text-foreground">{item.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {item.type} - vence {item.daysUntil <= 0 ? "hoy" : `en ${item.daysUntil} dias`}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-foreground">
-                      {currencyFormatter.format(item.amount)}
-                    </div>
-                    <Badge variant="outline">
-                      {item.type}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-xl border border-dashed border-border/70 p-6 text-sm text-muted-foreground">
-                No hay vencimientos criticos en los proximos 10 dias.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

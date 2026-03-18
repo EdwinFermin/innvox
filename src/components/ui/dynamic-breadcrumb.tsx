@@ -4,9 +4,11 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbLink,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
@@ -50,15 +52,28 @@ export function DynamicBreadcrumb() {
     href: "/" + segments.slice(0, index + 1).join("/"),
   }));
 
+  const collapsedPaths =
+    paths.length > 3 ? [paths[0], { name: "...", href: "" }, ...paths.slice(-2)] : paths;
+
   return (
     <Breadcrumb>
-      <BreadcrumbList>
-        {paths.map((p, i) => (
+      <BreadcrumbList className="flex-nowrap overflow-hidden">
+        {collapsedPaths.map((p, i) => (
           <BreadcrumbItem key={i}>
-            <BreadcrumbLink asChild>
-              <Link href={p.href}>{p.name}</Link>
-            </BreadcrumbLink>
-            {i < paths.length - 1 && <BreadcrumbSeparator />}
+            {p.name === "..." ? (
+              <BreadcrumbEllipsis />
+            ) : i === collapsedPaths.length - 1 ? (
+              <BreadcrumbPage className="max-w-[12rem] truncate text-sm font-medium text-foreground sm:max-w-[18rem]">
+                {p.name}
+              </BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink asChild>
+                <Link className="max-w-[7rem] truncate sm:max-w-[10rem]" href={p.href}>
+                  {p.name}
+                </Link>
+              </BreadcrumbLink>
+            )}
+            {i < collapsedPaths.length - 1 && <BreadcrumbSeparator />}
           </BreadcrumbItem>
         ))}
       </BreadcrumbList>

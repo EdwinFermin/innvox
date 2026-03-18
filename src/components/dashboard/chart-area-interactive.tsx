@@ -192,17 +192,17 @@ export function ChartAreaInteractive() {
   }
 
   return (
-    <Card className="@container/card mt-6 overflow-hidden border-border/60 bg-gradient-to-br from-slate-50 via-background to-teal-50/60 shadow-sm dark:from-slate-950 dark:to-slate-950">
-      <CardHeader className="gap-4 border-b border-border/50 pb-5">
-        <CardTitle>Crecimiento del negocio</CardTitle>
+    <Card className="@container/card overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.94))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:from-slate-950 dark:to-slate-950">
+      <CardHeader className="gap-4 border-b border-border/60 pb-5">
+        <CardTitle className="text-xl tracking-[-0.03em]">Flujo de caja</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
             Ingresos acumulados menos gastos en el periodo seleccionado
           </span>
-          <span className="@[540px]/card:hidden">Crecimiento neto</span>
+          <span className="@[540px]/card:hidden">Flujo neto</span>
         </CardDescription>
         <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground sm:grid-cols-3">
-          <div className="rounded-xl border border-emerald-200/60 bg-white/70 p-3 backdrop-blur dark:border-emerald-900/40 dark:bg-background/60">
+          <div className="rounded-[1.2rem] border border-emerald-200/70 bg-white/82 p-3 backdrop-blur dark:border-emerald-900/40 dark:bg-background/60">
             <div className="text-xs uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">
               Ingresos
             </div>
@@ -210,7 +210,7 @@ export function ChartAreaInteractive() {
               {currencyFormatter.format(periodSummary.incomeTotal)}
             </div>
           </div>
-          <div className="rounded-xl border border-orange-200/60 bg-white/70 p-3 backdrop-blur dark:border-orange-900/40 dark:bg-background/60">
+          <div className="rounded-[1.2rem] border border-orange-200/70 bg-white/82 p-3 backdrop-blur dark:border-orange-900/40 dark:bg-background/60">
             <div className="text-xs uppercase tracking-[0.18em] text-orange-700 dark:text-orange-400">
               Gastos
             </div>
@@ -218,7 +218,7 @@ export function ChartAreaInteractive() {
               {currencyFormatter.format(periodSummary.expenseTotal)}
             </div>
           </div>
-          <div className="rounded-xl border border-sky-200/60 bg-white/70 p-3 backdrop-blur dark:border-sky-900/40 dark:bg-background/60">
+          <div className="rounded-[1.2rem] border border-sky-200/70 bg-white/82 p-3 backdrop-blur dark:border-sky-900/40 dark:bg-background/60">
             <div className="text-xs uppercase tracking-[0.18em] text-sky-700 dark:text-sky-400">
               Neto acumulado
             </div>
@@ -236,7 +236,7 @@ export function ChartAreaInteractive() {
             value={timeRange}
             onValueChange={setTimeRange}
             variant="outline"
-            className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
+            className="hidden *:data-[slot=toggle-group-item]:rounded-full *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
           >
             <ToggleGroupItem value="90d">Ultimos 3 meses</ToggleGroupItem>
             <ToggleGroupItem value="30d">Últimos 30 días</ToggleGroupItem>
@@ -250,14 +250,14 @@ export function ChartAreaInteractive() {
             >
               <SelectValue placeholder="Ultimos 3 meses" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="90d" className="rounded-lg">
+            <SelectContent className="rounded-2xl">
+              <SelectItem value="90d" className="rounded-xl">
                 Ultimos 3 meses
               </SelectItem>
-              <SelectItem value="30d" className="rounded-lg">
+              <SelectItem value="30d" className="rounded-xl">
                 Ultimos 30 dias
               </SelectItem>
-              <SelectItem value="7d" className="rounded-lg">
+              <SelectItem value="7d" className="rounded-xl">
                 Ultimos 7 dias
               </SelectItem>
             </SelectContent>

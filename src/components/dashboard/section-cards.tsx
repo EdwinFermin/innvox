@@ -1,6 +1,12 @@
 "use client";
 
-import { IconArrowWaveRightUp, IconCoins, IconFileInvoice, IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
+import {
+  IconArrowWaveRightUp,
+  IconCoins,
+  IconFileInvoice,
+  IconTrendingDown,
+  IconTrendingUp,
+} from "@tabler/icons-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -161,22 +167,24 @@ export function SectionCards() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-      <Card className="@container/card overflow-hidden border-emerald-200/60 bg-gradient-to-br from-emerald-500/10 via-background to-background shadow-sm">
-        <CardHeader>
-          <CardDescription>Facturacion del mes</CardDescription>
-          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
+    <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+      <Card className="@container/card overflow-hidden rounded-[1.6rem] border-emerald-200/70 bg-gradient-to-br from-emerald-100/70 via-card to-card shadow-[0_18px_42px_-30px_rgba(5,150,105,0.5)]">
+        <CardHeader className="gap-3">
+          <CardDescription className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-800/80">
+            Facturacion del mes
+          </CardDescription>
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums tracking-[-0.03em] md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {currencyFormatter.format(resumen.facturacionMes)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline" className="border-emerald-300/70 bg-white/70 text-emerald-700">
+            <Badge variant="outline" className="border-emerald-300/70 bg-white/80 text-emerald-700">
               <IconFileInvoice />
               {resumen.variacionFacturacion > 0 ? "+" : ""}
               {resumen.variacionFacturacion}%
             </Badge>
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 border-t border-emerald-200/70 bg-white/55 text-sm backdrop-blur-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Ticket comercial en movimiento <IconTrendingUp className="size-4" />
           </div>
@@ -186,21 +194,23 @@ export function SectionCards() {
         </CardFooter>
       </Card>
 
-      <Card className="@container/card overflow-hidden border-sky-200/60 bg-gradient-to-br from-sky-500/10 via-background to-background shadow-sm">
-        <CardHeader>
-          <CardDescription>Flujo neto mensual</CardDescription>
-          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
+      <Card className="@container/card overflow-hidden rounded-[1.6rem] border-sky-200/70 bg-gradient-to-br from-sky-100/70 via-card to-card shadow-[0_18px_42px_-30px_rgba(14,165,233,0.45)]">
+        <CardHeader className="gap-3">
+          <CardDescription className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-800/80">
+            Flujo neto mensual
+          </CardDescription>
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums tracking-[-0.03em] md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {currencyFormatter.format(resumen.utilidadMes)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline" className="border-sky-300/70 bg-white/70 text-sky-700">
+            <Badge variant="outline" className="border-sky-300/70 bg-white/80 text-sky-700">
               <IconTrendingUp />
               {resumen.variacionUtilidad > 0 ? "+" : ""}
               {resumen.variacionUtilidad}%
             </Badge>
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 border-t border-sky-200/70 bg-white/55 text-sm backdrop-blur-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Margen operativo {resumen.margenOperativo}% <IconArrowWaveRightUp className="size-4" />
           </div>
@@ -210,20 +220,22 @@ export function SectionCards() {
         </CardFooter>
       </Card>
 
-      <Card className="@container/card overflow-hidden border-amber-200/60 bg-gradient-to-br from-amber-500/10 via-background to-background shadow-sm">
-        <CardHeader>
-          <CardDescription>Cobros pendientes</CardDescription>
-          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
+      <Card className="@container/card overflow-hidden rounded-[1.6rem] border-amber-200/70 bg-gradient-to-br from-amber-100/70 via-card to-card shadow-[0_18px_42px_-30px_rgba(245,158,11,0.45)]">
+        <CardHeader className="gap-3">
+          <CardDescription className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-800/80">
+            Cobros pendientes
+          </CardDescription>
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums tracking-[-0.03em] md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {currencyFormatter.format(resumen.cuentasPorCobrar)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline" className="border-amber-300/70 bg-white/70 text-amber-700">
+            <Badge variant="outline" className="border-amber-300/70 bg-white/80 text-amber-700">
               <IconCoins />
               {resumen.cobrosUrgentes} urgentes
             </Badge>
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 border-t border-amber-200/70 bg-white/55 text-sm backdrop-blur-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Cartera por recuperar <IconTrendingUp className="size-4" />
           </div>
@@ -233,20 +245,22 @@ export function SectionCards() {
         </CardFooter>
       </Card>
 
-      <Card className="@container/card overflow-hidden border-rose-200/60 bg-gradient-to-br from-rose-500/10 via-background to-background shadow-sm">
-        <CardHeader>
-          <CardDescription>Pagos comprometidos</CardDescription>
-          <CardTitle className="min-w-0 text-base font-semibold tabular-nums md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
+      <Card className="@container/card overflow-hidden rounded-[1.6rem] border-rose-200/70 bg-gradient-to-br from-rose-100/70 via-card to-card shadow-[0_18px_42px_-30px_rgba(244,63,94,0.4)]">
+        <CardHeader className="gap-3">
+          <CardDescription className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-800/80">
+            Pagos comprometidos
+          </CardDescription>
+          <CardTitle className="min-w-0 text-base font-semibold tabular-nums tracking-[-0.03em] md:text-lg 2xl:text-xl 2xl:@[300px]/card:text-2xl">
             {currencyFormatter.format(resumen.pagosComprometidos)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline" className="border-rose-300/70 bg-white/70 text-rose-700">
+            <Badge variant="outline" className="max-w-full border-rose-300/70 bg-white/80 text-rose-700">
               <IconTrendingDown />
-              {resumen.pagosUrgentes} por vencer
+              {resumen.pagosUrgentes} venc.
             </Badge>
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 border-t border-rose-200/70 bg-white/55 text-sm backdrop-blur-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Cobertura proyectada {resumen.cobertura}% <IconTrendingDown className="size-4" />
           </div>

@@ -51,6 +51,7 @@ import { useAuthStore } from "@/store/auth";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   ListVisibilityControl,
   type VisibilityScope,
@@ -106,6 +107,13 @@ export default function InvoicesPage() {
         (invoice.created_by ?? invoice.user_id) === currentUser?.id,
     );
   }, [invoices, currentUser?.id, visibilityScope]);
+
+  const invoiceSummary = React.useMemo(() => {
+    const total = filteredInvoices.reduce((acc, invoice) => acc + Number(invoice.amount || 0), 0);
+    const withNcf = filteredInvoices.filter((invoice) => Boolean(invoice.ncf)).length;
+
+    return { total, withNcf };
+  }, [filteredInvoices]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -342,29 +350,54 @@ export default function InvoicesPage() {
   });
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Facturas</h3>
-      <span className="text-muted-foreground text-sm">
-        Gestiona la informacion de las facturas
-      </span>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Ventas"
+        title="Facturas"
+        description="Gestiona emision, impresion y seguimiento comercial con una bandeja mas clara para ventas y comprobantes fiscales."
+        stats={[
+          { label: "Facturas", value: String(filteredInvoices.length) },
+          { label: "Con NCF", value: String(invoiceSummary.withNcf), tone: "positive" },
+          {
+            label: "Total facturado",
+            value: new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP", maximumFractionDigits: 0 }).format(invoiceSummary.total),
+          },
+        ]}
+        actions={
+          <NewInvoiceDialog
+            invoice={invoiceToEdit}
+            onEditDone={() => setInvoiceToEdit(null)}
+            onSuccess={({ id, mode }) => {
+              if (mode === "create") {
+                const printableInvoice = invoices.find((inv) => inv.id === id);
+                if (printableInvoice) {
+                  setSelectedInvoice(printableInvoice);
+                  setTimeout(() => print(), 200);
+                } else {
+                  queryClient.invalidateQueries({ queryKey: ["invoices"] });
+                }
+              }
+            }}
+          />
+        }
+      />
       <div
-        className={`grid w-full py-4 mt-2 gap-4 ${
-          isMobile ? "grid-cols-1" : "grid-cols-2"
-        }`}
+        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
       >
         <Input
-          placeholder="Buscar..."
+          aria-label="Buscar facturas"
+          placeholder="Buscar facturas…"
           value={(table.getColumn("id")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("id")?.setFilterValue(event.target.value)
           }
-          className="w-full"
+          className="h-11 rounded-2xl border-border/70 bg-background/80"
         />
 
-        <div className="grid grid-cols-2 gap-2 ">
+        <div className="w-full sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
                 Columnas <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -388,26 +421,9 @@ export default function InvoicesPage() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <NewInvoiceDialog
-            invoice={invoiceToEdit}
-            onEditDone={() => setInvoiceToEdit(null)}
-            onSuccess={({ id, mode }) => {
-              if (mode === "create") {
-                const printableInvoice = invoices.find((inv) => inv.id === id);
-                if (printableInvoice) {
-                  setSelectedInvoice(printableInvoice);
-                  setTimeout(() => print(), 200);
-                } else {
-                  // Data may not be in cache yet; invalidate and let user print manually
-                  queryClient.invalidateQueries({ queryKey: ["invoices"] });
-                }
-              }
-            }}
-          />
         </div>
       </div>
-      <div className="overflow-hidden rounded-md border">
+      <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -464,35 +480,36 @@ export default function InvoicesPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <ListVisibilityControl
-          role={currentUser?.type}
-          value={visibilityScope}
-          onChange={setVisibilityScope}
-        />
-        <TablePageSize table={table} />
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+          <ListVisibilityControl
+            role={currentUser?.type}
+            value={visibilityScope}
+            onChange={setVisibilityScope}
+          />
+          <TablePageSize table={table} />
+          <div className="text-muted-foreground flex-1 text-sm">
+            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
       {selectedInvoice && <PrintContainer invoice={selectedInvoice} />}

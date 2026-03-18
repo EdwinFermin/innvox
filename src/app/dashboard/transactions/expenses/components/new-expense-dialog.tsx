@@ -1,18 +1,26 @@
 "use client";
 
 import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PlusCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
+import { createExpense, updateExpenseAccount } from "@/actions/expenses";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,17 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createExpense, updateExpenseAccount } from "@/actions/expenses";
-import { toast } from "sonner";
-import { accountSupportsBranch } from "@/lib/bank-accounts";
-import { useAuthStore } from "@/store/auth";
+import { Textarea } from "@/components/ui/textarea";
+import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { useBranches } from "@/hooks/use-branches";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
-import { useBankAccounts } from "@/hooks/use-bank-accounts";
+import { accountSupportsBranch } from "@/lib/bank-accounts";
+import { useAuthStore } from "@/store/auth";
 import { Expense } from "@/types/expense.types";
 import {
   dateOnlyToISOString,
@@ -50,7 +53,6 @@ const newExpenseSchema = z.object({
 
 type NewExpenseValues = z.infer<typeof newExpenseSchema>;
 type NewExpenseFormValues = z.input<typeof newExpenseSchema>;
-
 type ExpenseDialogMode = "create" | "edit-account";
 
 interface NewExpenseDialogProps {
@@ -89,21 +91,16 @@ export function NewExpenseDialog({
   });
 
   const isEditMode = mode === "edit-account";
-
   const selectedBranchId = watch("branchId");
   const selectedAccountId = watch("bankAccountId");
 
   const availableAccounts = React.useMemo(() => {
     if (!selectedBranchId) return [];
-    return bankAccounts.filter((account) =>
-      accountSupportsBranch(account, selectedBranchId),
-    );
+    return bankAccounts.filter((account) => accountSupportsBranch(account, selectedBranchId));
   }, [bankAccounts, selectedBranchId]);
 
   const selectedAccount = React.useMemo(
-    () =>
-      availableAccounts.find((account) => account.id === selectedAccountId) ??
-      null,
+    () => availableAccounts.find((account) => account.id === selectedAccountId) ?? null,
     [availableAccounts, selectedAccountId],
   );
 
@@ -136,9 +133,7 @@ export function NewExpenseDialog({
       });
     },
     onSuccess: () => {
-      toast.success(
-        isEditMode ? "Cuenta del gasto actualizada" : "Gasto registrado",
-      );
+      toast.success(isEditMode ? "Cuenta del gasto actualizada" : "Gasto registrado");
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
       queryClient.invalidateQueries({ queryKey: ["bankTransactions"] });
@@ -150,9 +145,7 @@ export function NewExpenseDialog({
     },
   });
 
-  const onSubmit = handleSubmit((values) =>
-    mutate(values as NewExpenseValues),
-  );
+  const onSubmit = handleSubmit((values) => mutate(values as NewExpenseValues));
 
   React.useEffect(() => {
     if (openOnMount) {
@@ -166,7 +159,6 @@ export function NewExpenseDialog({
 
     if (isEditMode && initialData) {
       const date = extractDateOnlyKey(initialData.date) ?? "";
-
       reset({
         branchId: initialData.branch_id,
         expenseTypeId: initialData.expense_type_id,
@@ -185,169 +177,163 @@ export function NewExpenseDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button variant="default" className="w-full" onClick={() => reset()}>
+          <Button variant="default" className="w-full rounded-2xl sm:w-auto" onClick={() => reset()}>
             <PlusCircle className="mr-1" />
             Nuevo gasto
           </Button>
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] overflow-x-hidden">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">
+      <DialogContent className="dashboard-dialog-content max-w-xl overflow-hidden lg:max-w-2xl">
+        <DialogHeader className="dashboard-dialog-header">
+          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
             {isEditMode ? "Cambiar cuenta del gasto" : "Nuevo gasto"}
           </DialogTitle>
+          <DialogDescription className="max-w-2xl leading-6">
+            {isEditMode
+              ? "Actualiza la cuenta financiera asociada a este gasto sin modificar el resto de la operación."
+              : "Registra una salida de dinero con su sucursal, categoría, fecha y cuenta financiera asociada."}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 min-w-0">
-              <label className="text-sm font-medium">Sucursal</label>
-              <Select
-                value={watch("branchId")}
-                onValueChange={(val) =>
-                  setValue("branchId", val, { shouldValidate: true })
-                }
-                disabled={isPending || isEditMode}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona una sucursal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name} ({branch.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.branchId && (
-                <p className="text-xs text-red-500">
-                  {errors.branchId.message}
-                </p>
-              )}
-            </div>
+        <form onSubmit={onSubmit}>
+          <div className="dashboard-dialog-body">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="dashboard-form-card grid gap-4">
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Sucursal</label>
+                  <Select
+                    value={watch("branchId")}
+                    onValueChange={(val) => setValue("branchId", val, { shouldValidate: true })}
+                    disabled={isPending || isEditMode}
+                  >
+                    <SelectTrigger className="min-h-12 w-full rounded-2xl border-border/70 bg-background px-4 py-3 text-base">
+                      <SelectValue placeholder="Selecciona una sucursal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map((branch) => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          {branch.name} ({branch.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.branchId && <p className="dashboard-field-error">{errors.branchId.message}</p>}
+                </div>
 
-            <div className="space-y-2 min-w-0">
-              <label className="text-sm font-medium">Tipo de gasto</label>
-              <Select
-                value={watch("expenseTypeId")}
-                onValueChange={(val) =>
-                  setValue("expenseTypeId", val, { shouldValidate: true })
-                }
-                disabled={isPending || isEditMode}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona un tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {expenseTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.expenseTypeId && (
-                <p className="text-xs text-red-500">
-                  {errors.expenseTypeId.message}
-                </p>
-              )}
-            </div>
-          </div>
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Tipo de gasto</label>
+                  <Select
+                    value={watch("expenseTypeId")}
+                    onValueChange={(val) => setValue("expenseTypeId", val, { shouldValidate: true })}
+                    disabled={isPending || isEditMode}
+                  >
+                    <SelectTrigger className="min-h-12 w-full rounded-2xl border-border/70 bg-background px-4 py-3 text-base">
+                      <SelectValue placeholder="Selecciona un tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {expenseTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.expenseTypeId && <p className="dashboard-field-error">{errors.expenseTypeId.message}</p>}
+                </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 mr-6 md:mr-0">
-              <label className="text-sm font-medium">Fecha</label>
-              <input
-                type="date"
-                {...register("date")}
-                value={getDateInputValue(watch("date"))}
-                disabled={isPending || isEditMode}
-                max={getTodayDateKey()}
-                className="w-full border border-input rounded-md pl-1 h-9"
-              />
-              {errors.date && (
-                <p className="text-xs text-red-500">{errors.date.message}</p>
-              )}
-            </div>
-            <div className="space-y-2 min-w-0">
-              <label className="text-sm font-medium">Monto</label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                {...register("amount")}
-                disabled={isPending || isEditMode}
-              />
-              {errors.amount && (
-                <p className="text-xs text-red-500">{errors.amount.message}</p>
-              )}
-            </div>
-          </div>
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Fecha</label>
+                  <input
+                    type="date"
+                    {...register("date")}
+                    value={getDateInputValue(watch("date"))}
+                    disabled={isPending || isEditMode}
+                    max={getTodayDateKey()}
+                    className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                  />
+                  {errors.date && <p className="dashboard-field-error">{errors.date.message}</p>}
+                </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 min-w-0">
-              <label className="text-sm font-medium">Cuenta financiera</label>
-              <Select
-                value={selectedAccountId}
-                onValueChange={(val) =>
-                  setValue("bankAccountId", val, { shouldValidate: true })
-                }
-                disabled={isPending || !selectedBranchId}
-              >
-                <SelectTrigger className="h-auto min-h-12 w-full">
-                  {selectedAccount ? (
-                    <BankAccountOptionContent account={selectedAccount} />
-                  ) : (
-                    <SelectValue placeholder="Selecciona la cuenta" />
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Monto</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    className="h-11 rounded-2xl border-border/70 bg-background"
+                    {...register("amount")}
+                    disabled={isPending || isEditMode}
+                  />
+                  {errors.amount && <p className="dashboard-field-error">{errors.amount.message}</p>}
+                </div>
+              </div>
+
+              <div className="dashboard-form-card flex h-full flex-col gap-4">
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Cuenta financiera</label>
+                  <Select
+                    value={selectedAccountId}
+                    onValueChange={(val) => setValue("bankAccountId", val, { shouldValidate: true })}
+                    disabled={isPending || !selectedBranchId}
+                  >
+                    <SelectTrigger className="min-h-12 w-full rounded-2xl border-border/70 bg-background">
+                      {selectedAccount ? (
+                        <BankAccountOptionContent account={selectedAccount} />
+                      ) : (
+                        <SelectValue placeholder="Selecciona la cuenta" />
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id} className="py-2">
+                          <BankAccountOptionContent account={account} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.bankAccountId && (
+                    <p className="dashboard-field-error">{errors.bankAccountId.message}</p>
                   )}
-                </SelectTrigger>
-                <SelectContent>
-                  {availableAccounts.map((account) => (
-                    <SelectItem
-                      key={account.id}
-                      value={account.id}
-                      className="py-2"
-                    >
-                      <BankAccountOptionContent account={account} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.bankAccountId && (
-                <p className="text-xs text-red-500">
-                  {errors.bankAccountId.message}
-                </p>
-              )}
+                </div>
+
+                <div className="dashboard-field mt-auto">
+                  <label className="dashboard-field-label">Estado del formulario</label>
+                  <p className="dashboard-field-hint dashboard-info-surface leading-6">
+                    {selectedBranchId
+                      ? "La lista de cuentas se filtra automaticamente según la sucursal seleccionada."
+                      : "Selecciona una sucursal para habilitar las cuentas financieras disponibles."}
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {!isEditMode ? (
+              <div className="dashboard-form-card dashboard-field">
+                <label className="dashboard-field-label">Descripción</label>
+                <Textarea
+                  rows={4}
+                  placeholder="Detalle del gasto…"
+                  className="rounded-2xl border-border/70 bg-background"
+                  {...register("description")}
+                  disabled={isPending}
+                />
+                {errors.description && (
+                  <p className="dashboard-field-error">{errors.description.message}</p>
+                )}
+              </div>
+            ) : null}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Descripcion</label>
-            <Textarea
-              rows={3}
-              placeholder="Detalle del gasto"
-              {...register("description")}
-              disabled={isPending || isEditMode}
-            />
-            {errors.description && (
-              <p className="text-xs text-red-500">
-                {errors.description.message}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-6 flex justify-end gap-2">
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending
-                ? "Guardando..."
-                : isEditMode
-                  ? "Actualizar cuenta"
-                  : "Guardar"}
+          <DialogFooter className="dashboard-dialog-footer">
+            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
+              Cancelar
             </Button>
-          </div>
+            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
+              {isPending ? "Guardando…" : isEditMode ? "Actualizar cuenta" : "Guardar gasto"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

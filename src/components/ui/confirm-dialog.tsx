@@ -54,30 +54,30 @@ export function ConfirmDialog({
     >
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+      <AlertDialogContent className="dashboard-dialog-content overflow-hidden p-0">
+        <AlertDialogHeader className="dashboard-dialog-header">
+          <AlertDialogTitle className="text-xl font-semibold tracking-[-0.03em]">{title}</AlertDialogTitle>
           {description && (
-            <AlertDialogDescription>{description}</AlertDialogDescription>
+            <AlertDialogDescription className="max-w-md leading-6">{description}</AlertDialogDescription>
           )}
         </AlertDialogHeader>
 
-        <AlertDialogFooter>
+        <AlertDialogFooter className="dashboard-dialog-footer">
           <AlertDialogCancel asChild>
-            <Button variant="outline" disabled={isPending}>
+            <Button variant="outline" className="rounded-2xl" disabled={isPending}>
               {cancelLabel}
             </Button>
           </AlertDialogCancel>
           <Button
             type="button"
             variant="destructive"
-            className="cursor-pointer"
+            className="cursor-pointer rounded-2xl"
             onClick={() => {
               void handleConfirm();
             }}
             disabled={isPending}
           >
-            {isPending ? "Procesando..." : confirmLabel}
+            {isPending ? "Procesando…" : confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

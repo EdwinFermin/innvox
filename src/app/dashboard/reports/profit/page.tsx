@@ -15,6 +15,7 @@ import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -349,60 +350,69 @@ export default function ProfitReportPage() {
   return (
     <div className="w-full space-y-6 profit-print-area">
       <div className="space-y-6 print-hidden">
-        <div>
-          <h3 className="text-base font-semibold md:text-lg 2xl:text-2xl">
-            Reporte de utilidades
-          </h3>
-          <div className="text-muted-foreground text-sm space-y-1">
-            <p>
-              Resumen de ingresos, gastos, cuentas por cobrar y cuentas por
-              pagar.
-            </p>
-            <p>
-              Rango: {dateRangeLabel} · Sucursal: {branchLabel}
-            </p>
-          </div>
-        </div>
-        <div className="flex justify-end print-hidden">
-          <Button
-            variant="outline"
-            onClick={() => print()}
-            className="bg-blue-500 text-white hover:bg-blue-600 hover:text-white"
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir
-          </Button>
-        </div>
+        <DashboardPageHeader
+          eyebrow="Reportes"
+          title="Reporte de utilidades"
+          description="Resumen de ingresos, gastos, cuentas por cobrar y cuentas por pagar."
+          stats={[
+            { label: "Ingresos", value: currency.format(totals.ingresos), tone: "positive" },
+            { label: "Gastos", value: currency.format(totals.gastos), tone: "warning" },
+            { label: "CxC", value: currency.format(totals.cxc) },
+            { label: "Utilidad", value: currency.format(totals.utilidad), tone: totals.utilidad >= 0 ? "positive" : "warning" },
+          ]}
+          actions={
+            <Button variant="outline" className="rounded-2xl" onClick={() => print()}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir
+            </Button>
+          }
+        />
 
-        <Card className="print-hidden">
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-4 md:max-w-fit max-w-full">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Desde</label>
-              <input
-                type="date"
-                value={getDateInputValue(startDate)}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-input rounded-md pl-1 h-9"
-              />
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] print-hidden">
+          <CardContent className="space-y-5 p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Filtros del reporte</div>
+                <div className="mt-1 text-sm text-muted-foreground">Rango: {dateRangeLabel} · Sucursal: {branchLabel}</div>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full rounded-2xl sm:w-auto"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setBranchId("ALL");
+                }}
+              >
+                <BrushCleaning className="mr-2 h-4 w-4" />
+                Limpiar
+              </Button>
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Hasta</label>
-              <input
-                type="date"
-                value={getDateInputValue(endDate)}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-input rounded-md pl-1 h-9"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Sucursal</label>
-              <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Selecciona sucursal" />
-                </SelectTrigger>
+            <div className="grid gap-3 lg:grid-cols-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Desde</label>
+                <input
+                  type="date"
+                  value={getDateInputValue(startDate)}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Hasta</label>
+                <input
+                  type="date"
+                  value={getDateInputValue(endDate)}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="h-11 w-full rounded-2xl border border-input bg-background px-3"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Sucursal</label>
+                <Select value={branchId} onValueChange={setBranchId}>
+                  <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background data-[size=default]:h-11">
+                    <SelectValue placeholder="Selecciona sucursal" />
+                  </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Todas</SelectItem>
                   {branches.map((branch) => (
@@ -410,84 +420,17 @@ export default function ProfitReportPage() {
                       {branch.name} ({branch.code})
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1 flex items-end justify-baseline pb-1">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStartDate("");
-                  setEndDate("");
-                  setBranchId("ALL");
-                }}
-                className="bg-red-500 text-white hover:bg-red-600 hover:text-white"
-              >
-                <BrushCleaning className="mr-2 h-4 w-4" />
-                Limpiar
-              </Button>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="rounded-[1rem] border border-border/60 bg-slate-50/80 p-4 text-sm leading-6 text-muted-foreground">
+                El filtro aplica tanto al resumen diario como al detalle tabular.
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-5">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                Ingresos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="min-w-0 text-base font-semibold text-emerald-700 md:text-lg 2xl:text-2xl">
-              {currency.format(totals.ingresos)}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                Gastos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="min-w-0 text-base font-semibold text-red-700 md:text-lg 2xl:text-2xl">
-              {currency.format(totals.gastos)}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                CxC
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="min-w-0 text-base font-semibold text-blue-700 md:text-lg 2xl:text-2xl">
-              {currency.format(totals.cxc)}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                CxP
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="min-w-0 text-base font-semibold text-amber-700 md:text-lg 2xl:text-2xl">
-              {currency.format(totals.cxp)}
-            </CardContent>
-          </Card>
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                Utilidad neta
-              </CardTitle>
-            </CardHeader>
-            <CardContent
-              className={`min-w-0 text-base font-semibold md:text-lg 2xl:text-2xl ${
-                totals.utilidad >= 0 ? "text-emerald-700" : "text-red-700"
-              }`}
-            >
-              {currency.format(totals.utilidad)}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
           <CardHeader>
             <CardTitle>Resumen diario</CardTitle>
           </CardHeader>
@@ -508,26 +451,16 @@ export default function ProfitReportPage() {
                   groupedByDay.map((row) => (
                     <TableRow key={row.key}>
                       <TableCell>{row.label}</TableCell>
-                      <TableCell className="text-right">
-                        {currency.format(row.ingresos)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {currency.format(row.gastos)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {currency.format(row.cxc)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {currency.format(row.cxp)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {currency.format(row.utilidad)}
-                      </TableCell>
+                      <TableCell className="text-right">{currency.format(row.ingresos)}</TableCell>
+                      <TableCell className="text-right">{currency.format(row.gastos)}</TableCell>
+                      <TableCell className="text-right">{currency.format(row.cxc)}</TableCell>
+                      <TableCell className="text-right">{currency.format(row.cxp)}</TableCell>
+                      <TableCell className="text-right font-semibold">{currency.format(row.utilidad)}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Sin datos en el rango seleccionado.
                     </TableCell>
                   </TableRow>
@@ -537,18 +470,16 @@ export default function ProfitReportPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transacciones</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Ingresos, gastos, CxC y CxP dentro del rango.
-              </p>
+              <p className="text-sm text-muted-foreground">Ingresos, gastos, CxC y CxP dentro del rango.</p>
             </div>
             <div className="print-hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
+                  <Button variant="outline" className="rounded-2xl">
                     Columnas <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -561,9 +492,7 @@ export default function ProfitReportPage() {
                         key={column.id}
                         className="capitalize"
                         checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
                       >
                         {column.columnDef.header as string}
                       </DropdownMenuCheckboxItem>
@@ -579,12 +508,7 @@ export default function ProfitReportPage() {
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -595,40 +519,25 @@ export default function ProfitReportPage() {
                   table.getRowModel().rows.map((row) => (
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="text-center">
+                    <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
                       Sin transacciones en el rango seleccionado.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-end space-x-2 py-4 print-hidden">
+            <div className="flex items-center justify-end gap-2 border-t border-border/70 pt-4 print-hidden">
               <TablePageSize table={table} />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
+              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
                 Anterior
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
+              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                 Siguiente
               </Button>
             </div>

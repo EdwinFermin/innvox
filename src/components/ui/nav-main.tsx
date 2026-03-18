@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import {
   Collapsible,
@@ -35,19 +36,29 @@ export function NavMain({
     }[];
   }[];
 }) {
+  const pathname = usePathname();
   const isInternalUrl = (url: string) => url.startsWith("/");
+  const isItemActive = (url?: string, subItems?: { title: string; url: string }[]) => {
+    if (url && pathname === url) return true;
+    return subItems?.some((subItem) => pathname === subItem.url || pathname.startsWith(`${subItem.url}/`)) ?? false;
+  };
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
+      <SidebarGroupLabel className="px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-sidebar-foreground/45">
+        Workspace
+      </SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
-          <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
+        {items.map((item) => {
+          const active = isItemActive(item.url, item.items);
+
+          return (
+          <Collapsible key={`${item.title}-${pathname}`} asChild defaultOpen={active || item.isActive}>
             <SidebarMenuItem>
               {Boolean(item.url) ? (
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton asChild tooltip={item.title} isActive={active}>
                   {isInternalUrl(item.url!) ? (
-                    <Link href={item.url!}>
+                    <Link href={item.url!} aria-current={active ? "page" : undefined}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -60,7 +71,7 @@ export function NavMain({
                 </SidebarMenuButton>
               ) : (
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
+                  <SidebarMenuButton tooltip={item.title} isActive={active}>
                     <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -78,7 +89,7 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
+                          <SidebarMenuSubButton asChild isActive={pathname === subItem.url || pathname.startsWith(`${subItem.url}/`)}>
                             {isInternalUrl(subItem.url) ? (
                               <Link href={subItem.url}>
                                 <span>{subItem.title}</span>
@@ -97,7 +108,7 @@ export function NavMain({
               ) : null}
             </SidebarMenuItem>
           </Collapsible>
-        ))}
+        )})}
       </SidebarMenu>
     </SidebarGroup>
   );

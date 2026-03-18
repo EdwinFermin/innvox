@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/ui/app-sidebar";
+import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 import {
   SidebarInset,
   SidebarProvider,
@@ -14,15 +15,34 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <SidebarProvider>
+      <a
+        href="#main-content"
+        className="sr-only rounded-full bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
+      >
+        Saltar al contenido
+      </a>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <DynamicBreadcrumb />
+      <SidebarInset className="dashboard-shell overflow-x-hidden bg-transparent">
+        <header className="bg-white px-3 pt-3 sm:px-4 lg:px-5">
+          <div className="dashboard-panel flex min-h-14 items-center gap-3 px-4 py-3 sm:px-5">
+            <SidebarTrigger className="size-9 rounded-full border border-border/70 bg-background/80" />
+            <Separator orientation="vertical" className="mr-1 hidden h-5 sm:block" />
+            <div className="min-w-0 flex-1">
+              <DynamicBreadcrumb />
+            </div>
+          </div>
         </header>
 
-        <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 pt-6">{children}</main>
+        <div className="px-3 pt-3 sm:px-4 lg:px-5">
+          <DashboardTopbar />
+        </div>
+
+        <main
+          id="main-content"
+          className="flex min-w-0 flex-1 flex-col gap-5 bg-white px-3 py-5 sm:px-4 lg:px-5 lg:py-6"
+        >
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -20,7 +20,6 @@ import {
   Landmark,
   MoreHorizontal,
   Search,
-  SlidersHorizontal,
   Wallet,
   X,
 } from "lucide-react";
@@ -35,9 +34,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -61,13 +57,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { getAccountBranchNames, isSafeAccountImageSrc } from "@/lib/bank-accounts";
@@ -121,37 +117,6 @@ type BankAccountWithBranches = BankAccount & {
   searchText: string;
 };
 
-function MetricCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-}: {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/40 shadow-sm">
-      <CardContent className="flex items-start justify-between gap-4 p-5">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {title}
-          </p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-            {value}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-sm">
-          <Icon className="h-5 w-5" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function FilterField({
   label,
   icon: Icon,
@@ -164,7 +129,7 @@ function FilterField({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-sm backdrop-blur-sm">
+    <div className="space-y-2 min-w-0">
       <label
         htmlFor={htmlFor}
         className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
@@ -436,9 +401,6 @@ const getColumns = (
     enableHiding: false,
     cell: ({ row }) => (
       <div className="flex items-center justify-end gap-2">
-        <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
-          <Link href={`/dashboard/bank-accounts/${row.original.id}`}>Ver detalle</Link>
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label={`Acciones para ${row.original.account_name}`}>
@@ -727,9 +689,13 @@ export default function BankAccountsPage() {
 
   if (!canManageSettings) {
     return (
-      <div className="w-full">
-        <h3 className="text-2xl font-semibold">Cuentas financieras</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <div className="dashboard-grid w-full">
+        <DashboardPageHeader
+          eyebrow="Tesoreria"
+          title="Cuentas financieras"
+          description="No tienes permisos para acceder a esta sección."
+        />
+        <p className="text-sm text-muted-foreground">
           No tienes permisos para acceder a esta sección.
         </p>
       </div>
@@ -741,75 +707,72 @@ export default function BankAccountsPage() {
   }
 
   return (
-    <div className="w-full space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-2xl font-semibold tracking-tight text-foreground text-pretty">
-          Cuentas financieras
-        </h3>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Revisa balances, cobertura por sucursal y disponibilidad publica de cada cuenta en una sola vista.
-        </p>
-      </div>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Tesoreria"
+        title="Cuentas financieras"
+        description="Revisa balances, cobertura y disponibilidad de cuentas."
+        stats={[
+          { label: "Cuentas", value: String(summary.total) },
+          { label: "Activas", value: String(summary.active), tone: "positive" },
+          { label: "Publicas", value: String(summary.public), tone: "warning" },
+          {
+            label: "Balance",
+            value: formatCurrency(summary.balances.DOP, "DOP"),
+            tone: "neutral",
+          },
+        ]}
+        actions={
+          <>
+            <GenerateAccountsQrDialog branches={branches} />
+            <NewBankAccountDialog />
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Cuentas en vista"
-          value={String(summary.total)}
-          description="Resultado de los filtros actuales"
-          icon={Landmark}
-        />
-        <MetricCard
-          title="Activas"
-          value={String(summary.active)}
-          description="Listas para operar"
-          icon={Wallet}
-        />
-        <MetricCard
-          title="Publicas"
-          value={String(summary.public)}
-          description="Disponibles para clientes"
-          icon={Building2}
-        />
-        <MetricCard
-          title="Balance DOP"
-          value={formatCurrency(summary.balances.DOP, "DOP")}
-          description={`USD ${formatCurrency(summary.balances.USD, "USD")}`}
-          icon={Landmark}
-        />
-      </div>
-
-      <Card className="overflow-hidden border-border/60 shadow-sm">
-        <CardHeader className="gap-4 border-b border-border/60 bg-muted/20">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>Lista de cuentas</CardTitle>
-              <CardDescription>
-                Filtra por tipo, estado, sucursal o moneda para encontrar la cuenta correcta mas rapido.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <GenerateAccountsQrDialog branches={branches} />
-              <NewBankAccountDialog />
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-muted/35 via-background to-background p-4 shadow-sm">
+      <Card className="overflow-hidden rounded-[1.9rem] border-border/70 shadow-[0_20px_52px_-34px_rgba(15,23,42,0.24)]">
+        <CardContent className="px-5 py-1">
+          <div>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                  Filtros y busqueda
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  Busca y filtra cuentas
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Encuentra la cuenta correcta por nombre, operacion, sucursal o moneda.
+                  Ajusta la vista por nombre, tipo, sucursal, estado o moneda.
                 </p>
               </div>
-              <Badge variant="secondary" className="h-9 w-fit px-3 text-sm">
-                {filteredAccounts.length} resultado{filteredAccounts.length === 1 ? "" : "s"}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="h-9 w-fit px-3 text-sm">
+                  {filteredAccounts.length} resultado{filteredAccounts.length === 1 ? "" : "s"}
+                </Badge>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 gap-2 rounded-full px-4">
+                      Columnas <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {table
+                      .getAllColumns()
+                      .filter((column) => column.getCanHide())
+                      .map((column) => (
+                        <DropdownMenuCheckboxItem
+                          key={column.id}
+                          className="capitalize"
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                        >
+                          {getColumnLabel(column.id)}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.5fr_repeat(4,minmax(0,1fr))]">
+            <div className="mt-6 grid grid-cols-1 gap-3 xl:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))]">
               <FilterField label="Busqueda" icon={Search} htmlFor="bank-accounts-search">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -821,7 +784,7 @@ export default function BankAccountsPage() {
                     placeholder="Cuenta, banco, codigo o numero"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    className="h-11 border-border/60 bg-background pl-9"
+                    className="h-11 rounded-2xl border-border/70 bg-slate-50 pl-9"
                   />
                 </div>
               </FilterField>
@@ -831,7 +794,7 @@ export default function BankAccountsPage() {
                   value={statusFilter}
                   onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por estado" className="h-11 border-border/60 bg-background">
+                  <SelectTrigger aria-label="Filtrar por estado" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -847,7 +810,7 @@ export default function BankAccountsPage() {
                   value={typeFilter}
                   onValueChange={(value) => setTypeFilter(value as AccountTypeFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por tipo de cuenta" className="h-11 border-border/60 bg-background">
+                  <SelectTrigger aria-label="Filtrar por tipo de cuenta" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
                     <SelectValue placeholder="Tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -863,7 +826,7 @@ export default function BankAccountsPage() {
                   value={branchFilter}
                   onValueChange={(value) => setBranchFilter(value as BranchFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por sucursal" className="h-11 border-border/60 bg-background">
+                  <SelectTrigger aria-label="Filtrar por sucursal" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
                     <SelectValue placeholder="Sucursal" />
                   </SelectTrigger>
                   <SelectContent>
@@ -882,7 +845,7 @@ export default function BankAccountsPage() {
                   value={currencyFilter}
                   onValueChange={(value) => setCurrencyFilter(value as CurrencyFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por moneda" className="h-11 border-border/60 bg-background">
+                  <SelectTrigger aria-label="Filtrar por moneda" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
                     <SelectValue placeholder="Moneda" />
                   </SelectTrigger>
                   <SelectContent>
@@ -912,35 +875,16 @@ export default function BankAccountsPage() {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-10 gap-2 rounded-full px-4">
-                      Columnas <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {table
-                      .getAllColumns()
-                      .filter((column) => column.getCanHide())
-                      .map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                        >
-                          {getColumnLabel(column.id)}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="text-sm text-muted-foreground">
+                {hasActiveFilters ? "Filtros activos aplicados a la lista." : "Sin filtros activos."}
               </div>
             </div>
           </div>
-        </CardHeader>
+        </CardContent>
+      </Card>
 
-        <CardContent className="p-5">
+      <Card className="overflow-hidden rounded-[1.9rem] border-border/70 shadow-[0_20px_52px_-34px_rgba(15,23,42,0.24)]">
+        <CardContent className="px-2 pt-0 pb-2">
           {isError ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -999,10 +943,7 @@ export default function BankAccountsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button asChild className="flex-1">
-                        <Link href={`/dashboard/bank-accounts/${row.original.id}`}>Ver detalle</Link>
-                      </Button>
+                    <div className="flex items-center justify-end gap-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1065,13 +1006,39 @@ export default function BankAccountsPage() {
                   </CardContent>
                 </Card>
               ))}
+
+              <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Pagina {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1} · {filteredAccounts.length} cuentas en vista
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  <TablePageSize table={table} />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-border/60">
+            <div className="overflow-hidden">
               <Table>
-                <TableCaption>
-                  Listado de cuentas financieras con estado operativo, cobertura por sucursal y balance actual.
-                </TableCaption>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
@@ -1103,37 +1070,36 @@ export default function BankAccountsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
-
-          {table.getRowModel().rows.length > 0 ? (
-            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="text-sm text-muted-foreground">
-                Pagina {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <TablePageSize table={table} />
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                  >
-                    Siguiente
-                  </Button>
+              <div className="flex flex-col gap-3 border-t border-border/70 px-1 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-0">
+                <div className="text-sm text-muted-foreground">
+                  Pagina {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1} · {filteredAccounts.length} cuentas en vista
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  <TablePageSize table={table} />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
         </CardContent>
       </Card>
     </div>
