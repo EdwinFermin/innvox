@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { getSpanishMonthName, parseInvoicePdf } from "@/utils/invoice-pdf-export";
 
 const DGII_HEADERS = [
@@ -194,27 +195,29 @@ export default function DgiiFormPage() {
   }, [parsedInvoices, skippedFiles]);
 
   return (
-    <div className="w-full space-y-4">
-      <div>
-        <h3 className="text-base font-semibold md:text-lg 2xl:text-2xl">
-          Formulario DGII
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Carga multiples facturas en PDF y genera el archivo Excel con formato
-          DGII usando la plantilla del sistema.
-        </p>
-      </div>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Reportes"
+        title="Formulario DGII"
+        description="Carga multiples facturas en PDF y genera el archivo Excel con formato DGII usando la plantilla del sistema."
+        stats={[
+          { label: "Procesadas", value: String(processedCount), tone: "positive" },
+          { label: "Omitidas", value: String(skippedFiles.length), tone: "warning" },
+          { label: "Listas", value: String(parsedInvoices.length) },
+        ]}
+      />
 
-      <Card>
+      <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
         <CardHeader>
           <CardTitle>Exportar desde PDFs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleOpenPdfPicker} disabled={isAnalyzing || isExporting}>
+            <Button className="rounded-2xl" onClick={handleOpenPdfPicker} disabled={isAnalyzing || isExporting}>
               {isAnalyzing ? "Analizando facturas..." : "Cargar facturas"}
             </Button>
             <Button
+              className="rounded-2xl"
               onClick={handleExport}
               disabled={isAnalyzing || isExporting || parsedInvoices.length === 0}
               variant="outline"
@@ -231,9 +234,9 @@ export default function DgiiFormPage() {
             />
           </div>
 
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>Procesadas: {processedCount}</p>
-            <p>Omitidas: {skippedFiles.length}</p>
+          <div className="space-y-1 rounded-[1rem] border border-border/60 bg-slate-50/80 p-4 text-sm text-muted-foreground">
+            {processedCount > 0 ? <p>Procesadas: {processedCount}</p> : null}
+            {skippedFiles.length > 0 ? <p>Omitidas: {skippedFiles.length}</p> : null}
             <p>
               Soporta los dos formatos actuales de factura de EnviosRD siempre que el
               PDF contenga texto seleccionable.
@@ -241,7 +244,7 @@ export default function DgiiFormPage() {
           </div>
 
           {skippedFiles.length > 0 ? (
-            <div className="rounded-md border border-destructive/30 p-3">
+            <div className="rounded-[1rem] border border-destructive/30 bg-red-50/80 p-4">
               <p className="text-sm font-medium text-destructive mb-2">
                 Archivos omitidos
               </p>

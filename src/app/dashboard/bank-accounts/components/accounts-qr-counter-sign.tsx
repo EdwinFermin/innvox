@@ -3,15 +3,18 @@
 import * as React from "react";
 import Image from "next/image";
 
+import type { PublicBankAccount } from "@/lib/public-accounts";
+
 type AccountsQrCounterSignProps = {
   branchName: string;
   qrCodeUrl: string;
   publicLink: string;
+  accounts: PublicBankAccount[];
 };
 
 export const ACCOUNTS_SIGN_DIMENSIONS = {
   width: 900,
-  height: 1200,
+  height: 1480,
 };
 
 export const ACCOUNTS_SIGN_LOGO_SRC = "/brand/enviosrd-logo.png";
@@ -27,7 +30,7 @@ export const ACCOUNTS_SIGN_COPY = {
 export const AccountsQrCounterSign = React.forwardRef<
   HTMLDivElement,
   AccountsQrCounterSignProps
->(function AccountsQrCounterSign({ branchName, qrCodeUrl, publicLink }, ref) {
+>(function AccountsQrCounterSign({ branchName, qrCodeUrl, publicLink, accounts }, ref) {
   return (
     <div
       ref={ref}
@@ -81,6 +84,46 @@ export const AccountsQrCounterSign = React.forwardRef<
 
         <div className="rounded-[0.7rem] border border-[#dce6db] bg-white px-4 py-4 text-center text-sm leading-6 text-[#556a63]">
           {ACCOUNTS_SIGN_COPY.instruction}
+        </div>
+
+        <div className="rounded-[0.7rem] border border-[#dce6db] bg-[#f8fbf7] px-4 py-4">
+          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8a9b95]">
+            Cuentas disponibles
+          </p>
+          <div className="mt-3 space-y-2">
+            {accounts.length ? (
+              accounts.slice(0, 4).map((account) => (
+                <div
+                  key={account.id}
+                  className="rounded-[0.6rem] border border-[#d9e5db] bg-white px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm font-semibold text-[#0d2d4f]">
+                      {account.bank_name || account.account_name}
+                    </p>
+                    <span className="shrink-0 text-xs font-semibold text-[#0f6b46]">
+                      {account.currency}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-[#556a63]">
+                    {account.account_name}
+                  </p>
+                  <p className="mt-1 font-mono text-sm text-[#0d2d4f]">
+                    {account.account_number || "Numero no disponible"}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[0.6rem] border border-dashed border-[#d9e5db] bg-white px-3 py-4 text-center text-xs text-[#556a63]">
+                No hay cuentas publicas disponibles en este momento.
+              </div>
+            )}
+            {accounts.length > 4 ? (
+              <p className="text-center text-[11px] text-[#556a63]">
+                y {accounts.length - 4} cuenta{accounts.length - 4 === 1 ? "" : "s"} mas en el enlace
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="border-t border-dashed border-[#d6ded4] pt-4 text-center">

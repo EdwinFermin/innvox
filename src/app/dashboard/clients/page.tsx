@@ -49,6 +49,7 @@ import { deleteClient } from "@/actions/clients";
 import { toast } from "sonner";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -205,6 +206,15 @@ export default function ClientsPage() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  const clientSummary = React.useMemo(() => {
+    const withPoBox = clients.filter((client) => Boolean(client.po_box)).length;
+
+    return {
+      total: clients.length,
+      withPoBox,
+    };
+  }, [clients]);
+
   const table = useReactTable({
     data: clients,
     columns,
@@ -225,29 +235,35 @@ export default function ClientsPage() {
   });
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Clientes</h3>
-      <span className="text-muted-foreground text-sm">
-        Gestiona la información de los clientes
-      </span>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Relacion comercial"
+        title="Clientes"
+        description="Centraliza la cartera de clientes, identifica registros incompletos y mantén una bandeja más clara para ventas y facturación."
+        stats={[
+          { label: "Clientes", value: String(clientSummary.total) },
+          { label: "Con casillero", value: String(clientSummary.withPoBox), tone: "positive" },
+          { label: "Sin casillero", value: String(clientSummary.total - clientSummary.withPoBox), tone: "warning" },
+        ]}
+        actions={<NewClientDialog />}
+      />
       <div
-        className={`grid w-full py-4 mt-2 gap-4 ${
-          isMobile ? "grid-cols-1" : "grid-cols-2"
-        }`}
+        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
       >
         <Input
-          placeholder="Buscar..."
+          aria-label="Buscar clientes"
+          placeholder="Buscar clientes…"
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
           }
-          className="w-full"
+          className="h-11 rounded-2xl border-border/70 bg-background/80"
         />
 
-        <div className="grid grid-cols-2 gap-2 ">
+        <div className="w-full sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
                 Columnas <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -271,11 +287,9 @@ export default function ClientsPage() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <NewClientDialog />
         </div>
       </div>
-      <div className="overflow-hidden rounded-md border">
+      <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -332,30 +346,31 @@ export default function ClientsPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <TablePageSize table={table} />
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+          <TablePageSize table={table} />
+          <div className="text-muted-foreground flex-1 text-sm">
+            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
     </div>

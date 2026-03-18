@@ -62,6 +62,7 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
 import { useUsers } from "@/hooks/use-users";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   ListVisibilityControl,
   type VisibilityScope,
@@ -69,6 +70,7 @@ import {
 import { deleteIncome } from "@/lib/financial-movements";
 import {
   extractDateOnlyKey,
+  getDateInputValue,
   getTodayDateKey,
   parseDateOnly,
 } from "@/utils/dates";
@@ -402,6 +404,13 @@ export default function IncomesPage() {
     user?.branch_ids,
   ]);
 
+  const incomeSummary = React.useMemo(() => {
+    const total = filteredIncomes.reduce((acc, income) => acc + Number(income.amount || 0), 0);
+    const branchesCovered = new Set(filteredIncomes.map((income) => income.branch_id)).size;
+
+    return { total, branchesCovered };
+  }, [filteredIncomes]);
+
   const branchNameById = React.useMemo(
     () =>
       branches.reduce<Record<string, string>>((acc, branch) => {
@@ -514,27 +523,33 @@ export default function IncomesPage() {
   });
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Ingresos</h3>
-      <span className="text-muted-foreground text-sm">
-        Registra y gestiona los ingresos por sucursal
-      </span>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Caja"
+        title="Ingresos"
+        description="Monitorea entradas por sucursal, filtra por periodo y manten una lectura mas limpia del ritmo comercial y operativo."
+        stats={[
+          { label: "Registros", value: String(filteredIncomes.length) },
+          { label: "Sucursales", value: String(incomeSummary.branchesCovered), tone: "positive" },
+          { label: "Total", value: currencyFormatter.format(incomeSummary.total) },
+        ]}
+        actions={<NewIncomeDialog openOnMount={openDialog} />}
+      />
       <div
-        className={`grid w-full py-4 mt-2 gap-4 ${
-          isMobile ? "grid-cols-1" : "grid-cols-2"
-        }`}
+        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
       >
         <Input
-          placeholder="Buscar por ID, descripcion o monto..."
+          aria-label="Buscar ingresos"
+          placeholder="Buscar por ID, descripcion o monto…"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
-          className="w-full"
+          className="h-11 rounded-2xl border-border/70 bg-background/80"
         />
 
-        <div className="grid grid-cols-2 gap-2 ">
+        <div className="w-full sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
                 Columnas <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -558,26 +573,24 @@ export default function IncomesPage() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <NewIncomeDialog openOnMount={openDialog} />
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-4 mb-4">
+      <div className="dashboard-panel grid gap-3 p-4 sm:grid-cols-4">
         <div className="space-y-1">
           <label className="text-sm font-medium text-foreground">Desde</label>
           <input
-            className="w-full border border-input rounded-md pl-1 h-9"
+            className="h-11 w-full rounded-2xl border border-input bg-background px-3"
             type="date"
-            value={startDate}
+            value={getDateInputValue(startDate)}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium text-foreground">Hasta</label>
           <input
-            className="w-full border border-input rounded-md pl-1 h-9"
+            className="h-11 w-full rounded-2xl border border-input bg-background px-3"
             type="date"
-            value={endDate}
+            value={getDateInputValue(endDate)}
             onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
@@ -589,7 +602,7 @@ export default function IncomesPage() {
             value={branchFilter}
             onValueChange={(val) => setBranchFilter(val)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background px-3 text-sm data-[size=default]:h-11">
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
@@ -610,7 +623,7 @@ export default function IncomesPage() {
             value={typeFilter}
             onValueChange={(val) => setTypeFilter(val)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background px-3 text-sm data-[size=default]:h-11">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
@@ -625,7 +638,7 @@ export default function IncomesPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -682,35 +695,36 @@ export default function IncomesPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <ListVisibilityControl
-          role={user?.type}
-          value={visibilityScope}
-          onChange={setVisibilityScope}
-        />
-        <TablePageSize table={table} />
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+          <ListVisibilityControl
+            role={user?.type}
+            value={visibilityScope}
+            onChange={setVisibilityScope}
+          />
+          <TablePageSize table={table} />
+          <div className="text-muted-foreground flex-1 text-sm">
+            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
     </div>

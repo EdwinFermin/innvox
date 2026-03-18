@@ -6,6 +6,7 @@ import { es } from "date-fns/locale";
 import { Printer, RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   Card,
   CardContent,
@@ -36,7 +37,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { usePrintDailyClose } from "@/hooks/use-print-daily-close";
 import { useAuthStore } from "@/store/auth";
 import type { Currency } from "@/types/bank-account.types";
-import { formatDateOnly, getTodayDateKey } from "@/utils/dates";
+import { formatDateOnly, getDateInputValue, getTodayDateKey } from "@/utils/dates";
 
 function formatMoney(currency: Currency, amount: number) {
   return new Intl.NumberFormat("es-DO", {
@@ -142,50 +143,40 @@ export default function DailyCloseReportPage() {
   const isLoading = isBranchesLoading || isIncomesLoading || isExpensesLoading;
 
   return (
-    <div className="w-full space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-base font-semibold md:text-lg 2xl:text-2xl">
-          Cuadre del día
-        </h3>
-        <div className="space-y-1 text-sm text-muted-foreground">
-          <p>
-            Consolidado por sucursal del dinero recibido por transferencia, del
-            dinero recibido en efectivo y de todos los gastos del día.
-          </p>
-          <p>
-            Fecha: {dateLabel} · Sucursal: {branchLabel}
-          </p>
-        </div>
-      </div>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Reportes"
+        title="Cuadre del día"
+        description="Consolidado por sucursal del dinero recibido y gastado en el día seleccionado."
+        stats={[
+          { label: "Transferencia", value: formatMoney(report.currency, report.summary.transferIncome), tone: "positive" },
+          { label: "Efectivo", value: formatMoney(report.currency, report.summary.cashIncome), tone: "warning" },
+          { label: "Gastos", value: formatMoney(report.currency, report.summary.expenses), tone: "warning" },
+          { label: "Neto", value: formatMoney(report.currency, report.summary.net), tone: report.summary.net >= 0 ? "positive" : "warning" },
+        ]}
+        actions={
+          <Button variant="outline" className="rounded-2xl" onClick={() => print()} disabled={!selectedBranchId}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimir
+          </Button>
+        }
+      />
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <Button variant="outline" onClick={() => print()} disabled={!selectedBranchId}>
-          <Printer className="mr-2 h-4 w-4" />
-          Imprimir
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>
-            El reporte solo muestra los movimientos del día y la sucursal seleccionados.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-1">
+      <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+        <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto]">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Fecha</label>
             <input
               type="date"
-              value={selectedDate}
+              value={getDateInputValue(selectedDate)}
               onChange={(event) => setSelectedDate(event.target.value)}
-              className="h-9 w-full rounded-md border border-input px-2"
+              className="h-11 w-full rounded-2xl border border-input bg-background px-3"
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Sucursal</label>
             <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background data-[size=default]:h-11">
                 <SelectValue placeholder="Selecciona sucursal" />
               </SelectTrigger>
               <SelectContent>
@@ -198,7 +189,7 @@ export default function DailyCloseReportPage() {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button variant="outline" onClick={() => setSelectedDate(getTodayDateKey())}>
+            <Button variant="outline" className="h-11 rounded-2xl" onClick={() => setSelectedDate(getTodayDateKey())}>
               <RefreshCcw className="mr-2 h-4 w-4" />
               Hoy
             </Button>
@@ -214,92 +205,7 @@ export default function DailyCloseReportPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Ingresos por transferencia
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-base font-semibold text-emerald-700 md:text-lg 2xl:text-2xl">
-            {formatMoney(report.currency, report.summary.transferIncome)}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Ingresos en efectivo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-base font-semibold text-amber-700 md:text-lg 2xl:text-2xl">
-            {formatMoney(report.currency, report.summary.cashIncome)}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Gastos del día
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-base font-semibold text-red-700 md:text-lg 2xl:text-2xl">
-            {formatMoney(report.currency, report.summary.expenses)}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Neto del día
-            </CardTitle>
-          </CardHeader>
-          <CardContent
-            className={`text-base font-semibold md:text-lg 2xl:text-2xl ${
-              report.summary.net >= 0 ? "text-emerald-700" : "text-red-700"
-            }`}
-          >
-            {formatMoney(report.currency, report.summary.net)}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Divisiones</CardTitle>
-          <CardDescription>
-            Resumen separado por transferencias, efectivo y gastos del día.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <div className="text-sm font-medium text-emerald-700">Transferencias</div>
-            <div className="mt-2 text-2xl font-semibold text-emerald-800">
-              {formatMoney(report.currency, report.summary.transferIncome)}
-            </div>
-            <div className="mt-1 text-sm text-emerald-700">
-              {report.transferIncomeRows.length} movimiento(s)
-            </div>
-          </div>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <div className="text-sm font-medium text-amber-700">Efectivo</div>
-            <div className="mt-2 text-2xl font-semibold text-amber-800">
-              {formatMoney(report.currency, report.summary.cashIncome)}
-            </div>
-            <div className="mt-1 text-sm text-amber-700">
-              {report.cashIncomeRows.length} movimiento(s)
-            </div>
-          </div>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="text-sm font-medium text-red-700">Gastos</div>
-            <div className="mt-2 text-2xl font-semibold text-red-800">
-              {formatMoney(report.currency, report.summary.expenses)}
-            </div>
-            <div className="mt-1 text-sm text-red-700">
-              {report.expenseRows.length} movimiento(s)
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
+      <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
         <CardHeader>
           <CardTitle>Movimientos del día</CardTitle>
           <CardDescription>

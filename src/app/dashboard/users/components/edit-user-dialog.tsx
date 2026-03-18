@@ -1,8 +1,19 @@
 import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
+import { updateUser } from "@/actions/users";
+import { User } from "@/types/auth.types";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -15,16 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateUser } from "@/actions/users";
-import { toast } from "sonner";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
-import { User } from "@/types/auth.types";
 
 const editUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
@@ -38,10 +41,7 @@ export function EditUserDialog({ user }: { user: User }) {
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuthStore();
-  const { data: branches } = useBranches(
-    currentUser?.id || "",
-    currentUser?.branch_ids
-  );
+  const { data: branches } = useBranches(currentUser?.id || "", currentUser?.branch_ids);
 
   const {
     register,
@@ -87,6 +87,7 @@ export function EditUserDialog({ user }: { user: User }) {
   });
 
   const selectedBranches = watch("branch_ids") ?? [];
+  const role = watch("type");
 
   const toggleBranch = (id: string) => {
     const current = new Set(selectedBranches);
@@ -103,105 +104,105 @@ export function EditUserDialog({ user }: { user: User }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start">
+        <Button variant="ghost" className="w-full justify-start rounded-xl">
           Editar
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Editar usuario</DialogTitle>
+      <DialogContent className="dashboard-dialog-content max-w-2xl overflow-hidden">
+        <DialogHeader className="dashboard-dialog-header">
+          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
+            Editar usuario
+          </DialogTitle>
+          <DialogDescription className="max-w-2xl leading-6">
+            Ajusta nombre, rol y sucursales disponibles sin cambiar el correo de acceso.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Nombre</label>
-            <Input
-              placeholder="Nombre completo"
-              {...register("name")}
-              disabled={isPending}
-            />
-            {errors.name && (
-              <p className="text-xs text-red-500">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Correo</label>
-            <Input value={user.email} disabled />
-            <p className="text-xs text-muted-foreground">
-              El correo no se puede modificar desde aquí.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Rol</label>
-            <Select
-              value={watch("type")}
-              onValueChange={(val) =>
-                setValue("type", val as EditUserValues["type"], {
-                  shouldValidate: true,
-                })
-              }
-              disabled={isPending}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ADMIN">ADMIN</SelectItem>
-                <SelectItem value="USER">USER</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && (
-              <p className="text-xs text-red-500">{errors.type.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-medium">
-              Sucursales permitidas
-            </label>
-            <div className="grid gap-2 max-h-56 overflow-auto rounded-md border p-3">
-              {branches.map((branch) => (
-                <label
-                  key={branch.id}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <Checkbox
-                    checked={selectedBranches.includes(branch.id)}
-                    onCheckedChange={() => toggleBranch(branch.id)}
-                    disabled={isPending}
-                  />
-                  <span>
-                    {branch.name} ({branch.code})
-                  </span>
+        <form onSubmit={onSubmit}>
+          <div className="dashboard-dialog-body">
+            <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
+              <div className="dashboard-field">
+                <label htmlFor="edit-user-name" className="dashboard-field-label">
+                  Nombre
                 </label>
-              ))}
-              {!branches.length && (
-                <span className="text-xs text-muted-foreground">
-                  No hay sucursales disponibles.
-                </span>
+                <Input
+                  id="edit-user-name"
+                  placeholder="Nombre completo…"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("name")}
+                  disabled={isPending}
+                />
+                {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
+              </div>
+
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Correo</label>
+                <Input value={user.email} disabled className="h-11 rounded-2xl border-border/70 bg-muted/30" />
+                <p className="dashboard-field-hint">El correo no se puede modificar desde aquí.</p>
+              </div>
+
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Rol</label>
+                <Select
+                  value={role}
+                  onValueChange={(val) =>
+                    setValue("type", val as EditUserValues["type"], {
+                      shouldValidate: true,
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background">
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                    <SelectItem value="USER">USER</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}
+              </div>
+            </div>
+
+            <div className="dashboard-form-card space-y-3">
+              <div className="dashboard-field-label">Sucursales permitidas</div>
+              <div className="flex max-h-48 flex-wrap gap-2 overflow-auto rounded-[1rem] border border-border/70 bg-background/85 p-3">
+                {branches.map((branch) => (
+                  <label
+                    key={branch.id}
+                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={selectedBranches.includes(branch.id)}
+                      onCheckedChange={() => toggleBranch(branch.id)}
+                      disabled={isPending}
+                    />
+                    <span>{branch.name} ({branch.code})</span>
+                  </label>
+                ))}
+                {!branches.length && (
+                  <span className="dashboard-field-hint">No hay sucursales disponibles.</span>
+                )}
+              </div>
+              {errors.branch_ids && (
+                <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
               )}
             </div>
-            {errors.branch_ids && (
-              <p className="text-xs text-red-500">
-                {errors.branch_ids.message as string}
-              </p>
-            )}
           </div>
 
-          <div className="flex justify-end gap-2">
+          <DialogFooter className="dashboard-dialog-footer">
             <Button
               type="button"
               variant="outline"
+              className="rounded-2xl"
               onClick={() => setOpen(false)}
               disabled={isPending}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
+            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
+              {isPending ? "Guardando…" : "Guardar cambios"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

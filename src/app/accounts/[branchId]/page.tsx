@@ -10,17 +10,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { isSafeAccountImageSrc } from "@/lib/bank-accounts";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-
-type PublicBankAccount = {
-  id: string;
-  account_name: string;
-  bank_name: string | null;
-  account_number: string | null;
-  currency: string;
-  icon_url: string | null;
-  account_type: string;
-};
+import {
+  fetchPublicBranchAccounts,
+} from "@/lib/public-accounts";
 
 function CopyAccountNumberButton({ accountNumber }: { accountNumber: string }) {
   const [copied, setCopied] = React.useState(false);
@@ -68,33 +60,7 @@ export default function PublicBranchAccountsPage() {
 
   const accountsQuery = useQuery({
     queryKey: ["public-branch-accounts", branchId],
-    queryFn: async (): Promise<PublicBankAccount[]> => {
-      const supabase = getSupabaseBrowserClient();
-
-      // Find bank_account IDs linked to this branch via the junction table
-      const { data: junctionRows, error: junctionError } = await supabase
-        .from("bank_account_branches")
-        .select("bank_account_id")
-        .eq("branch_id", branchId);
-
-      if (junctionError) throw junctionError;
-
-      const accountIds = (junctionRows ?? []).map((r) => r.bank_account_id);
-
-      if (accountIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from("bank_accounts")
-        .select("id, account_name, bank_name, account_number, currency, icon_url, account_type")
-        .in("id", accountIds)
-        .eq("is_active", true)
-        .eq("account_type", "bank")
-        .eq("is_public", true);
-
-      if (error) throw error;
-
-      return (data ?? []) as PublicBankAccount[];
-    },
+    queryFn: () => fetchPublicBranchAccounts(branchId),
     enabled: !!branchId,
   });
 

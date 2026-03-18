@@ -1,8 +1,22 @@
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { ReactNode } from "react";
 
 import "@/app/globals.css";
 import { ClientRoot } from "@/app/client-root";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-ibm-plex-mono",
+  display: "swap",
+});
 
 const appName = "Innvox";
 const appDescription =
@@ -76,13 +90,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#f5f7f4",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body
+        className={`${manrope.variable} ${ibmPlexMono.variable} min-h-screen bg-background text-foreground antialiased`}
+      >
         <ClientRoot>{children}</ClientRoot>
       </body>
     </html>

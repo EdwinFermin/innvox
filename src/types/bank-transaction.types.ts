@@ -23,4 +23,6 @@ export interface BankTransaction {
   linked_income_friendly_id?: string | null;
   linked_expense_friendly_id?: string | null;
   related_transfer_friendly_id?: string | null;
+  related_account_name?: string | null;
+  related_account_number_last4?: string | null;
 }

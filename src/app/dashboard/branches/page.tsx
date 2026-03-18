@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -208,6 +209,15 @@ export default function BranchesPage() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  const branchesSummary = React.useMemo(() => {
+    const withCode = branches.filter((branch) => Boolean(branch.code)).length;
+
+    return {
+      total: branches.length,
+      withCode,
+    };
+  }, [branches]);
+
   const table = useReactTable({
     data: branches,
     columns,
@@ -229,9 +239,13 @@ export default function BranchesPage() {
 
   if (!canManageBranches) {
     return (
-      <div className="w-full">
-        <h3 className="text-2xl font-semibold">Sucursales</h3>
-        <p className="text-sm text-muted-foreground mt-2">
+      <div className="dashboard-grid w-full">
+        <DashboardPageHeader
+          eyebrow="Estructura"
+          title="Sucursales"
+          description="No tienes permisos para acceder a esta sección."
+        />
+        <p className="text-sm text-muted-foreground">
           No tienes permisos para acceder a esta sección.
         </p>
       </div>
@@ -239,29 +253,35 @@ export default function BranchesPage() {
   }
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Sucursales</h3>
-      <span className="text-muted-foreground text-sm">
-        Gestiona la información de las sucursales
-      </span>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Estructura"
+        title="Sucursales"
+        description="Organiza la red operativa, valida códigos y mantén una lectura más clara de la estructura disponible para el negocio."
+        stats={[
+          { label: "Sucursales", value: String(branchesSummary.total) },
+          { label: "Con código", value: String(branchesSummary.withCode), tone: "positive" },
+          { label: "Sin código", value: String(branchesSummary.total - branchesSummary.withCode), tone: "warning" },
+        ]}
+        actions={<NewBranchDialog />}
+      />
       <div
-        className={`grid w-full py-4 mt-2 gap-4 ${
-          isMobile ? "grid-cols-1" : "grid-cols-2"
-        }`}
+        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
       >
         <Input
-          placeholder="Buscar..."
+          aria-label="Buscar sucursales"
+          placeholder="Buscar sucursales…"
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
           }
-          className="w-full"
+          className="h-11 rounded-2xl border-border/70 bg-background/80"
         />
 
-        <div className="grid grid-cols-2 gap-2 ">
+        <div className="w-full sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
                 Columnas <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -285,11 +305,9 @@ export default function BranchesPage() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <NewBranchDialog />
         </div>
       </div>
-      <div className="overflow-hidden rounded-md border">
+      <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -346,30 +364,31 @@ export default function BranchesPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <TablePageSize table={table} />
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+          <TablePageSize table={table} />
+          <div className="text-muted-foreground flex-1 text-sm">
+            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
     </div>

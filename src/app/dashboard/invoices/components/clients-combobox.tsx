@@ -42,7 +42,7 @@ export function ClientsCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="h-11 w-full justify-between rounded-2xl border-border/70 bg-background px-4"
         >
           {value
             ? clients.find((client) => client.id === value)?.name

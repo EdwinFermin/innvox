@@ -1,13 +1,23 @@
 import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PlusCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
+import { createUser } from "@/actions/users";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,15 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createUser } from "@/actions/users";
-import { toast } from "sonner";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const newUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
@@ -76,137 +79,157 @@ export function NewUserDialog() {
     },
   });
 
+  const selectedBranches = watch("branch_ids") ?? [];
+  const role = watch("type");
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="w-full" onClick={() => reset({ type: "USER" })}>
+        <Button
+          variant="default"
+          className="w-full rounded-2xl sm:w-auto"
+          onClick={() => reset({ type: "USER", branch_ids: [] })}
+        >
           <PlusCircle className="mr-1" />
           Nuevo usuario
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">Nuevo usuario</DialogTitle>
+      <DialogContent className="dashboard-dialog-content max-w-2xl overflow-hidden">
+        <DialogHeader className="dashboard-dialog-header">
+          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
+            Nuevo usuario
+          </DialogTitle>
+          <DialogDescription className="max-w-2xl leading-6">
+            Crea un acceso nuevo, asigna su rol operativo y limita las sucursales disponibles según el alcance del usuario.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-start">Nombre</label>
-            <Input
-              placeholder="Nombre completo"
-              {...register("name")}
-              disabled={isPending}
-            />
-            {errors.name && (
-              <p className="text-red-500 text-xs">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-start">Correo</label>
-            <Input
-              type="email"
-              placeholder="usuario@correo.com"
-              {...register("email")}
-              disabled={isPending}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-xs">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-start">Rol</label>
-            <Select
-              value={watch("type")}
-              onValueChange={(val) =>
-                setValue("type", val as NewUserValues["type"], {
-                  shouldValidate: true,
-                })
-              }
-              disabled={isPending}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ADMIN">ADMIN</SelectItem>
-                <SelectItem value="USER">USER</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && (
-              <p className="text-red-500 text-xs">{errors.type.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-start">
-              Sucursales permitidas
-            </label>
-            <div className="grid gap-2 max-h-48 overflow-auto rounded-md border p-3">
-              {branches.map((branch) => (
-                <label
-                  key={branch.id}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <Checkbox
-                    checked={(watch("branch_ids") ?? []).includes(branch.id)}
-                    onCheckedChange={() => {
-                      const current = new Set(watch("branch_ids") ?? []);
-                      if (current.has(branch.id)) {
-                        current.delete(branch.id);
-                      } else {
-                        current.add(branch.id);
-                      }
-                      setValue("branch_ids", Array.from(current), {
-                        shouldValidate: true,
-                      });
-                    }}
-                    disabled={isPending}
-                  />
-                  <span>
-                    {branch.name} ({branch.code})
-                  </span>
+        <form onSubmit={onSubmit}>
+          <div className="dashboard-dialog-body">
+            <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
+              <div className="dashboard-field">
+                <label htmlFor="new-user-name" className="dashboard-field-label">
+                  Nombre
                 </label>
-              ))}
-              {!branches.length && (
-                <span className="text-xs text-muted-foreground">
-                  No hay sucursales disponibles.
-                </span>
+                <Input
+                  id="new-user-name"
+                  placeholder="Nombre completo…"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("name")}
+                  disabled={isPending}
+                />
+                {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
+              </div>
+
+              <div className="dashboard-field">
+                <label htmlFor="new-user-email" className="dashboard-field-label">
+                  Correo
+                </label>
+                <Input
+                  id="new-user-email"
+                  type="email"
+                  placeholder="usuario@correo.com…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("email")}
+                  disabled={isPending}
+                />
+                {errors.email && <p className="dashboard-field-error">{errors.email.message}</p>}
+              </div>
+
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Rol</label>
+                <Select
+                  value={role}
+                  onValueChange={(val) =>
+                    setValue("type", val as NewUserValues["type"], {
+                      shouldValidate: true,
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background">
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                    <SelectItem value="USER">USER</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}
+              </div>
+
+              <div className="dashboard-field">
+                <label htmlFor="new-user-password" className="dashboard-field-label">
+                  Contraseña inicial
+                </label>
+                <Input
+                  id="new-user-password"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres…"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("password")}
+                  disabled={isPending}
+                />
+                {errors.password && (
+                  <p className="dashboard-field-error">{errors.password.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="dashboard-form-card space-y-3">
+              <div className="dashboard-field-label">Sucursales permitidas</div>
+              <div className="flex max-h-48 flex-wrap gap-2 overflow-auto rounded-[1rem] border border-border/70 bg-background/85 p-3">
+                {branches.map((branch) => (
+                  <label
+                    key={branch.id}
+                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={selectedBranches.includes(branch.id)}
+                      onCheckedChange={() => {
+                        const current = new Set(selectedBranches);
+                        if (current.has(branch.id)) {
+                          current.delete(branch.id);
+                        } else {
+                          current.add(branch.id);
+                        }
+                        setValue("branch_ids", Array.from(current), {
+                          shouldValidate: true,
+                        });
+                      }}
+                      disabled={isPending}
+                    />
+                    <span>{branch.name} ({branch.code})</span>
+                  </label>
+                ))}
+                {!branches.length && (
+                  <span className="dashboard-field-hint">No hay sucursales disponibles.</span>
+                )}
+              </div>
+              {errors.branch_ids && (
+                <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
               )}
             </div>
-            {errors.branch_ids && (
-              <p className="text-red-500 text-xs">
-                {errors.branch_ids.message as string}
-              </p>
-            )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-start">
-              Contraseña inicial
-            </label>
-            <Input
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              {...register("password")}
+          <DialogFooter className="dashboard-dialog-footer">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => setOpen(false)}
               disabled={isPending}
-            />
-            {errors.password && (
-              <p className="text-red-500 text-xs">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
+            >
+              Cancelar
             </Button>
-          </div>
+            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
+              {isPending ? "Guardando…" : "Guardar usuario"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

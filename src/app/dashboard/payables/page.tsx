@@ -48,6 +48,7 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
 import { useUsers } from "@/hooks/use-users";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   ListVisibilityControl,
   type VisibilityScope,
@@ -281,6 +282,13 @@ export default function PayablesPage() {
     return visiblePayables.filter((payable) => matchesSearch(payable, searchQuery));
   }, [payables, searchQuery, user?.id, visibilityScope]);
 
+  const payablesSummary = React.useMemo(() => {
+    const total = filteredPayables.reduce((acc, payable) => acc + Number(payable.amount || 0), 0);
+    const pending = filteredPayables.filter((payable) => (payable.status ?? "").toLowerCase() === "pendiente").length;
+
+    return { total, pending };
+  }, [filteredPayables]);
+
   const columns = React.useMemo(
     () =>
       getColumns(
@@ -319,27 +327,37 @@ export default function PayablesPage() {
   });
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Cuentas por pagar</h3>
-      <span className="text-muted-foreground text-sm">
-        Gestiona las cuentas por pagar
-      </span>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Flujo de caja"
+        title="Cuentas por pagar"
+        description="Organiza compromisos, prioriza vencimientos y protege la salida de caja con una vista mas clara del backlog operativo."
+        stats={[
+          { label: "Registros", value: String(filteredPayables.length) },
+          { label: "Pendientes", value: String(payablesSummary.pending), tone: "warning" },
+          {
+            label: "Monto abierto",
+            value: new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP", maximumFractionDigits: 0 }).format(payablesSummary.total),
+            tone: "neutral",
+          },
+        ]}
+        actions={<NewPayableDialog />}
+      />
       <div
-        className={`grid w-full py-4 mt-2 gap-4 ${
-          isMobile ? "grid-cols-1" : "grid-cols-2"
-        }`}
+        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
       >
         <Input
-          placeholder="Buscar por ID, nombre, descripcion o monto..."
+          aria-label="Buscar cuentas por pagar"
+          placeholder="Buscar por ID, nombre, descripcion o monto…"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          className="w-full"
+          className="h-11 rounded-2xl border-border/70 bg-background/80"
         />
 
-        <div className="grid grid-cols-2 gap-2 ">
+        <div className="w-full sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
                 Columnas <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -363,11 +381,9 @@ export default function PayablesPage() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <NewPayableDialog />
         </div>
       </div>
-      <div className="overflow-hidden rounded-md border">
+      <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -424,35 +440,36 @@ export default function PayablesPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <ListVisibilityControl
-          role={user?.type}
-          value={visibilityScope}
-          onChange={setVisibilityScope}
-        />
-        <TablePageSize table={table} />
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+          <ListVisibilityControl
+            role={user?.type}
+            value={visibilityScope}
+            onChange={setVisibilityScope}
+          />
+          <TablePageSize table={table} />
+          <div className="text-muted-foreground flex-1 text-sm">
+            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
     </div>

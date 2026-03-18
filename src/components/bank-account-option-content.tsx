@@ -20,7 +20,7 @@ export function BankAccountOptionContent({
   const last4Digits = getAccountLast4Digits(account);
 
   return (
-    <span className="flex items-center gap-3">
+    <span className="flex min-w-0 w-full items-center gap-3">
       {isSafeAccountImageSrc(account.icon_url) ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
@@ -33,7 +33,7 @@ export function BankAccountOptionContent({
           {account.account_type === "bank" ? "BK" : "CJ"}
         </span>
       )}
-      <span className="flex min-w-0 flex-col text-left leading-tight">
+      <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
         <span className="truncate font-medium">{account.account_name}</span>
         <span className="truncate text-xs text-muted-foreground">
           {getAccountBankLabel(account)}

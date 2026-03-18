@@ -15,7 +15,10 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DialogTitle } from "@radix-ui/react-dialog";
 
 const newLinkPaymentSchema = z.object({
   branchId: z.string().min(1, "La sucursal es obligatoria"),
@@ -92,7 +94,7 @@ export function NewLinkPaymentDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          className="w-full"
+          className="w-full rounded-2xl sm:w-auto"
           onClick={() => {
             reset();
             setOpen(true);
@@ -103,14 +105,19 @@ export function NewLinkPaymentDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] overflow-x-hidden">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">Link de pago</DialogTitle>
+      <DialogContent className="dashboard-dialog-content max-w-lg w-[calc(100vw-2rem)] overflow-hidden">
+        <DialogHeader className="dashboard-dialog-header">
+          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">Nuevo link de pago</DialogTitle>
+          <DialogDescription className="max-w-md leading-6">
+            Crea un link pendiente por sucursal, define el monto y deja lista la URL interna para compartir o generar QR.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Sucursal</label>
+        <form onSubmit={onSubmit}>
+          <div className="dashboard-dialog-body">
+            <div className="dashboard-form-card space-y-4">
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">Sucursal</label>
             <Select
               value={watch("branchId")}
               onValueChange={(val) =>
@@ -118,7 +125,7 @@ export function NewLinkPaymentDialog() {
               }
               disabled={isPending}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background data-[size=default]:h-11">
                 <SelectValue placeholder="Selecciona una sucursal" />
               </SelectTrigger>
               <SelectContent>
@@ -130,50 +137,57 @@ export function NewLinkPaymentDialog() {
               </SelectContent>
             </Select>
             {errors.branchId && (
-              <p className="text-xs text-red-500">{errors.branchId.message}</p>
+              <p className="dashboard-field-error">{errors.branchId.message}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Monto</label>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Monto</label>
               <Input
                 type="number"
                 step="0.01"
                 min="0"
                 placeholder="0.00"
+                className="h-11 rounded-2xl border-border/70 bg-background"
                 {...register("amount")}
                 disabled={isPending}
               />
               {errors.amount && (
-                <p className="text-xs text-red-500">{errors.amount.message}</p>
+                <p className="dashboard-field-error">{errors.amount.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Estado</label>
-              <Input value="Pendiente" disabled />
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Estado</label>
+                  <Input value="Pendiente" disabled className="h-11 rounded-2xl border-border/70 bg-background" />
+                </div>
+              </div>
+
+              <div className="dashboard-field">
+                <label className="dashboard-field-label">URL interna de pago</label>
+                <Input
+                  type="url"
+                  placeholder="https://pagos.tuapp.com/checkout/123"
+                  className="h-11 rounded-2xl border-border/70 bg-background"
+                  {...register("paymentUrl")}
+                  disabled={isPending}
+                />
+                {errors.paymentUrl && (
+                  <p className="dashboard-field-error">{errors.paymentUrl.message}</p>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">URL interna de pago</label>
-            <Input
-              type="url"
-              placeholder="https://pagos.tuapp.com/checkout/123"
-              {...register("paymentUrl")}
-              disabled={isPending}
-            />
-            {errors.paymentUrl && (
-              <p className="text-xs text-red-500">{errors.paymentUrl.message}</p>
-            )}
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
+          <DialogFooter className="dashboard-dialog-footer">
+            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
+              Cancelar
             </Button>
-          </div>
+            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
+              {isPending ? "Guardando..." : "Guardar link"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

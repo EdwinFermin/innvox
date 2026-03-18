@@ -64,18 +64,32 @@ export function useBankTransactions(
             .filter((value): value is string => !!value),
         ),
       );
+      const relatedAccountIds = Array.from(
+        new Set(
+          transactions
+            .map((transaction) => transaction.related_account_id)
+            .filter((value): value is string => !!value),
+        ),
+      );
 
-      const [incomeResult, expenseResult] = await Promise.all([
+      const [incomeResult, expenseResult, relatedAccountsResult] = await Promise.all([
         incomeIds.length > 0
           ? supabase.from("incomes").select("id, friendly_id").in("id", incomeIds)
           : Promise.resolve({ data: [], error: null }),
         expenseIds.length > 0
           ? supabase.from("expenses").select("id, friendly_id").in("id", expenseIds)
           : Promise.resolve({ data: [], error: null }),
+        relatedAccountIds.length > 0
+          ? supabase
+              .from("bank_accounts")
+              .select("id, account_name, account_number")
+              .in("id", relatedAccountIds)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (incomeResult.error) throw incomeResult.error;
       if (expenseResult.error) throw expenseResult.error;
+      if (relatedAccountsResult.error) throw relatedAccountsResult.error;
 
       const incomeFriendlyIdById = new Map(
         (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
@@ -85,6 +99,15 @@ export function useBankTransactions(
       );
       const transactionFriendlyIdById = new Map(
         transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
+      );
+      const relatedAccountNameById = new Map(
+        (relatedAccountsResult.data ?? []).map((item) => [item.id, item.account_name]),
+      );
+      const relatedAccountLast4ById = new Map(
+        (relatedAccountsResult.data ?? []).map((item) => [
+          item.id,
+          item.account_number ? String(item.account_number).replace(/\s+/g, "").slice(-4) : null,
+        ]),
       );
 
       return transactions.map((transaction) => ({
@@ -97,6 +120,12 @@ export function useBankTransactions(
           : null,
         related_transfer_friendly_id: transaction.related_transfer_id
           ? transactionFriendlyIdById.get(transaction.related_transfer_id) ?? null
+          : null,
+        related_account_name: transaction.related_account_id
+          ? relatedAccountNameById.get(transaction.related_account_id) ?? null
+          : null,
+        related_account_number_last4: transaction.related_account_id
+          ? relatedAccountLast4ById.get(transaction.related_account_id) ?? null
           : null,
       }));
     },
@@ -183,18 +212,32 @@ export function useBranchTransactions(
             .filter((value): value is string => !!value),
         ),
       );
+      const relatedAccountIds = Array.from(
+        new Set(
+          transactions
+            .map((transaction) => transaction.related_account_id)
+            .filter((value): value is string => !!value),
+        ),
+      );
 
-      const [incomeResult, expenseResult] = await Promise.all([
+      const [incomeResult, expenseResult, relatedAccountsResult] = await Promise.all([
         incomeIds.length > 0
           ? supabase.from("incomes").select("id, friendly_id").in("id", incomeIds)
           : Promise.resolve({ data: [], error: null }),
         expenseIds.length > 0
           ? supabase.from("expenses").select("id, friendly_id").in("id", expenseIds)
           : Promise.resolve({ data: [], error: null }),
+        relatedAccountIds.length > 0
+          ? supabase
+              .from("bank_accounts")
+              .select("id, account_name, account_number")
+              .in("id", relatedAccountIds)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (incomeResult.error) throw incomeResult.error;
       if (expenseResult.error) throw expenseResult.error;
+      if (relatedAccountsResult.error) throw relatedAccountsResult.error;
 
       const incomeFriendlyIdById = new Map(
         (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
@@ -204,6 +247,15 @@ export function useBranchTransactions(
       );
       const transactionFriendlyIdById = new Map(
         transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
+      );
+      const relatedAccountNameById = new Map(
+        (relatedAccountsResult.data ?? []).map((item) => [item.id, item.account_name]),
+      );
+      const relatedAccountLast4ById = new Map(
+        (relatedAccountsResult.data ?? []).map((item) => [
+          item.id,
+          item.account_number ? String(item.account_number).replace(/\s+/g, "").slice(-4) : null,
+        ]),
       );
 
       return transactions.map((transaction) => ({
@@ -216,6 +268,12 @@ export function useBranchTransactions(
           : null,
         related_transfer_friendly_id: transaction.related_transfer_id
           ? transactionFriendlyIdById.get(transaction.related_transfer_id) ?? null
+          : null,
+        related_account_name: transaction.related_account_id
+          ? relatedAccountNameById.get(transaction.related_account_id) ?? null
+          : null,
+        related_account_number_last4: transaction.related_account_id
+          ? relatedAccountLast4ById.get(transaction.related_account_id) ?? null
           : null,
       }));
     },

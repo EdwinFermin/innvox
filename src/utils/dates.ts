@@ -102,6 +102,17 @@ export function getTodayDateKey(timeZone: string = BUSINESS_TIME_ZONE) {
   return buildDateKey(parts.year, parts.month, parts.day);
 }
 
+export function getMonthStartDateKey(timeZone: string = BUSINESS_TIME_ZONE) {
+  const todayKey = getTodayDateKey(timeZone);
+  return `${todayKey.slice(0, 7)}-01`;
+}
+
+export function getDateInputValue(
+  value: string | Date | null | undefined,
+): string {
+  return extractDateOnlyKey(value) ?? "";
+}
+
 export function extractDateOnlyKey(
   value: string | Date | null | undefined,
 ): string | null {

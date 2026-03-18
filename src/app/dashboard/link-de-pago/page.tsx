@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { useBranches } from "@/hooks/use-branches";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUsers } from "@/hooks/use-users";
@@ -363,6 +364,14 @@ export default function LinkDePagoPage() {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  const summary = React.useMemo(() => {
+    const total = filteredLinkPayments.reduce((acc, item) => acc + Number(item.amount || 0), 0);
+    const pending = filteredLinkPayments.filter((item) => item.status === "pending").length;
+    const completed = filteredLinkPayments.filter((item) => item.status === "completed").length;
+
+    return { total, pending, completed };
+  }, [filteredLinkPayments]);
+
   const table = useReactTable({
     data: filteredLinkPayments,
     columns,
@@ -383,25 +392,40 @@ export default function LinkDePagoPage() {
   });
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Link de pago</h3>
-      <span className="text-muted-foreground text-sm">
-        Crea pagos pendientes por sucursal y comparte su QR.
-      </span>
-      <div className={`grid w-full py-4 mt-2 gap-4 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Cobros"
+        title="Link de pago"
+        description="Crea links pendientes por sucursal y comparte su QR."
+        stats={[
+          { label: "Links", value: String(filteredLinkPayments.length) },
+          { label: "Pendientes", value: String(summary.pending), tone: "warning" },
+          { label: "Completados", value: String(summary.completed), tone: "positive" },
+          { label: "Total", value: currencyFormatter.format(summary.total) },
+        ]}
+        actions={
+          <>
+            <GenerateBranchQrDialog branches={branches} />
+            <NewLinkPaymentDialog />
+          </>
+        }
+      />
+
+      <div className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}>
         <Input
+          aria-label="Buscar links de pago por sucursal"
           placeholder="Buscar por sucursal..."
           value={(table.getColumn("branch_id")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("branch_id")?.setFilterValue(event.target.value)
           }
-          className="w-full"
+          className="h-11 rounded-2xl border-border/70 bg-background/80"
         />
 
         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
                 Columnas <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -421,12 +445,10 @@ export default function LinkDePagoPage() {
                 ))}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <GenerateBranchQrDialog branches={branches} />
-          <NewLinkPaymentDialog />
         </div>
       </div>
-      <div className="overflow-hidden rounded-md border">
+
+      <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -469,34 +491,36 @@ export default function LinkDePagoPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <ListVisibilityControl
-          role={user?.type}
-          value={visibilityScope}
-          onChange={setVisibilityScope}
-        />
-        <TablePageSize table={table} />
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+          <ListVisibilityControl
+            role={user?.type}
+            value={visibilityScope}
+            onChange={setVisibilityScope}
+          />
+          <TablePageSize table={table} />
+          <div className="text-muted-foreground flex-1 text-sm">
+            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
     </div>

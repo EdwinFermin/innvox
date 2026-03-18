@@ -1,36 +1,37 @@
 "use client";
 
 import React from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PlusCircle } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import z from "zod";
+
+import { createInvoice } from "@/actions/invoices";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createInvoice } from "@/actions/invoices";
-import { toast } from "sonner";
 import { useClients } from "@/hooks/use-clients";
-import { useAuthStore } from "@/store/auth";
-import { ClientsCombobox } from "./clients-combobox";
-import { generateInvoiceNumber } from "@/utils/tools";
 import { useConfigs } from "@/hooks/use-configs";
+import { useAuthStore } from "@/store/auth";
 import { Invoice } from "@/types/invoice.types";
+import { generateInvoiceNumber } from "@/utils/tools";
+
+import { ClientsCombobox } from "./clients-combobox";
 
 const newInvoiceSchema = z.object({
   client: z.string().nonempty("El cliente es obligatorio"),
-  description: z
-    .string()
-    .min(1, "La descripcion es obligatoria")
-    .max(500, "Maximo 500 caracteres"),
+  description: z.string().min(1, "La descripcion es obligatoria").max(500, "Maximo 500 caracteres"),
   amount: z.number().min(0, "El monto no puede ser negativo"),
   montoExento: z.number().min(0),
   montoGravado: z.number().min(0),
@@ -46,11 +47,7 @@ interface NewInvoiceDialogProps {
   onEditDone?: () => void;
 }
 
-export function NewInvoiceDialog({
-  onSuccess,
-  invoice,
-  onEditDone,
-}: NewInvoiceDialogProps) {
+export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceDialogProps) {
   const buildDefaultValues = React.useCallback(
     (): NewInvoiceFormValues => ({
       client: "",
@@ -62,15 +59,13 @@ export function NewInvoiceDialog({
     }),
     [],
   );
-  const defaultValues = React.useMemo<NewInvoiceFormValues>(
-    () => buildDefaultValues(),
-    [buildDefaultValues],
-  );
 
+  const defaultValues = React.useMemo<NewInvoiceFormValues>(() => buildDefaultValues(), [buildDefaultValues]);
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const { data: clients } = useClients(user?.id || "");
   const { data: configs } = useConfigs();
+
   const {
     control,
     register,
@@ -84,10 +79,10 @@ export function NewInvoiceDialog({
     defaultValues,
   });
 
-  const watchedAmount = useWatch({
-    control,
-    name: "amount",
-  });
+  const watchedAmount = useWatch({ control, name: "amount" });
+  const [open, setOpen] = React.useState(false);
+  const isEditMode = Boolean(invoice);
+  const lastInvoiceIdRef = React.useRef<string | null>(null);
 
   const itbisPercentage = React.useMemo(() => {
     const parsed = Number(configs?.ITBIS?.percentage);
@@ -106,39 +101,14 @@ export function NewInvoiceDialog({
 
   React.useEffect(() => {
     const amount = Number(watchedAmount ?? 0) || 0;
-    const computedMontoExento = Number(
-      (amount * (excentoPercentage / 100)).toFixed(2),
-    );
-    const computedMontoGravado = Number(
-      (amount * (gravadoPercentage / 100)).toFixed(2),
-    );
-    const computedItbis = Number(
-      (computedMontoGravado * (itbisPercentage / 100)).toFixed(2),
-    );
+    const computedMontoExento = Number((amount * (excentoPercentage / 100)).toFixed(2));
+    const computedMontoGravado = Number((amount * (gravadoPercentage / 100)).toFixed(2));
+    const computedItbis = Number((computedMontoGravado * (itbisPercentage / 100)).toFixed(2));
 
-    setValue("montoExento", computedMontoExento, {
-      shouldValidate: true,
-      shouldDirty: false,
-    });
-    setValue("montoGravado", computedMontoGravado, {
-      shouldValidate: true,
-      shouldDirty: false,
-    });
-    setValue("itbis", computedItbis, {
-      shouldValidate: true,
-      shouldDirty: false,
-    });
-  }, [
-    watchedAmount,
-    excentoPercentage,
-    gravadoPercentage,
-    itbisPercentage,
-    setValue,
-  ]);
-
-  const [open, setOpen] = React.useState(false);
-  const isEditMode = Boolean(invoice);
-  const lastInvoiceIdRef = React.useRef<string | null>(null);
+    setValue("montoExento", computedMontoExento, { shouldValidate: true, shouldDirty: false });
+    setValue("montoGravado", computedMontoGravado, { shouldValidate: true, shouldDirty: false });
+    setValue("itbis", computedItbis, { shouldValidate: true, shouldDirty: false });
+  }, [watchedAmount, excentoPercentage, gravadoPercentage, itbisPercentage, setValue]);
 
   React.useEffect(() => {
     const currentInvoiceId = invoice?.id ?? null;
@@ -170,17 +140,13 @@ export function NewInvoiceDialog({
   const handleClose = React.useCallback(() => {
     reset(buildDefaultValues());
     setOpen(false);
-    if (invoice) {
-      onEditDone?.();
-    }
+    if (invoice) onEditDone?.();
   }, [invoice, onEditDone, reset, buildDefaultValues]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewInvoiceFormValues) => {
       const isEditing = Boolean(invoice);
-      const invoiceId =
-        isEditing && invoice ? invoice.id : generateInvoiceNumber();
-
+      const invoiceId = isEditing && invoice ? invoice.id : generateInvoiceNumber();
       const invoiceUserId = invoice?.user_id || user?.id;
 
       if (!invoiceUserId) {
@@ -199,17 +165,10 @@ export function NewInvoiceDialog({
         userId: invoiceUserId,
       });
 
-      return {
-        id: invoiceId,
-        mode: (isEditing ? "edit" : "create") as DialogMode,
-      };
+      return { id: invoiceId, mode: (isEditing ? "edit" : "create") as DialogMode };
     },
     onSuccess: ({ id, mode }) => {
-      toast.success(
-        mode === "edit"
-          ? "Factura actualizada exitosamente"
-          : "Factura creada exitosamente",
-      );
+      toast.success(mode === "edit" ? "Factura actualizada exitosamente" : "Factura creada exitosamente");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       handleClose();
       onSuccess({ id, mode });
@@ -235,180 +194,148 @@ export function NewInvoiceDialog({
       <DialogTrigger asChild>
         <Button
           variant="default"
-          className="w-full"
+          className="w-full rounded-2xl sm:w-auto"
           onClick={() => {
-            if (invoice) {
-              onEditDone?.();
-            }
+            if (invoice) onEditDone?.();
             reset(buildDefaultValues());
           }}
         >
           <PlusCircle className="mr-1" />
-          Nueva Factura
+          Nueva factura
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">
-            {isEditMode ? "Editar factura" : "Nueva Factura"}
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader className="dashboard-dialog-header">
+          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
+            {isEditMode ? "Editar factura" : "Nueva factura"}
           </DialogTitle>
+          <DialogDescription className="max-w-2xl leading-6">
+            Crea una factura fiscal con cliente, monto y desglose de impuestos calculado automáticamente según la configuración actual.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={onSubmit}>
-          <div className="grid gap-6">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-start">
-                Tipo de Factura
-              </label>
-              <p className="text-sm text-muted-foreground">
-                Factura con Valor Fiscal
-              </p>
-            </div>
+          <div className="dashboard-dialog-body">
+            <div className="grid gap-4">
+              <div className="dashboard-form-card grid gap-4">
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Tipo de factura</label>
+                  <p className="dashboard-field-hint rounded-[1rem] border border-border/60 bg-background/80 p-4 leading-6">
+                    Factura con valor fiscal y calculo automático de montos exentos, gravados e ITBIS.
+                  </p>
+                </div>
 
-            <div className="grid gap-2">
-              <label
-                htmlFor="client"
-                className="text-sm font-medium text-start"
-              >
-                Cliente <span className="text-red-500">*</span>
-              </label>
-              <Controller
-                control={control}
-                name="client"
-                render={({ field }) => (
-                  <ClientsCombobox
-                    clients={clients || []}
-                    value={field.value || ""}
-                    onChange={field.onChange}
+                <div className="dashboard-field">
+                  <label htmlFor="client" className="dashboard-field-label">
+                    Cliente
+                  </label>
+                  <Controller
+                    control={control}
+                    name="client"
+                    render={({ field }) => (
+                      <ClientsCombobox clients={clients || []} value={field.value || ""} onChange={field.onChange} />
+                    )}
                   />
-                )}
-              />
-              {errors.client && (
-                <p className="text-red-500 text-xs">{errors.client.message}</p>
-              )}
-            </div>
+                  {errors.client && <p className="dashboard-field-error">{errors.client.message}</p>}
+                </div>
 
-            <div className="grid gap-2">
-              <label
-                htmlFor="amount"
-                className="text-sm font-medium text-start"
-              >
-                Monto de la factura <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                className="w-full"
-                {...register("amount", {
-                  setValueAs: (v) => (v === "" ? 0 : Number(v)),
-                })}
-              />
-              {errors.amount && (
-                <p className="text-red-500 text-xs">{errors.amount.message}</p>
-              )}
-            </div>
+                <div className="dashboard-field">
+                  <label htmlFor="amount" className="dashboard-field-label">
+                    Monto de la factura
+                  </label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="h-11 rounded-2xl border-border/70 bg-background"
+                    {...register("amount", { setValueAs: (v) => (v === "" ? 0 : Number(v)) })}
+                  />
+                  {errors.amount && <p className="dashboard-field-error">{errors.amount.message}</p>}
+                </div>
 
-            <div className="grid gap-2">
-              <label
-                htmlFor="description"
-                className="text-sm font-medium text-start"
-              >
-                Descripcion de la factura{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <Textarea
-                id="description"
-                rows={4}
-                placeholder="Detalle de la factura"
-                {...register("description")}
-              />
-              {errors.description && (
-                <p className="text-red-500 text-xs">
-                  {errors.description.message}
-                </p>
-              )}
-            </div>
+                <div className="dashboard-field">
+                  <label htmlFor="description" className="dashboard-field-label">
+                    Descripción de la factura
+                  </label>
+                  <Textarea
+                    id="description"
+                    rows={5}
+                    placeholder="Detalle de la factura…"
+                    className="rounded-2xl border-border/70 bg-background"
+                    {...register("description")}
+                  />
+                  {errors.description && (
+                    <p className="dashboard-field-error">{errors.description.message}</p>
+                  )}
+                </div>
+              </div>
 
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-start">
-                Monto Exento {`(${excentoPercentage || 0}%)`}
-              </label>
-              <Input
-                value={
-                  Number(watchedAmount ?? 0)
-                    ? Number(
-                        (
-                          Number(watchedAmount) *
-                          (excentoPercentage / 100)
-                        ).toFixed(2),
-                      )
-                    : 0
-                }
-                readOnly
-                className="w-full"
-              />
-            </div>
+              <div className="dashboard-form-card grid gap-4">
+                <div>
+                  <div className="dashboard-field-label">Resumen fiscal</div>
+                  <p className="dashboard-field-hint mt-1">
+                    Valores calculados con la configuración activa del sistema.
+                  </p>
+                </div>
 
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-start">
-                Monto Gravado {`(${gravadoPercentage || 0}%)`}
-              </label>
-              <Input
-                value={
-                  Number(watchedAmount ?? 0)
-                    ? Number(
-                        (
-                          Number(watchedAmount) *
-                          (gravadoPercentage / 100)
-                        ).toFixed(2),
-                      )
-                    : 0
-                }
-                readOnly
-                className="w-full"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-start">
-                ITBIS {`(${itbisPercentage || 0}%)`}
-              </label>
-              <Input
-                value={
-                  Number(watchedAmount ?? 0)
-                    ? Number(
-                        (
-                          Number(
-                            (
-                              Number(watchedAmount) *
-                              (gravadoPercentage / 100)
-                            ).toFixed(2),
-                          ) *
-                          (itbisPercentage / 100)
-                        ).toFixed(2),
-                      )
-                    : 0
-                }
-                readOnly
-                className="w-full"
-              />
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="flex h-full flex-col rounded-[1rem] border border-border/60 bg-background/80 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Monto exento ({excentoPercentage || 0}%)
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <Input
+                        value={Number(watchedAmount ?? 0) ? Number((Number(watchedAmount) * (excentoPercentage / 100)).toFixed(2)) : 0}
+                        readOnly
+                        className="h-11 rounded-2xl border-border/70 bg-background"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex h-full flex-col rounded-[1rem] border border-border/60 bg-background/80 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Monto gravado ({gravadoPercentage || 0}%)
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <Input
+                        value={Number(watchedAmount ?? 0) ? Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) : 0}
+                        readOnly
+                        className="h-11 rounded-2xl border-border/70 bg-background"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex h-full flex-col rounded-[1rem] border border-border/60 bg-background/80 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      ITBIS ({itbisPercentage || 0}%)
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <Input
+                        value={Number(watchedAmount ?? 0) ? Number((Number((Number(watchedAmount) * (gravadoPercentage / 100)).toFixed(2)) * (itbisPercentage / 100)).toFixed(2)) : 0}
+                        readOnly
+                        className="h-11 rounded-2xl border-border/70 bg-background"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-2">
-            <Button type="submit" disabled={!isValid || isPending}>
+          <DialogFooter className="dashboard-dialog-footer">
+            <Button type="button" variant="outline" className="rounded-2xl" onClick={handleClose} disabled={isPending}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
               {isPending
                 ? isEditMode
-                  ? "Actualizando..."
-                  : "Guardando..."
+                  ? "Actualizando…"
+                  : "Guardando…"
                 : isEditMode
                   ? "Guardar cambios"
-                  : "Imprimir y Guardar"}
+                  : "Imprimir y guardar"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

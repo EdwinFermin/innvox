@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Download, Printer, QrCode } from "lucide-react";
+import { Copy, Download, ExternalLink, Printer, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { Branch } from "@/types/branch.types";
@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,7 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DialogTitle } from "@radix-ui/react-dialog";
 
 import {
   BranchQrCounterSign,
@@ -233,7 +234,7 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full rounded-2xl sm:w-auto"
           onClick={() => {
             setBranchId("");
             setOpen(true);
@@ -244,87 +245,94 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] overflow-x-hidden max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">QR por sucursal</DialogTitle>
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden">
+        <DialogHeader className="dashboard-dialog-header">
+          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">QR por sucursal</DialogTitle>
+          <DialogDescription className="max-w-md leading-6">
+            Genera el QR público de cobro por sucursal y descarga una versión lista para imprimir o compartir.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Sucursal</label>
-            <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona una sucursal" />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name} ({branch.code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="dashboard-dialog-body">
+          <div className="dashboard-form-card space-y-4">
+            <div className="dashboard-field">
+              <label className="dashboard-field-label">Sucursal</label>
+              <Select value={branchId} onValueChange={setBranchId}>
+                <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background data-[size=default]:h-11">
+                  <SelectValue placeholder="Selecciona una sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name} ({branch.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {publicLink ? (
+              <div className="space-y-4 rounded-[1.2rem] border border-border/70 bg-slate-50/70 p-5 sm:p-6">
+                <div className="flex justify-center">
+                  <Image
+                    src={qrCodeUrl}
+                    alt={`QR de ${branchId}`}
+                    width={220}
+                    height={220}
+                    unoptimized
+                    className="rounded-xl border bg-white p-2"
+                  />
+                </div>
+
+                <div className="dashboard-field">
+                  <label className="dashboard-field-label">Link publico</label>
+                  <Input value={publicLink} readOnly className="h-11 rounded-2xl border-border/70 bg-background" />
+                </div>
+
+                <div className="rounded-[1rem] border border-dashed border-border/70 bg-white/80 p-4 text-sm text-muted-foreground">
+                  Descarga una imagen lista para imprimir y colocar en la sucursal.
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <Button type="button" variant="outline" className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-4 py-3 text-center whitespace-normal" onClick={handleCopy}>
+                    <Copy className="h-4 w-4" />
+                    Copiar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-3 py-3 text-center text-xs leading-tight whitespace-normal"
+                    disabled={isDownloading}
+                    onClick={handleDownloadImage}
+                  >
+                    <Download className="h-4 w-4" />
+                    {isDownloading ? "Generando..." : "Descargar"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-3 py-3 text-center text-xs leading-tight whitespace-normal"
+                    onClick={handlePrint}
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-auto min-w-0 flex-col justify-center gap-1 rounded-2xl px-4 py-3 text-center whitespace-normal"
+                    onClick={() => window.open(publicLink, "_blank", "noopener,noreferrer")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[1.2rem] border border-dashed border-border/70 bg-slate-50/60 p-6 text-center text-sm text-muted-foreground">
+                Selecciona una sucursal para generar su QR y copiar el link publico.
+              </div>
+            )}
           </div>
-
-          {publicLink ? (
-            <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
-              <div className="flex justify-center">
-                <Image
-                  src={qrCodeUrl}
-                  alt={`QR de ${branchId}`}
-                  width={220}
-                  height={220}
-                  unoptimized
-                  className="rounded-xl border bg-white p-2"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Link publico</label>
-                <Input value={publicLink} readOnly />
-              </div>
-
-              <div className="rounded-[0.7rem] border border-dashed border-[#d7dfd1] bg-white/80 p-4 text-sm text-muted-foreground">
-                Descarga una imagen lista para imprimir y colocar en la sucursal.
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                <Button type="button" variant="outline" className="px-4" onClick={handleCopy}>
-                  Copiar link
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="px-4 justify-center gap-2"
-                  disabled={isDownloading}
-                  onClick={handleDownloadImage}
-                >
-                  <Download className="h-4 w-4" />
-                  {isDownloading ? "Generando..." : "Descargar"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="px-4 justify-center gap-2"
-                  onClick={handlePrint}
-                >
-                  <Printer className="h-4 w-4" />
-                  Imprimir
-                </Button>
-                <Button
-                  type="button"
-                  className="px-4"
-                  onClick={() => window.open(publicLink, "_blank", "noopener,noreferrer")}
-                >
-                  Abrir pagina
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-              Selecciona una sucursal para generar su QR y copiar el link publico.
-            </div>
-          )}
         </div>
       </DialogContent>
 

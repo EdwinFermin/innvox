@@ -20,6 +20,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
   Table,
   TableBody,
   TableCell,
@@ -38,6 +47,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { EditBankAccountDialog } from "@/app/dashboard/bank-accounts/components/edit-bank-account-dialog";
 import { TransferFundsDialog } from "@/app/dashboard/bank-accounts/components/transfer-funds-dialog";
 import { AdjustBalanceDialog } from "@/app/dashboard/bank-accounts/components/adjust-balance-dialog";
@@ -50,6 +60,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePrintBankAccountDetail } from "@/hooks/use-print-bank-account-detail";
+import {
+  extractDateOnlyKey,
+  getDateInputValue,
+  getMonthStartDateKey,
+  formatDateOnly,
+  getTodayDateKey,
+  parseDateOnly,
+} from "@/utils/dates";
 import Link from "next/link";
 
 const formatCurrency = (amount: number, currency: string): string => {
@@ -95,6 +113,13 @@ const getTransferDescription = (transaction: BankTransaction): string => {
   const parts = [
     `Transferencia basada en transaccion ${transaction.friendly_id}`,
   ];
+
+  if (transaction.related_account_name) {
+    const suffix = transaction.related_account_number_last4
+      ? ` ****${transaction.related_account_number_last4}`
+      : "";
+    parts.push(`cuenta destino ${transaction.related_account_name}${suffix}`);
+  }
 
   if (transaction.linked_income_id) {
     parts.push(
@@ -158,9 +183,7 @@ const getColumns = (
     ),
     cell: ({ row }) => (
       <div>
-        {format(new Date(row.original.date), "d 'de' MMMM yyyy", {
-          locale: es,
-        })}
+        {formatDateOnly(row.original.date, "d 'de' MMMM yyyy", es) ?? "-"}
       </div>
     ),
   },
@@ -182,9 +205,25 @@ const getColumns = (
   {
     accessorKey: "description",
     header: "Descripción",
-    cell: ({ row }) => (
-      <div className="max-w-[300px] truncate">{row.getValue("description")}</div>
-    ),
+    cell: ({ row }) => {
+      const transaction = row.original;
+      const destinationLabel = transaction.related_account_name;
+      const destinationSuffix = transaction.related_account_number_last4
+        ? ` ****${transaction.related_account_number_last4}`
+        : "";
+      const description = transaction.description || "-";
+
+      return (
+        <div className="max-w-[320px] space-y-1">
+          <div className="truncate">{description}</div>
+          {destinationLabel ? (
+            <div className="text-xs text-muted-foreground">
+              {transaction.type === "transfer_out" ? "Cuenta destino" : "Cuenta origen"}: {destinationLabel}{destinationSuffix}
+            </div>
+          ) : null}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "amount",
@@ -307,8 +346,12 @@ export default function BankAccountDetailPage() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [transferOpen, setTransferOpen] = React.useState(false);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
+  const [printDialogOpen, setPrintDialogOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<BankTransaction | null>(null);
+  const [printFromDate, setPrintFromDate] = React.useState(() =>
+    getMonthStartDateKey(),
+  );
 
   const handleOpenTransfer = React.useCallback(
     (transaction: BankTransaction | null = null) => {
@@ -345,15 +388,42 @@ export default function BankAccountDetailPage() {
   });
 
   const printableTransactions = React.useMemo(
-    () => table.getSortedRowModel().rows.map((row) => row.original),
-    [table],
+    () => {
+      const fromDate = parseDateOnly(printFromDate);
+
+      return table
+        .getSortedRowModel()
+        .rows.map((row) => row.original)
+        .filter((transaction) => {
+          if (!fromDate) return true;
+
+          const transactionDateKey = extractDateOnlyKey(transaction.date);
+          return transactionDateKey ? transactionDateKey >= printFromDate : false;
+        });
+    },
+    [printFromDate, table],
   );
+
+  const printableFromDate = React.useMemo(
+    () => parseDateOnly(printFromDate),
+    [printFromDate],
+  );
+
+  const handlePrintConfirm = React.useCallback(async () => {
+    setPrintDialogOpen(false);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await print();
+  }, [print]);
 
   if (!canManageSettings) {
     return (
-      <div className="w-full">
-        <h3 className="text-2xl font-semibold">Detalle de cuenta financiera</h3>
-        <p className="text-sm text-muted-foreground mt-2">
+      <div className="dashboard-grid w-full">
+        <DashboardPageHeader
+          eyebrow="Tesoreria"
+          title="Detalle de cuenta financiera"
+          description="No tienes permisos para acceder a esta sección."
+        />
+        <p className="text-sm text-muted-foreground">
           No tienes permisos para acceder a esta sección.
         </p>
       </div>
@@ -370,24 +440,27 @@ export default function BankAccountDetailPage() {
 
   if (!account) {
     return (
-      <div className="w-full">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+      <div className="dashboard-grid w-full">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-2 w-fit rounded-xl">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver
         </Button>
-        <h3 className="text-2xl font-semibold">Cuenta no encontrada</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-           La cuenta financiera solicitada no existe.
+        <DashboardPageHeader
+          eyebrow="Tesoreria"
+          title="Cuenta no encontrada"
+          description="La cuenta financiera solicitada no existe."
+        />
+        <p className="text-sm text-muted-foreground">
+          La cuenta financiera solicitada no existe.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-6">
-      {/* Header */}
+    <div className="dashboard-grid w-full">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild className="rounded-2xl border border-border/70 bg-background/80">
           <Link href="/dashboard/bank-accounts">
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -406,51 +479,72 @@ export default function BankAccountDetailPage() {
             {account.account_type === "bank" ? "BK" : "CJ"}
           </div>
         )}
-        <div>
-          <h3 className="text-2xl font-semibold">{account.account_name}</h3>
+        <div className="min-w-0">
+          <h3 className="text-pretty text-2xl font-semibold tracking-[-0.03em]">{account.account_name}</h3>
           <p className="text-sm font-medium text-muted-foreground">{account.friendly_id}</p>
-          <span className="text-muted-foreground text-sm">
-             {account.account_type === "bank"
-               ? `${account.bank_name || "Cuenta bancaria"}${account.account_number ? ` - ${account.account_number}` : ""}`
-: "Caja"}
+          <span className="text-sm text-muted-foreground">
+            {account.account_type === "bank"
+              ? `${account.bank_name || "Cuenta bancaria"}${account.account_number ? ` - ${account.account_number}` : ""}`
+              : "Caja"}
           </span>
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance Actual</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Balance actual
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Disponible para operar y conciliar.</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-background/90 p-3 text-primary shadow-sm">
+              <Wallet className="h-4 w-4" />
+            </div>
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${account.current_balance < 0 ? "text-red-500" : ""}`}
+              className={`text-3xl font-semibold tracking-[-0.04em] ${account.current_balance < 0 ? "text-red-500" : "text-foreground"}`}
             >
               {formatCurrency(account.current_balance, account.currency)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sucursal</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Cobertura
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Sucursales asociadas a esta cuenta.</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-background/90 p-3 text-emerald-600 shadow-sm">
+              <Building2 className="h-4 w-4" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold leading-snug">{branchNames}</div>
+            <div className="text-lg font-semibold leading-snug tracking-[-0.02em] text-foreground">{branchNames}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tipo de Cuenta</CardTitle>
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Tipo de cuenta
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Define el modo de operacion y visibilidad.</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-background/90 px-3 py-2 text-sm font-semibold text-foreground shadow-sm">
+              {account.currency}
+            </div>
           </CardHeader>
           <CardContent>
             <Badge
               variant={account.account_type === "bank" ? "default" : "secondary"}
-              className="text-lg"
+              className="rounded-xl px-3 py-1 text-sm font-semibold"
             >
               {account.account_type === "bank" ? "Cuenta bancaria" : "Caja"}
             </Badge>
@@ -458,22 +552,63 @@ export default function BankAccountDetailPage() {
         </Card>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 flex-wrap">
-        <Button variant="outline" onClick={() => setEditOpen(true)}>
+      <div className="dashboard-panel flex flex-wrap gap-2 px-4 py-4">
+        <Button variant="outline" className="rounded-2xl" onClick={() => setEditOpen(true)}>
           Editar cuenta
         </Button>
-        <Button onClick={() => handleOpenTransfer()}>
+        <Button className="rounded-2xl" onClick={() => handleOpenTransfer()}>
           Transferir
         </Button>
-        <Button variant="outline" onClick={() => setAdjustOpen(true)}>
+        <Button variant="outline" className="rounded-2xl" onClick={() => setAdjustOpen(true)}>
           Ajustar balance
         </Button>
-        <Button variant="outline" onClick={() => void print()}>
+        <Button variant="outline" className="rounded-2xl" onClick={() => setPrintDialogOpen(true)}>
           <Printer className="mr-2 h-4 w-4" />
           Imprimir
         </Button>
       </div>
+
+      <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Imprimir movimientos</DialogTitle>
+            <DialogDescription>
+              Elige desde que fecha necesitas incluir movimientos en la impresion.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label htmlFor="print-from-date" className="text-sm font-medium">
+              Movimientos desde
+            </label>
+            <Input
+              id="print-from-date"
+              name="print-from-date"
+              type="date"
+              value={getDateInputValue(printFromDate)}
+              onChange={(event) => setPrintFromDate(event.target.value)}
+              max={getTodayDateKey()}
+            />
+            <p className="text-sm text-muted-foreground">
+              Se imprimiran {printableTransactions.length} movimiento
+              {printableTransactions.length === 1 ? "" : "s"}
+              {printableFromDate
+                ? ` desde el ${format(printableFromDate, "d 'de' MMMM yyyy", { locale: es })}`
+                : ""}
+              .
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void handlePrintConfirm()}>
+              Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialogs */}
       <EditBankAccountDialog
@@ -503,12 +638,11 @@ export default function BankAccountDetailPage() {
         branchNames={branchNames}
         transactions={printableTransactions}
         generatedAt={new Date()}
+        fromDate={printableFromDate}
       />
 
-      {/* Transactions Table */}
-      <div>
-        <h4 className="text-lg font-semibold mb-4">Historial de Transacciones</h4>
-        <div className="overflow-hidden rounded-md border">
+      <div className="dashboard-grid gap-4">
+        <div className="dashboard-table-frame pt-2">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -569,27 +703,29 @@ export default function BankAccountDetailPage() {
               )}
             </TableBody>
           </Table>
-        </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <TablePageSize table={table} />
-          <div className="flex-1" />
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Siguiente
-            </Button>
+          <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+            <TablePageSize table={table} />
+            <div className="flex-1" />
+            <div className="space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Siguiente
+              </Button>
+            </div>
           </div>
         </div>
       </div>
