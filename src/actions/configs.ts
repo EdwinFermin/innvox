@@ -13,6 +13,8 @@ interface ConfigData {
   ITBIS?: Json;
   EXCENTO?: Json;
   GRAVADO?: Json;
+  TRANSFER_TAX?: Json;
+  LBTR_FEE?: Json;
 }
 
 export async function updateConfigs(data: ConfigData) {

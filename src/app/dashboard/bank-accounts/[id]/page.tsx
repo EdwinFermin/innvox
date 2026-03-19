@@ -85,6 +85,8 @@ const getTransactionTypeLabel = (type: BankTransactionType): string => {
     transfer_in: "Transferencia entrante",
     transfer_out: "Transferencia saliente",
     adjustment: "Ajuste",
+    lbtr_fee: "Comisión LBTR",
+    transfer_tax: "Impuesto transferencia",
   };
   return labels[type];
 };
@@ -98,6 +100,8 @@ const getTransactionTypeBadgeClassName = (
       return "border-transparent bg-emerald-100 text-emerald-800";
     case "withdrawal":
     case "transfer_out":
+    case "lbtr_fee":
+    case "transfer_tax":
       return "border-transparent bg-rose-100 text-rose-800";
     case "adjustment":
       return "border-transparent bg-amber-100 text-amber-800";
@@ -241,7 +245,7 @@ const getColumns = (
       const amount = row.getValue("amount") as number;
       const type = row.original.type;
       const isNegative =
-        type === "withdrawal" || type === "transfer_out" || amount < 0;
+        type === "withdrawal" || type === "transfer_out" || type === "lbtr_fee" || type === "transfer_tax" || amount < 0;
       return (
         <div
           className={`text-right font-medium ${isNegative ? "text-red-500" : "text-green-600"}`}

@@ -14,6 +14,14 @@ export interface TaxConfig {
   percentage: string;
 }
 
+export interface TransferTaxConfig {
+  percentage: string;
+}
+
+export interface LBTRFeeConfig {
+  amount: string;
+}
+
 /**
  * Union of all config document shapes keyed by their config key.
  * Stored as JSONB in the `configs` table.
@@ -24,4 +32,6 @@ export type ConfigMap = {
   ITBIS: TaxConfig;
   EXCENTO: TaxConfig;
   GRAVADO: TaxConfig;
+  TRANSFER_TAX: TransferTaxConfig;
+  LBTR_FEE: LBTRFeeConfig;
 };

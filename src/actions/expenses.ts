@@ -14,6 +14,8 @@ interface CreateExpenseData {
   description?: string | null;
   date: string;
   bankAccountId?: string | null;
+  lbtrFee?: number;
+  transferTax?: number;
 }
 
 interface UpdateExpenseAccountData {
@@ -35,6 +37,8 @@ export async function createExpense(data: CreateExpenseData) {
     p_date: data.date,
     p_bank_account_id: data.bankAccountId ?? null,
     p_created_by: createdBy,
+    p_lbtr_fee: data.lbtrFee ?? 0,
+    p_transfer_tax: data.transferTax ?? 0,
   });
 
   if (error) {

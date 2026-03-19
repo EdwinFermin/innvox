@@ -3,7 +3,9 @@ export type BankTransactionType =
   | "withdrawal"
   | "transfer_in"
   | "transfer_out"
-  | "adjustment";
+  | "adjustment"
+  | "lbtr_fee"
+  | "transfer_tax";
 
 export interface BankTransaction {
   id: string;
