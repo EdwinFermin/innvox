@@ -75,7 +75,7 @@ export function AdjustBalanceDialog({
 
       await adjustBalance({
         bankAccountId: account.id,
-        amount: values.newBalance,
+        targetBalance: values.newBalance,
         description: values.description,
       });
     },

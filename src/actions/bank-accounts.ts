@@ -41,7 +41,7 @@ interface TransferFundsData {
 
 interface AdjustBalanceData {
   bankAccountId: string;
-  amount: number;
+  targetBalance: number;
   description?: string | null;
 }
 
@@ -235,7 +235,7 @@ export async function adjustBalance(data: AdjustBalanceData) {
 
   const { error } = await supabase.rpc("adjust_balance", {
     p_bank_account_id: data.bankAccountId,
-    p_amount: data.amount,
+    p_target_balance: data.targetBalance,
     p_description: data.description ?? null,
     p_created_by: createdBy,
   });
