@@ -169,7 +169,7 @@ export interface Database {
           id: string;
           friendly_id: string;
           bank_account_id: string;
-          type: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment";
+          type: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment" | "lbtr_fee" | "transfer_tax";
           amount: number;
           description: string | null;
           date: string;
@@ -185,7 +185,7 @@ export interface Database {
           id?: string;
           friendly_id?: string;
           bank_account_id: string;
-          type: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment";
+          type: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment" | "lbtr_fee" | "transfer_tax";
           amount: number;
           description?: string | null;
           date: string;
@@ -201,7 +201,7 @@ export interface Database {
           id?: string;
           friendly_id?: string;
           bank_account_id?: string;
-          type?: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment";
+          type?: "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "adjustment" | "lbtr_fee" | "transfer_tax";
           amount?: number;
           description?: string | null;
           date?: string;
@@ -566,6 +566,8 @@ export interface Database {
           p_date: string;
           p_bank_account_id: string | null;
           p_created_by: string;
+          p_lbtr_fee?: number;
+          p_transfer_tax?: number;
         };
         Returns: string;
       };
@@ -590,6 +592,8 @@ export interface Database {
           p_amount: number;
           p_description: string | null;
           p_created_by: string;
+          p_lbtr_fee?: number;
+          p_transfer_tax?: number;
         };
         Returns: undefined;
       };

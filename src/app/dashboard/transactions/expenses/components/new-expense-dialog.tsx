@@ -11,6 +11,7 @@ import { z } from "zod";
 import { createExpense, updateExpenseAccount } from "@/actions/expenses";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { useBranches } from "@/hooks/use-branches";
+import { useConfigs } from "@/hooks/use-configs";
 import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { accountSupportsBranch } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
@@ -71,12 +73,35 @@ export function NewExpenseDialog({
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { data: configs } = useConfigs();
   const { data: branches } = useBranches(
     user?.id || "",
     user?.type === "USER" ? user?.branch_ids : undefined,
   );
   const { data: expenseTypes } = useExpenseTypes(user?.id || "");
   const { data: bankAccounts } = useBankAccounts(user?.id || "");
+
+  const [includeLBTR, setIncludeLBTR] = React.useState(false);
+  const [includeTransferTax, setIncludeTransferTax] = React.useState(false);
+
+  const lbtrFeeAmount = React.useMemo(() => {
+    const raw = configs.LBTR_FEE?.amount;
+    return raw ? Number(raw) : 0;
+  }, [configs]);
+
+  const transferTaxPercentage = React.useMemo(() => {
+    const raw = configs.TRANSFER_TAX?.percentage;
+    return raw ? Number(raw) : 0;
+  }, [configs]);
+
+  const formatCurrency = React.useCallback(
+    (value: number) =>
+      new Intl.NumberFormat("es-DO", {
+        style: "currency",
+        currency: "DOP",
+      }).format(value),
+    [],
+  );
 
   const {
     register,
@@ -104,6 +129,15 @@ export function NewExpenseDialog({
     [availableAccounts, selectedAccountId],
   );
 
+  const watchedAmount = watch("amount");
+  const currentAmount = React.useMemo(() => Number(watchedAmount) || 0, [watchedAmount]);
+
+  const computedLBTR = includeLBTR ? lbtrFeeAmount : 0;
+  const computedTax = includeTransferTax
+    ? Math.round(currentAmount * (transferTaxPercentage / 100) * 100) / 100
+    : 0;
+  const totalDeduction = currentAmount + computedLBTR + computedTax;
+
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewExpenseValues) => {
       if (!user?.id) {
@@ -123,6 +157,11 @@ export function NewExpenseDialog({
         return;
       }
 
+      const lbtr = includeLBTR ? lbtrFeeAmount : 0;
+      const tax = includeTransferTax
+        ? Math.round(Number(data.amount) * (transferTaxPercentage / 100) * 100) / 100
+        : 0;
+
       await createExpense({
         branchId: data.branchId,
         expenseTypeId: data.expenseTypeId,
@@ -130,6 +169,8 @@ export function NewExpenseDialog({
         description: data.description,
         date: dateOnlyToISOString(data.date),
         bankAccountId: data.bankAccountId,
+        lbtrFee: lbtr > 0 ? lbtr : undefined,
+        transferTax: tax > 0 ? tax : undefined,
       });
     },
     onSuccess: () => {
@@ -150,12 +191,17 @@ export function NewExpenseDialog({
   React.useEffect(() => {
     if (openOnMount) {
       reset();
+      setIncludeLBTR(false);
+      setIncludeTransferTax(false);
       setOpen(true);
     }
   }, [openOnMount, reset]);
 
   React.useEffect(() => {
     if (!open) return;
+
+    setIncludeLBTR(false);
+    setIncludeTransferTax(false);
 
     if (isEditMode && initialData) {
       const date = extractDateOnlyKey(initialData.date) ?? "";
@@ -297,6 +343,65 @@ export function NewExpenseDialog({
                     <p className="dashboard-field-error">{errors.bankAccountId.message}</p>
                   )}
                 </div>
+
+                {!isEditMode && (lbtrFeeAmount > 0 || transferTaxPercentage > 0) ? (
+                  <div className="space-y-3 rounded-xl border p-3">
+                    <p className="text-sm font-medium">Comisiones</p>
+
+                    {lbtrFeeAmount > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="expIncludeLBTR"
+                          checked={includeLBTR}
+                          onCheckedChange={(checked) => setIncludeLBTR(checked === true)}
+                          disabled={isPending}
+                        />
+                        <label htmlFor="expIncludeLBTR" className="text-sm cursor-pointer">
+                          Incluir comision LBTR ({formatCurrency(lbtrFeeAmount)})
+                        </label>
+                      </div>
+                    ) : null}
+
+                    {transferTaxPercentage > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="expIncludeTransferTax"
+                          checked={includeTransferTax}
+                          onCheckedChange={(checked) => setIncludeTransferTax(checked === true)}
+                          disabled={isPending}
+                        />
+                        <label htmlFor="expIncludeTransferTax" className="text-sm cursor-pointer">
+                          Incluir impuesto de transferencia ({transferTaxPercentage}%)
+                        </label>
+                      </div>
+                    ) : null}
+
+                    {(computedLBTR > 0 || computedTax > 0) && currentAmount > 0 ? (
+                      <div className="space-y-1 border-t pt-2 text-sm text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Monto del gasto</span>
+                          <span>{formatCurrency(currentAmount)}</span>
+                        </div>
+                        {computedLBTR > 0 ? (
+                          <div className="flex justify-between">
+                            <span>Comision LBTR</span>
+                            <span>+{formatCurrency(computedLBTR)}</span>
+                          </div>
+                        ) : null}
+                        {computedTax > 0 ? (
+                          <div className="flex justify-between">
+                            <span>Impuesto ({transferTaxPercentage}%)</span>
+                            <span>+{formatCurrency(computedTax)}</span>
+                          </div>
+                        ) : null}
+                        <div className="flex justify-between font-medium text-foreground border-t pt-1">
+                          <span>Total a debitar</span>
+                          <span>{formatCurrency(totalDeduction)}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="dashboard-field mt-auto">
                   <label className="dashboard-field-label">Estado del formulario</label>

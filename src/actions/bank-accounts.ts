@@ -37,6 +37,8 @@ interface TransferFundsData {
   destAccountId: string;
   amount: number;
   description?: string | null;
+  lbtrFee?: number;
+  transferTax?: number;
 }
 
 interface AdjustBalanceData {
@@ -218,6 +220,8 @@ export async function transferFunds(data: TransferFundsData) {
     p_amount: data.amount,
     p_description: data.description ?? null,
     p_created_by: createdBy,
+    p_lbtr_fee: data.lbtrFee ?? 0,
+    p_transfer_tax: data.transferTax ?? 0,
   });
 
   if (error) {

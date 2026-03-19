@@ -35,6 +35,8 @@ const settingsSchema = z.object({
   GravadoPercentage: z
     .string()
     .nonempty("El porcentaje de Gravado es obligatorio"),
+  TransferTaxPercentage: z.string(),
+  LBTRFee: z.string(),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -47,6 +49,8 @@ const EMPTY_SETTINGS_VALUES: SettingsValues = {
   ITBISPercentage: "",
   ExcentoPercentage: "",
   GravadoPercentage: "",
+  TransferTaxPercentage: "",
+  LBTRFee: "",
 };
 
 export default function SettingsPage() {
@@ -77,6 +81,8 @@ export default function SettingsPage() {
     const itbis = configs.ITBIS ?? {};
     const excento = configs.EXCENTO ?? {};
     const gravado = configs.GRAVADO ?? {};
+    const transferTax = configs.TRANSFER_TAX ?? {};
+    const lbtrFee = configs.LBTR_FEE ?? {};
 
     return {
       NCFRangeStart: String(ncf.range_start ?? ""),
@@ -86,6 +92,8 @@ export default function SettingsPage() {
       ITBISPercentage: String(itbis.percentage ?? ""),
       ExcentoPercentage: String(excento.percentage ?? ""),
       GravadoPercentage: String(gravado.percentage ?? ""),
+      TransferTaxPercentage: String(transferTax.percentage ?? ""),
+      LBTRFee: String(lbtrFee.amount ?? ""),
     };
   }, [configs]);
 
@@ -109,6 +117,8 @@ export default function SettingsPage() {
         ITBIS: { percentage: values.ITBISPercentage },
         EXCENTO: { percentage: values.ExcentoPercentage },
         GRAVADO: { percentage: values.GravadoPercentage },
+        TRANSFER_TAX: { percentage: values.TransferTaxPercentage },
+        LBTR_FEE: { amount: values.LBTRFee },
       });
     },
     onSuccess: () => {
@@ -317,6 +327,59 @@ export default function SettingsPage() {
               {errors.GravadoPercentage && (
                 <p className="text-red-500 text-xs">
                   {errors.GravadoPercentage.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="grid gap-6">
+            <h3 className="text-lg font-semibold">Comisiones de transferencia</h3>
+            <div className="grid gap-2">
+              <label
+                htmlFor="TransferTaxPercentage"
+                className="text-sm font-medium text-start"
+              >
+                Porcentaje de impuesto de transferencia
+              </label>
+              <Input
+                id="TransferTaxPercentage"
+                type="number"
+                step="0.01"
+                min="0"
+                disabled={isLoading}
+                placeholder="Ej: 0.15"
+                className="w-sm"
+                {...register("TransferTaxPercentage")}
+              />
+              {errors.TransferTaxPercentage && (
+                <p className="text-red-500 text-xs">
+                  {errors.TransferTaxPercentage.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="LBTRFee"
+                className="text-sm font-medium text-start"
+              >
+                Comision LBTR
+              </label>
+              <Input
+                id="LBTRFee"
+                type="number"
+                step="0.01"
+                min="0"
+                disabled={isLoading}
+                placeholder="Ej: 150"
+                className="w-sm"
+                {...register("LBTRFee")}
+              />
+              {errors.LBTRFee && (
+                <p className="text-red-500 text-xs">
+                  {errors.LBTRFee.message}
                 </p>
               )}
             </div>

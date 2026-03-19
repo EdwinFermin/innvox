@@ -26,6 +26,8 @@ const getTransactionTypeLabel = (type: BankTransactionType): string => {
     transfer_in: "Transferencia entrante",
     transfer_out: "Transferencia saliente",
     adjustment: "Ajuste",
+    lbtr_fee: "Comision LBTR",
+    transfer_tax: "Impuesto transferencia",
   };
 
   return labels[type];
@@ -134,6 +136,8 @@ export const BankAccountDetailPrint = forwardRef<
                 const isNegative =
                   transaction.type === "withdrawal" ||
                   transaction.type === "transfer_out" ||
+                  transaction.type === "lbtr_fee" ||
+                  transaction.type === "transfer_tax" ||
                   transaction.amount < 0;
 
                 return (
