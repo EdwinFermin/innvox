@@ -5,9 +5,12 @@ CREATE TABLE IF NOT EXISTS friendly_id_counters (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE friendly_id_counters DISABLE ROW LEVEL SECURITY;
+
 CREATE OR REPLACE FUNCTION next_friendly_id(p_entity TEXT, p_prefix TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
   v_next_value BIGINT;
@@ -28,6 +31,7 @@ $$;
 CREATE OR REPLACE FUNCTION assign_friendly_id()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
   IF NEW.friendly_id IS NULL OR BTRIM(NEW.friendly_id) = '' THEN

@@ -378,27 +378,27 @@ BEGIN
 END;
 $$;
 
--- 4.4 Adjust balance (atomic: update balance + create adjustment bank tx)
+-- 4.4 Adjust balance (atomic: set balance to target + create adjustment bank tx)
 CREATE OR REPLACE FUNCTION adjust_balance(
   p_bank_account_id UUID,
-  p_amount          NUMERIC,
+  p_target_balance  NUMERIC,
   p_description     TEXT DEFAULT NULL,
   p_created_by      UUID DEFAULT NULL
 ) RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_account     bank_accounts%ROWTYPE;
-  v_new_balance NUMERIC;
+  v_account bank_accounts%ROWTYPE;
+  v_delta   NUMERIC;
 BEGIN
   SELECT * INTO v_account FROM bank_accounts WHERE id = p_bank_account_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Cuenta bancaria no encontrada'; END IF;
 
-  v_new_balance := v_account.current_balance + p_amount;
+  v_delta := p_target_balance - v_account.current_balance;
 
-  UPDATE bank_accounts SET current_balance = v_new_balance WHERE id = p_bank_account_id;
+  UPDATE bank_accounts SET current_balance = p_target_balance WHERE id = p_bank_account_id;
 
   INSERT INTO bank_transactions (id, bank_account_id, type, amount, description, date, balance_after, created_by)
-  VALUES (gen_random_uuid(), p_bank_account_id, 'adjustment', p_amount, p_description, NOW(), v_new_balance, p_created_by);
+  VALUES (gen_random_uuid(), p_bank_account_id, 'adjustment', v_delta, p_description, NOW(), p_target_balance, p_created_by);
 END;
 $$;
 

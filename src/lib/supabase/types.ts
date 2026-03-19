@@ -596,7 +596,7 @@ export interface Database {
       adjust_balance: {
         Args: {
           p_bank_account_id: string;
-          p_amount: number;
+          p_target_balance: number;
           p_description: string | null;
           p_created_by: string;
         };
