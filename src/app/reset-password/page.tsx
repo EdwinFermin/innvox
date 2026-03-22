@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -18,6 +18,14 @@ import { resetPassword } from "@/actions/account";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,12 +38,30 @@ export default function ResetPasswordPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
 
-    // Supabase will automatically pick up the tokens from the URL fragment
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Handle PKCE flow: exchange code from query params for a session
+    const code = searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+        if (error || !data.session) {
+          setLoading(false);
+          return;
+        }
+        setTokens({
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+        });
+        setLoading(false);
+      });
+      return;
+    }
+
+    // Fallback: handle implicit flow (tokens in URL fragment)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" && session) {
         setTokens({
           accessToken: session.access_token,
@@ -45,13 +71,15 @@ export default function ResetPasswordPage() {
       }
     });
 
-    // Fallback: if the event already fired before listener was attached
     const timeout = setTimeout(() => {
-      if (loading) setLoading(false);
+      setLoading(false);
     }, 3000);
 
-    return () => clearTimeout(timeout);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
