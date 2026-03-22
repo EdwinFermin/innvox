@@ -85,14 +85,19 @@ export async function sendPasswordResetEmail(email: string) {
     throw new Error("El correo es obligatorio.");
   }
 
-  const adminClient = getSupabaseAdminClient();
-
-  const { error } = await adminClient.auth.admin.generateLink({
-    type: "recovery",
-    email: trimmed,
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password`,
+  const supabase = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
     },
+  );
+
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password`,
   });
 
   if (error) {
