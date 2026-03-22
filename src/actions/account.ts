@@ -7,6 +7,14 @@ import { requireAuth } from "@/lib/auth/guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
+function getBaseUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
 const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "La contrasena actual es obligatoria"),
@@ -97,7 +105,7 @@ export async function sendPasswordResetEmail(email: string) {
   );
 
   const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password`,
+    redirectTo: `${getBaseUrl()}/reset-password`,
   });
 
   if (error) {
