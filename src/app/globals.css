@@ -201,10 +201,14 @@
 }
 
 /* Evita desbordes en inputs tipo date (iOS) */
-input[data-slot="input"][type="date"] {
+input[type="date"] {
   inline-size: 100%;
   max-inline-size: 100%;
   min-inline-size: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* SUCCESS (verde) */
