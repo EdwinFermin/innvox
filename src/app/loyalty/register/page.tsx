@@ -80,10 +80,10 @@ export default function LoyaltyRegisterPage() {
           </div>
         </header>
 
-        <section className="flex flex-1 items-center justify-center py-6">
-          <div className="relative">
+        <section className="flex flex-1 items-stretch py-6">
+          <div className="relative flex w-full flex-col">
             <div className="absolute inset-x-6 top-4 -z-10 h-full rounded-[0.8rem] bg-[#e6a815]/20 blur-3xl" />
-            <div className="w-full max-w-xl overflow-hidden rounded-[0.7rem] border border-[#d7dfd1] bg-white/95 shadow-[0_30px_90px_rgba(0,44,90,0.16)]">
+            <div className="flex flex-1 flex-col overflow-hidden rounded-[0.7rem] border border-[#d7dfd1] bg-white/95 shadow-[0_30px_90px_rgba(0,44,90,0.16)]">
               <div className="border-b border-[#e8ede6] bg-[linear-gradient(180deg,#fffaf0_0%,#ffffff_100%)] px-6 py-5 sm:px-8">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9c6f04]">
                   {registeredClientId ? "Registro completo" : "Registro"}
@@ -95,7 +95,7 @@ export default function LoyaltyRegisterPage() {
                 </p>
               </div>
 
-              <div className="px-6 py-8 sm:px-8">
+              <div className="flex flex-1 flex-col justify-center px-6 py-8 sm:px-8">
                 {registeredClientId ? (
                   <div className="space-y-6 text-center">
                     <div className="rounded-full bg-[#eef7ef] p-4 text-[#0f6b46] inline-flex">
