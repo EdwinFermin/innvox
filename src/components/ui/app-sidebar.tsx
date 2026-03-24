@@ -16,6 +16,7 @@ import {
   Landmark,
   CalendarDays,
   CalendarClock,
+  Gift,
 } from "lucide-react";
 
 import {
@@ -100,6 +101,20 @@ const data = {
       url: "/dashboard/costos-operativos",
       icon: CalendarClock,
       isActive: true,
+    },
+    {
+      title: "Fidelidad",
+      icon: Gift,
+      items: [
+        {
+          title: "Tarjetas",
+          url: "/dashboard/loyalty",
+        },
+        {
+          title: "Scanner",
+          url: "/dashboard/loyalty/scanner",
+        },
+      ],
     },
     {
       title: "Reportes",
@@ -196,6 +211,20 @@ const data = {
       url: "/dashboard/clients",
       icon: Users,
       isActive: true,
+    },
+    {
+      title: "Fidelidad",
+      icon: Gift,
+      items: [
+        {
+          title: "Tarjetas",
+          url: "/dashboard/loyalty",
+        },
+        {
+          title: "Scanner",
+          url: "/dashboard/loyalty/scanner",
+        },
+      ],
     },
     {
       title: "Reportes",
