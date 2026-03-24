@@ -27,6 +27,7 @@ import { useClients } from "@/hooks/use-clients";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useIncomes } from "@/hooks/use-incomes";
 import { useInvoices } from "@/hooks/use-invoices";
+import { useOperatingCostAlerts } from "@/hooks/use-operating-cost-alerts";
 import { usePayables } from "@/hooks/use-payables";
 import { useReceivables } from "@/hooks/use-receivables";
 import { useAuthStore } from "@/store/auth";
@@ -82,6 +83,8 @@ export function BusinessWidgets() {
   const { data: expenses, isLoading: expensesLoading } = useExpenses(userId);
   const { data: receivables, isLoading: receivablesLoading } = useReceivables(userId);
   const { data: payables, isLoading: payablesLoading } = usePayables(userId);
+  const { data: operatingCostAlerts, isLoading: operatingCostAlertsLoading } =
+    useOperatingCostAlerts(userId, { branchIds: allowedBranchIds });
 
   const currentMonthKey = getTodayDateKey().slice(0, 7);
 
@@ -146,6 +149,11 @@ export function BusinessWidgets() {
   );
   const averageTicket = monthInvoices.length === 0 ? 0 : monthInvoicedTotal / monthInvoices.length;
 
+  const pendingOperatingCostAlerts = React.useMemo(
+    () => operatingCostAlerts.filter((a) => a.status === "pending"),
+    [operatingCostAlerts],
+  );
+
   const alerts = React.useMemo(() => {
     const items = [
       ...receivablesPending.map((item) => ({
@@ -164,13 +172,22 @@ export function BusinessWidgets() {
         dueDate: item.due_date,
         daysUntil: getDaysUntil(item.due_date),
       })),
+      ...pendingOperatingCostAlerts.map((item) => ({
+        id: `opcost-${item.id}`,
+        type: "Costo operativo",
+        name: item.operating_cost_name || "Costo operativo",
+        amount: Number(item.default_amount || 0),
+        dueDate: item.due_date,
+        daysUntil: getDaysUntil(item.due_date),
+        alwaysShow: true,
+      })),
     ];
 
     return items
-      .filter((item) => item.daysUntil <= 10)
+      .filter((item) => "alwaysShow" in item || item.daysUntil <= 10)
       .sort((a, b) => a.daysUntil - b.daysUntil)
       .slice(0, 5);
-  }, [payablesPending, receivablesPending]);
+  }, [payablesPending, pendingOperatingCostAlerts, receivablesPending]);
 
   const recentActivity = React.useMemo(() => {
     const items = [
@@ -213,7 +230,8 @@ export function BusinessWidgets() {
     incomesLoading ||
     expensesLoading ||
     receivablesLoading ||
-    payablesLoading;
+    payablesLoading ||
+    operatingCostAlertsLoading;
 
   if (isLoading) {
     return <DashboardWidgetsSkeleton />;

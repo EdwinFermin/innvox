@@ -15,6 +15,7 @@ import {
   BanknoteArrowDown,
   Landmark,
   CalendarDays,
+  CalendarClock,
 } from "lucide-react";
 
 import {
@@ -92,6 +93,12 @@ const data = {
       title: "Cuentas financieras",
       url: "/dashboard/bank-accounts",
       icon: Landmark,
+      isActive: true,
+    },
+    {
+      title: "Costos operativos",
+      url: "/dashboard/costos-operativos",
+      icon: CalendarClock,
       isActive: true,
     },
     {

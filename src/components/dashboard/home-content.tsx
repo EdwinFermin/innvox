@@ -5,6 +5,7 @@ import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { BusinessWidgets } from "@/components/dashboard/business-widgets";
 import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
 import { DashboardHomeLoading } from "@/components/dashboard/dashboard-loading";
+import { OperatingCostAlertsBanner } from "@/components/dashboard/operating-cost-alerts-banner";
 import { SectionCards } from "@/components/dashboard/section-cards";
 
 export function DashboardHomeContent() {
@@ -22,6 +23,7 @@ export function DashboardHomeContent() {
     <div className="@container/main flex flex-1 flex-col gap-4">
       <div className="dashboard-grid py-1 md:gap-6 md:py-2">
         <DashboardHero />
+        <OperatingCostAlertsBanner />
         <SectionCards />
         <div>
           <ChartAreaInteractive />

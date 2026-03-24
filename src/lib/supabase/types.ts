@@ -542,6 +542,109 @@ export interface Database {
         };
         Relationships: [];
       };
+      /* ---- operating costs (migration 009) ---- */
+      operating_costs: {
+        Row: {
+          id: string;
+          friendly_id: string;
+          branch_id: string;
+          expense_type_id: string;
+          name: string;
+          default_amount: number;
+          currency: "DOP" | "USD";
+          allows_custom_amount: boolean;
+          frequency: "weekly" | "biweekly" | "monthly" | "custom";
+          custom_interval_days: number | null;
+          day_of_month: number | null;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          friendly_id?: string;
+          branch_id: string;
+          expense_type_id: string;
+          name: string;
+          default_amount: number;
+          currency?: "DOP" | "USD";
+          allows_custom_amount?: boolean;
+          frequency: "weekly" | "biweekly" | "monthly" | "custom";
+          custom_interval_days?: number | null;
+          day_of_month?: number | null;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          friendly_id?: string;
+          branch_id?: string;
+          expense_type_id?: string;
+          name?: string;
+          default_amount?: number;
+          currency?: "DOP" | "USD";
+          allows_custom_amount?: boolean;
+          frequency?: "weekly" | "biweekly" | "monthly" | "custom";
+          custom_interval_days?: number | null;
+          day_of_month?: number | null;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
+      operating_cost_alerts: {
+        Row: {
+          id: string;
+          friendly_id: string;
+          operating_cost_id: string;
+          branch_id: string;
+          due_date: string;
+          status: "pending" | "completed";
+          default_amount: number;
+          actual_amount: number | null;
+          bank_account_id: string | null;
+          linked_expense_id: string | null;
+          completed_at: string | null;
+          completed_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          friendly_id?: string;
+          operating_cost_id: string;
+          branch_id: string;
+          due_date: string;
+          status?: "pending" | "completed";
+          default_amount: number;
+          actual_amount?: number | null;
+          bank_account_id?: string | null;
+          linked_expense_id?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          friendly_id?: string;
+          operating_cost_id?: string;
+          branch_id?: string;
+          due_date?: string;
+          status?: "pending" | "completed";
+          default_amount?: number;
+          actual_amount?: number | null;
+          bank_account_id?: string | null;
+          linked_expense_id?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -632,6 +735,22 @@ export interface Database {
           p_bank_account_id: string;
         };
         Returns: undefined;
+      };
+      generate_operating_cost_alerts: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      complete_operating_cost_alert: {
+        Args: {
+          p_alert_id: string;
+          p_actual_amount: number;
+          p_bank_account_id?: string | null;
+          p_completed_by?: string | null;
+          p_lbtr_fee?: number;
+          p_transfer_tax?: number;
+          p_skip_expense?: boolean;
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;
