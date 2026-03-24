@@ -36,8 +36,8 @@ export function generateGoogleWalletUrl(
   const config = getGoogleConfig();
   if (!config) return null;
 
-  const classId = `${config.issuerId}.enviosrd-loyalty`;
-  const objectId = `${config.issuerId}.loyalty-${client.id.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
+  const classId = `${config.issuerId}.enviosrd-loyalty-v2`;
+  const objectId = `${config.issuerId}.loyalty-v2-${client.id.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
 
   const payload = {
     iss: config.serviceAccountEmail,
