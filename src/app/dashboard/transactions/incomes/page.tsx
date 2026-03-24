@@ -175,7 +175,14 @@ const getColumns = (
               {account.account_type === "bank" ? "BK" : "CJ"}
             </span>
           )}
-          <span className="truncate">{account.account_name}</span>
+          <div className="min-w-0">
+            <span className="truncate block">{account.account_name}</span>
+            {account.account_number && (
+              <span className="truncate block text-xs text-muted-foreground">
+                ****{account.account_number.replace(/\s+/g, "").slice(-4)}
+              </span>
+            )}
+          </div>
         </div>
       );
     },

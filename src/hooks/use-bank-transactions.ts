@@ -74,10 +74,10 @@ export function useBankTransactions(
 
       const [incomeResult, expenseResult, relatedAccountsResult] = await Promise.all([
         incomeIds.length > 0
-          ? supabase.from("incomes").select("id, friendly_id").in("id", incomeIds)
+          ? supabase.from("incomes").select("id, friendly_id, branch_id").in("id", incomeIds)
           : Promise.resolve({ data: [], error: null }),
         expenseIds.length > 0
-          ? supabase.from("expenses").select("id, friendly_id").in("id", expenseIds)
+          ? supabase.from("expenses").select("id, friendly_id, branch_id").in("id", expenseIds)
           : Promise.resolve({ data: [], error: null }),
         relatedAccountIds.length > 0
           ? supabase
@@ -94,8 +94,14 @@ export function useBankTransactions(
       const incomeFriendlyIdById = new Map(
         (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
       );
+      const incomeBranchIdById = new Map(
+        (incomeResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
+      );
       const expenseFriendlyIdById = new Map(
         (expenseResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+      );
+      const expenseBranchIdById = new Map(
+        (expenseResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
       );
       const transactionFriendlyIdById = new Map(
         transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
@@ -112,6 +118,11 @@ export function useBankTransactions(
 
       return transactions.map((transaction) => ({
         ...transaction,
+        linked_branch_id: transaction.linked_income_id
+          ? incomeBranchIdById.get(transaction.linked_income_id) ?? null
+          : transaction.linked_expense_id
+            ? expenseBranchIdById.get(transaction.linked_expense_id) ?? null
+            : null,
         linked_income_friendly_id: transaction.linked_income_id
           ? incomeFriendlyIdById.get(transaction.linked_income_id) ?? null
           : null,
@@ -222,10 +233,10 @@ export function useBranchTransactions(
 
       const [incomeResult, expenseResult, relatedAccountsResult] = await Promise.all([
         incomeIds.length > 0
-          ? supabase.from("incomes").select("id, friendly_id").in("id", incomeIds)
+          ? supabase.from("incomes").select("id, friendly_id, branch_id").in("id", incomeIds)
           : Promise.resolve({ data: [], error: null }),
         expenseIds.length > 0
-          ? supabase.from("expenses").select("id, friendly_id").in("id", expenseIds)
+          ? supabase.from("expenses").select("id, friendly_id, branch_id").in("id", expenseIds)
           : Promise.resolve({ data: [], error: null }),
         relatedAccountIds.length > 0
           ? supabase
@@ -242,8 +253,14 @@ export function useBranchTransactions(
       const incomeFriendlyIdById = new Map(
         (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
       );
+      const incomeBranchIdById = new Map(
+        (incomeResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
+      );
       const expenseFriendlyIdById = new Map(
         (expenseResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+      );
+      const expenseBranchIdById = new Map(
+        (expenseResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
       );
       const transactionFriendlyIdById = new Map(
         transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
@@ -260,6 +277,11 @@ export function useBranchTransactions(
 
       return transactions.map((transaction) => ({
         ...transaction,
+        linked_branch_id: transaction.linked_income_id
+          ? incomeBranchIdById.get(transaction.linked_income_id) ?? null
+          : transaction.linked_expense_id
+            ? expenseBranchIdById.get(transaction.linked_expense_id) ?? null
+            : null,
         linked_income_friendly_id: transaction.linked_income_id
           ? incomeFriendlyIdById.get(transaction.linked_income_id) ?? null
           : null,

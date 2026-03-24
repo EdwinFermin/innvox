@@ -27,4 +27,5 @@ export interface BankTransaction {
   related_transfer_friendly_id?: string | null;
   related_account_name?: string | null;
   related_account_number_last4?: string | null;
+  linked_branch_id?: string | null;
 }

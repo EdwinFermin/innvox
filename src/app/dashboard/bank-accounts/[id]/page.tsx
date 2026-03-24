@@ -143,6 +143,7 @@ const getTransferDescription = (transaction: BankTransaction): string => {
 const getColumns = (
   currency: string,
   onTransferTransaction: (transaction: BankTransaction) => void,
+  branchNameById: Record<string, string>,
 ): ColumnDef<BankTransaction>[] => [
   {
     accessorKey: "friendly_id",
@@ -169,6 +170,20 @@ const getColumns = (
       return (
         <div className="text-muted-foreground max-w-[180px] truncate font-mono text-xs">
           {movementId}
+        </div>
+      );
+    },
+  },
+  {
+    id: "branch",
+    header: "Sucursal",
+    cell: ({ row }) => {
+      const branchId = row.original.linked_branch_id;
+      if (!branchId) return <div className="text-muted-foreground">-</div>;
+      const branchName = branchNameById[branchId];
+      return (
+        <div className="truncate text-sm">
+          {branchName || "-"}
         </div>
       );
     },
@@ -338,11 +353,15 @@ export default function BankAccountDetailPage() {
     error: transactionsError,
   } = useBankTransactions(user?.id || "", accountId, { enabled: !!account });
 
+  const branchNameById = React.useMemo(
+    () => Object.fromEntries(branches.map((branch) => [branch.id, branch.name])),
+    [branches],
+  );
+
   const branchNames = React.useMemo(() => {
     if (!account) return "";
-    const branchMap = Object.fromEntries(branches.map((branch) => [branch.id, branch.name]));
-    return getAccountBranchNames(account, branchMap).join(", ");
-  }, [account, branches]);
+    return getAccountBranchNames(account, branchNameById).join(", ");
+  }, [account, branchNameById]);
 
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "date", desc: true },
@@ -374,8 +393,8 @@ export default function BankAccountDetailPage() {
   }, []);
 
   const columns = React.useMemo(
-    () => getColumns(account?.currency || "DOP", handleOpenTransfer),
-    [account?.currency, handleOpenTransfer]
+    () => getColumns(account?.currency || "DOP", handleOpenTransfer, branchNameById),
+    [account?.currency, handleOpenTransfer, branchNameById]
   );
   const { print, PrintContainer } = usePrintBankAccountDetail();
 
