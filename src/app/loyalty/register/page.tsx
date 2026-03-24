@@ -10,7 +10,6 @@ import { registerLoyaltyClient } from "@/actions/loyalty";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
-import { buildClientQrUrl } from "@/lib/loyalty";
 import { WalletButtons } from "./components/wallet-buttons";
 
 export default function LoyaltyRegisterPage() {
@@ -91,7 +90,7 @@ export default function LoyaltyRegisterPage() {
                 </p>
                 <p className="mt-2 text-sm text-[#647570]">
                   {registeredClientId
-                    ? "Guarda tu codigo QR para presentarlo en cada visita."
+                    ? "Agrega tu tarjeta a tu billetera digital."
                     : "Completa tus datos para unirte al programa de fidelidad."}
                 </p>
               </div>
@@ -112,37 +111,7 @@ export default function LoyaltyRegisterPage() {
                       </p>
                     </div>
 
-                    <div className="flex justify-center">
-                      <div className="rounded-xl border border-[#dfe7dc] bg-white p-3">
-                        <Image
-                          src={buildClientQrUrl(registeredClientId)}
-                          alt="QR de tu tarjeta"
-                          width={220}
-                          height={220}
-                          unoptimized
-                          className="rounded-lg"
-                        />
-                      </div>
-                    </div>
-
                     <WalletButtons clientId={registeredClientId} />
-
-                    <div className="rounded-[0.6rem] border border-[#dce6db] bg-[#f8fbf7] p-4 text-left text-sm leading-6 text-[#556a63]">
-                      Guarda una captura de pantalla de este QR o agregalo a tu billetera digital. Presentalo en cada visita para acumular tokens.
-                    </div>
-
-                    <Button
-                      className="h-12 w-full rounded-[0.55rem] bg-[#0f6b46] text-base font-semibold text-white shadow-lg shadow-[#0f6b46]/30 transition hover:bg-[#0c593b]"
-                      onClick={() => {
-                        setRegisteredClientId(null);
-                        setName("");
-                        setPhone("");
-                        setEmail("");
-                        setPoBox("");
-                      }}
-                    >
-                      Registrar otro cliente
-                    </Button>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-5">

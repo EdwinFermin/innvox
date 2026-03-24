@@ -59,6 +59,12 @@ npm run typecheck    # TypeScript check
 - Include both the DDL and any RPC function updates in the same migration when they're related.
 - Always add `IF NOT EXISTS` / `CREATE OR REPLACE` where applicable.
 
+## Git workflow
+
+- After a PR is merged (or before starting a new implementation), always switch to `main` and pull: `git checkout main && git pull origin main`.
+- Create a new feature branch from the updated `main` before making changes.
+- Never continue working on a merged or stale branch.
+
 ## What NOT to do
 
 - Don't run `npm install` without asking first.
