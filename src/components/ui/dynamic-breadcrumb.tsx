@@ -35,6 +35,10 @@ function translateSegment(segment: string): string {
     parameters: "Parametros",
     "Income-types": "Tipos de ingresos",
     "Expense-types": "Tipos de gastos",
+    loyalty: "Fidelidad",
+    scanner: "Scanner",
+    register: "Registro",
+    "costos-operativos": "Costos operativos",
   };
 
   return (

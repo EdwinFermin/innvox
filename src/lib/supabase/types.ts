@@ -84,16 +84,58 @@ export interface Database {
         Row: {
           id: string;
           name: string;
+          email: string | null;
+          phone: string | null;
+          tokens: number;
           created_at: string;
         };
         Insert: {
           id: string;
           name: string;
+          email?: string | null;
+          phone?: string | null;
+          tokens?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
+          email?: string | null;
+          phone?: string | null;
+          tokens?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      token_events: {
+        Row: {
+          id: string;
+          client_id: string;
+          delta: number;
+          tokens_after: number;
+          event_type: string;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          delta: number;
+          tokens_after: number;
+          event_type?: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          delta?: number;
+          tokens_after?: number;
+          event_type?: string;
+          note?: string | null;
+          created_by?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -751,6 +793,19 @@ export interface Database {
           p_skip_expense?: boolean;
         };
         Returns: string;
+      };
+      adjust_tokens: {
+        Args: {
+          p_client_id: string;
+          p_delta: number;
+          p_event_type?: string;
+          p_note?: string | null;
+          p_user_id?: string | null;
+        };
+        Returns: {
+          new_tokens: number;
+          was_reset: boolean;
+        }[];
       };
     };
     Enums: Record<string, never>;
