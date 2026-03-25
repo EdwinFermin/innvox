@@ -110,20 +110,21 @@ async function notifyAppleWalletDevices(clientId: string) {
   const serialNumber = `loyalty-${clientId}`;
 
   // Find all devices registered for this pass
-  const { data: devices } = await supabase
-    .from("apple_wallet_devices")
+  // Note: apple_wallet_devices is not in generated Supabase types yet
+  const { data: devices } = await (supabase
+    .from("apple_wallet_devices" as any)
     .select("push_token")
     .eq("pass_type_id", passTypeId)
-    .eq("serial_number", serialNumber);
+    .eq("serial_number", serialNumber) as unknown as Promise<{ data: { push_token: string }[] | null }>);
 
   if (!devices || devices.length === 0) return;
 
   // Update the updated_at so the device knows the pass changed
-  await supabase
-    .from("apple_wallet_devices")
-    .update({ updated_at: new Date().toISOString() })
+  await (supabase
+    .from("apple_wallet_devices" as any)
+    .update({ updated_at: new Date().toISOString() } as any)
     .eq("pass_type_id", passTypeId)
-    .eq("serial_number", serialNumber);
+    .eq("serial_number", serialNumber) as any);
 
   // Send push notification to each device
   for (const device of devices) {
