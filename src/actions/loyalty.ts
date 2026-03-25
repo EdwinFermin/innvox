@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth/guards";
 import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { updateGoogleWalletTokens } from "@/lib/wallet/google";
 
 export async function adjustTokens(
   clientId: string,
@@ -33,8 +34,13 @@ export async function adjustTokens(
   revalidatePath("/dashboard/loyalty");
 
   const result = Array.isArray(data) ? data[0] : data;
+  const newTokens = result?.new_tokens ?? 0;
+
+  // Update the Google Wallet pass in the background (fire-and-forget)
+  updateGoogleWalletTokens(clientId, newTokens).catch(() => {});
+
   return {
-    new_tokens: result?.new_tokens ?? 0,
+    new_tokens: newTokens,
     was_reset: result?.was_reset ?? false,
   };
 }

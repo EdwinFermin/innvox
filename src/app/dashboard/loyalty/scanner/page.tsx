@@ -40,6 +40,8 @@ export default function ScannerPage() {
         return;
       }
 
+      // Stop the scanner when a client is found
+      await stopScanner();
       setScannedClient({ ...data, po_box: data.id } as Client);
     } catch {
       toast.error("Error al buscar el cliente");
@@ -52,7 +54,6 @@ export default function ScannerPage() {
     if (!scannerRef.current) return;
 
     try {
-      // Clear any existing children so html5-qrcode can render
       setIsScanning(true);
 
       // Wait for React to remove the placeholder
@@ -67,14 +68,6 @@ export default function ScannerPage() {
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           fetchClient(decodedText);
-          scanner.pause(true);
-          setTimeout(() => {
-            try {
-              scanner.resume();
-            } catch {
-              // scanner may have been stopped
-            }
-          }, 2000);
         },
         () => {},
       );
@@ -142,6 +135,10 @@ export default function ScannerPage() {
     }
   };
 
+  const handleScanAnother = async () => {
+    setScannedClient(null);
+  };
+
   return (
     <div className="dashboard-grid w-full">
       <DashboardPageHeader
@@ -151,129 +148,122 @@ export default function ScannerPage() {
       />
 
       <div className="dashboard-panel p-4 sm:p-6">
-        <div className="mx-auto grid max-w-3xl gap-6 lg:grid-cols-2">
-          {/* Camera section */}
-          <div className="space-y-4">
-            <div
-              id="qr-scanner-container"
-              ref={scannerRef}
-              className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-dashed border-border bg-slate-50"
-            >
-              {!isScanning && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-                  <Camera className="h-12 w-12" />
-                  <p className="text-sm">Presiona iniciar para abrir la camara</p>
-                </div>
-              )}
-            </div>
+        <div className="mx-auto max-w-lg">
+          {/* View 1: Camera + Manual search (no client scanned yet) */}
+          {!scannedClient && !isFetching && (
+            <div className="space-y-4">
+              <div
+                id="qr-scanner-container"
+                ref={scannerRef}
+                className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-dashed border-border bg-slate-50"
+              >
+                {!isScanning && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                    <Camera className="h-12 w-12" />
+                    <p className="text-sm">Presiona iniciar para abrir la camara</p>
+                  </div>
+                )}
+              </div>
 
-            <div className="flex gap-2">
-              {!isScanning ? (
-                <Button
-                  onClick={startScanner}
-                  className="h-11 w-full rounded-2xl"
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  Iniciar camara
-                </Button>
-              ) : (
+              <div className="flex gap-2">
+                {!isScanning ? (
+                  <Button
+                    onClick={startScanner}
+                    className="h-11 w-full rounded-2xl"
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Iniciar camara
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={stopScanner}
+                    className="h-11 w-full rounded-2xl"
+                  >
+                    Detener camara
+                  </Button>
+                )}
+              </div>
+
+              {/* Manual search */}
+              <div className="flex gap-2">
+                <Input
+                  value={manualId}
+                  onChange={(e) => setManualId(e.target.value)}
+                  placeholder="Buscar por casillero..."
+                  className="h-11 rounded-2xl border-border/70"
+                  onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
+                />
                 <Button
                   variant="outline"
-                  onClick={stopScanner}
-                  className="h-11 w-full rounded-2xl"
+                  onClick={handleManualSearch}
+                  className="h-11 shrink-0 rounded-2xl"
+                  disabled={!manualId.trim()}
                 >
-                  Detener camara
+                  <Search className="h-4 w-4" />
                 </Button>
-              )}
+              </div>
             </div>
+          )}
 
-            {/* Manual search */}
-            <div className="flex gap-2">
-              <Input
-                value={manualId}
-                onChange={(e) => setManualId(e.target.value)}
-                placeholder="Buscar por casillero..."
-                className="h-11 rounded-2xl border-border/70"
-                onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
-              />
+          {/* Loading state */}
+          {isFetching && (
+            <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-border/70 bg-slate-50/70">
+              <SpinnerLabel label="Buscando cliente..." />
+            </div>
+          )}
+
+          {/* View 2: Client result (after successful scan) */}
+          {scannedClient && !isFetching && (
+            <div className="space-y-4 rounded-2xl border border-border/70 bg-slate-50/70 p-5 sm:p-6">
+              <div className="space-y-1 text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                  Cliente
+                </p>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {scannedClient.name}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {scannedClient.po_box}
+                  {scannedClient.phone && ` · ${scannedClient.phone}`}
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border/70 bg-background p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                  Tokens
+                </p>
+                <TokenDots tokens={scannedClient.tokens} size="lg" />
+                <p className="text-3xl font-semibold tracking-tight">
+                  {scannedClient.tokens} / 8
+                </p>
+              </div>
+
+              <Button
+                onClick={() => addTokenMutation.mutate()}
+                disabled={addTokenMutation.isPending}
+                className="h-14 w-full rounded-2xl text-lg font-semibold"
+              >
+                {addTokenMutation.isPending ? (
+                  <SpinnerLabel label="Procesando..." />
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-5 w-5" />
+                    Agregar token
+                  </>
+                )}
+              </Button>
+
               <Button
                 variant="outline"
-                onClick={handleManualSearch}
-                className="h-11 shrink-0 rounded-2xl"
-                disabled={!manualId.trim()}
+                onClick={handleScanAnother}
+                className="h-11 w-full rounded-2xl"
               >
-                <Search className="h-4 w-4" />
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Escanear otro
               </Button>
             </div>
-          </div>
-
-          {/* Client result section */}
-          <div className="space-y-4">
-            {isFetching ? (
-              <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-border/70 bg-slate-50/70">
-                <SpinnerLabel label="Buscando cliente..." />
-              </div>
-            ) : scannedClient ? (
-              <div className="space-y-4 rounded-2xl border border-border/70 bg-slate-50/70 p-5 sm:p-6">
-                <div className="space-y-1 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                    Cliente
-                  </p>
-                  <h2 className="text-2xl font-semibold tracking-tight">
-                    {scannedClient.name}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {scannedClient.po_box}
-                    {scannedClient.phone && ` · ${scannedClient.phone}`}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-border/70 bg-background p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                    Tokens
-                  </p>
-                  <TokenDots tokens={scannedClient.tokens} size="lg" />
-                  <p className="text-3xl font-semibold tracking-tight">
-                    {scannedClient.tokens} / 8
-                  </p>
-                </div>
-
-                <Button
-                  onClick={() => addTokenMutation.mutate()}
-                  disabled={addTokenMutation.isPending}
-                  className="h-14 w-full rounded-2xl text-lg font-semibold"
-                >
-                  {addTokenMutation.isPending ? (
-                    <SpinnerLabel label="Procesando..." />
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-5 w-5" />
-                      Agregar token
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setScannedClient(null)}
-                  className="h-11 w-full rounded-2xl"
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Escanear otro
-                </Button>
-              </div>
-            ) : (
-              <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/70 bg-slate-50/60 text-center text-muted-foreground">
-                <Search className="h-10 w-10" />
-                <div>
-                  <p className="font-medium">Sin cliente seleccionado</p>
-                  <p className="mt-1 text-sm">
-                    Escanea un QR o busca manualmente por casillero
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

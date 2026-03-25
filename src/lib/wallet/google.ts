@@ -140,3 +140,93 @@ export function generateGoogleWalletUrl(
 export function isGoogleWalletConfigured(): boolean {
   return getGoogleConfig() !== null;
 }
+
+/**
+ * Get an OAuth2 access token for the Google Wallet REST API
+ * using the service account credentials.
+ */
+async function getAccessToken(config: GoogleWalletConfig): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const token = jwt.sign(
+    {
+      iss: config.serviceAccountEmail,
+      scope: "https://www.googleapis.com/auth/wallet_object.issuer",
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+    },
+    config.privateKey,
+    { algorithm: "RS256" },
+  );
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: token,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to get access token: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.access_token;
+}
+
+function buildObjectId(config: GoogleWalletConfig, clientId: string): string {
+  return `${config.issuerId}.loyalty-v2-${clientId.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
+}
+
+/**
+ * Update the tokens displayed on an existing Google Wallet pass.
+ * Silently fails if the pass doesn't exist or wallet is not configured.
+ */
+export async function updateGoogleWalletTokens(
+  clientId: string,
+  newTokens: number,
+): Promise<void> {
+  const config = getGoogleConfig();
+  if (!config) return;
+
+  const objectId = buildObjectId(config, clientId);
+
+  try {
+    const accessToken = await getAccessToken(config);
+
+    const res = await fetch(
+      `https://walletobjects.googleapis.com/walletobjects/v1/genericObject/${objectId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          textModulesData: [
+            {
+              id: "pobox",
+              header: "CASILLERO",
+              body: clientId,
+            },
+            {
+              id: "tokens",
+              header: "TOKENS",
+              body: `${newTokens}/8`,
+            },
+          ],
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Google Wallet PATCH failed (${res.status}):`, body);
+    }
+  } catch (err) {
+    // Don't fail the token adjustment if the wallet update fails
+    console.error("Google Wallet update error:", err);
+  }
+}
