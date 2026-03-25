@@ -36,12 +36,10 @@ export function generateGoogleWalletUrl(
   const config = getGoogleConfig();
   if (!config) return null;
 
-  const classId = `${config.issuerId}.enviosrd-loyalty-v3`;
-  const objectId = `${config.issuerId}.loyalty-v3-${client.id.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
+  const classId = `${config.issuerId}.enviosrd-loyalty-v4`;
+  const objectId = `${config.issuerId}.loyalty-v4-${client.id.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
 
   const logoUrl = `${baseUrl}/brand/enviosrd-logo-square.png`;
-  const heroUrl = `${baseUrl}/brand/enviosrd-wallet-hero.png`;
-  const wideLogoUrl = `${baseUrl}/brand/enviosrd-wallet-wide.png`;
 
   const payload = {
     iss: config.serviceAccountEmail,
@@ -109,16 +107,6 @@ export function generateGoogleWalletUrl(
           logo: {
             sourceUri: {
               uri: logoUrl,
-            },
-          },
-          wideLogo: {
-            sourceUri: {
-              uri: wideLogoUrl,
-            },
-          },
-          heroImage: {
-            sourceUri: {
-              uri: heroUrl,
             },
           },
           hexBackgroundColor: "#002c5a",
@@ -191,7 +179,7 @@ async function getAccessToken(config: GoogleWalletConfig): Promise<string> {
 }
 
 function buildObjectId(config: GoogleWalletConfig, clientId: string): string {
-  return `${config.issuerId}.loyalty-v3-${clientId.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
+  return `${config.issuerId}.loyalty-v4-${clientId.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
 }
 
 /**
