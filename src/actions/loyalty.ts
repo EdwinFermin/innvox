@@ -7,6 +7,7 @@ import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { updateGoogleWalletTokens } from "@/lib/wallet/google";
+import { sendApplePassUpdateNotification, getApplePassTypeId } from "@/lib/wallet/apple";
 
 export async function adjustTokens(
   clientId: string,
@@ -36,8 +37,9 @@ export async function adjustTokens(
   const result = Array.isArray(data) ? data[0] : data;
   const newTokens = result?.new_tokens ?? 0;
 
-  // Update the Google Wallet pass in the background (fire-and-forget)
+  // Update wallet passes in the background (fire-and-forget)
   updateGoogleWalletTokens(clientId, newTokens).catch(() => {});
+  notifyAppleWalletDevices(clientId).catch(() => {});
 
   return {
     new_tokens: newTokens,
@@ -94,4 +96,33 @@ export async function registerLoyaltyClient(data: RegisterLoyaltyClientData) {
   }
 
   return { clientId, isNew: true };
+}
+
+async function notifyAppleWalletDevices(clientId: string) {
+  const passTypeId = getApplePassTypeId();
+  if (!passTypeId) return;
+
+  const supabase = getSupabaseAdminClient();
+  const serialNumber = `loyalty-${clientId}`;
+
+  // Find all devices registered for this pass
+  const { data: devices } = await supabase
+    .from("apple_wallet_devices")
+    .select("push_token")
+    .eq("pass_type_id", passTypeId)
+    .eq("serial_number", serialNumber);
+
+  if (!devices || devices.length === 0) return;
+
+  // Update the updated_at so the device knows the pass changed
+  await supabase
+    .from("apple_wallet_devices")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("pass_type_id", passTypeId)
+    .eq("serial_number", serialNumber);
+
+  // Send push notification to each device
+  for (const device of devices) {
+    await sendApplePassUpdateNotification(device.push_token).catch(() => {});
+  }
 }
