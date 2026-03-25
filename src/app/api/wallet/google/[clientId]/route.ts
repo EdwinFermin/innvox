@@ -36,7 +36,7 @@ export async function GET(
     }
 
     const origin = new URL(request.url).origin;
-    const logoUrl = `${getAppBaseUrl(origin)}/brand/enviosrd-logo-square.png`;
+    const baseUrl = getAppBaseUrl(origin);
 
     const saveUrl = generateGoogleWalletUrl(
       {
@@ -45,7 +45,7 @@ export async function GET(
         phone: client.phone,
         tokens: client.tokens,
       },
-      logoUrl,
+      baseUrl,
     );
 
     if (!saveUrl) {
