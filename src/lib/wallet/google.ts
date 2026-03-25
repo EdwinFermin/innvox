@@ -36,12 +36,10 @@ export function generateGoogleWalletUrl(
   const config = getGoogleConfig();
   if (!config) return null;
 
-  const classId = `${config.issuerId}.enviosrd-loyalty-v3`;
-  const objectId = `${config.issuerId}.loyalty-v3-${client.id.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
+  const classId = `${config.issuerId}.enviosrd-loyalty-v5`;
+  const objectId = `${config.issuerId}.loyalty-v5-${client.id.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
 
   const logoUrl = `${baseUrl}/brand/enviosrd-logo-square.png`;
-  const heroUrl = `${baseUrl}/brand/enviosrd-wallet-hero.png`;
-  const wideLogoUrl = `${baseUrl}/brand/enviosrd-wallet-wide.png`;
 
   const payload = {
     iss: config.serviceAccountEmail,
@@ -111,17 +109,7 @@ export function generateGoogleWalletUrl(
               uri: logoUrl,
             },
           },
-          wideLogo: {
-            sourceUri: {
-              uri: wideLogoUrl,
-            },
-          },
-          heroImage: {
-            sourceUri: {
-              uri: heroUrl,
-            },
-          },
-          hexBackgroundColor: "#002c5a",
+          hexBackgroundColor: "#002857",
           barcode: {
             type: "QR_CODE",
             value: client.id,
@@ -135,7 +123,7 @@ export function generateGoogleWalletUrl(
             },
             {
               id: "tokens",
-              header: "TOKENS",
+              header: "PUNTOS",
               body: `${client.tokens}/8`,
             },
           ],
@@ -191,7 +179,7 @@ async function getAccessToken(config: GoogleWalletConfig): Promise<string> {
 }
 
 function buildObjectId(config: GoogleWalletConfig, clientId: string): string {
-  return `${config.issuerId}.loyalty-v3-${clientId.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
+  return `${config.issuerId}.loyalty-v5-${clientId.replace(/[^a-zA-Z0-9_.-]/g, "_")}`;
 }
 
 /**
@@ -227,7 +215,7 @@ export async function updateGoogleWalletTokens(
             },
             {
               id: "tokens",
-              header: "TOKENS",
+              header: "PUNTOS",
               body: `${newTokens}/8`,
             },
           ],
