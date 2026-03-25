@@ -82,8 +82,8 @@ export async function generateApplePass(
       passTypeIdentifier: config.passTypeIdentifier,
       teamIdentifier: config.teamIdentifier,
       foregroundColor: "rgb(255, 255, 255)",
-      backgroundColor: "rgb(0, 44, 90)",
-      labelColor: "rgb(230, 168, 21)",
+      backgroundColor: "rgb(0, 40, 87)",
+      labelColor: "rgb(212, 160, 23)",
     },
   );
 
@@ -98,7 +98,7 @@ export async function generateApplePass(
 
   pass.headerFields.push({
     key: "tokens",
-    label: "TOKENS",
+    label: "PUNTOS",
     value: `${client.tokens}/8`,
   });
 
@@ -117,7 +117,7 @@ export async function generateApplePass(
   if (client.phone) {
     pass.secondaryFields.push({
       key: "phone",
-      label: "TELEFONO",
+      label: "TELÉFONO",
       value: client.phone,
     });
   }
