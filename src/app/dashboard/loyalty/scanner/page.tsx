@@ -52,6 +52,12 @@ export default function ScannerPage() {
     if (!scannerRef.current) return;
 
     try {
+      // Clear any existing children so html5-qrcode can render
+      setIsScanning(true);
+
+      // Wait for React to remove the placeholder
+      await new Promise((r) => setTimeout(r, 0));
+
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-scanner-container");
       html5QrCodeRef.current = scanner;
@@ -72,9 +78,10 @@ export default function ScannerPage() {
         },
         () => {},
       );
-      setIsScanning(true);
-    } catch {
-      toast.error("No se pudo acceder a la camara");
+    } catch (err) {
+      console.error("Scanner error:", err);
+      setIsScanning(false);
+      toast.error("No se pudo acceder a la camara. Verifica los permisos.");
     }
   }, [fetchClient]);
 
