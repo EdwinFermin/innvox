@@ -99,7 +99,7 @@ export async function generateApplePass(
   pass.headerFields.push({
     key: "tokens",
     label: "PUNTOS",
-    value: `${client.tokens}/8`,
+    value: `${client.tokens}/10`,
   });
 
   pass.primaryFields.push({
@@ -127,7 +127,7 @@ export async function generateApplePass(
       key: "program",
       label: "PROGRAMA",
       value:
-        "Acumula 8 tokens visitando nuestras sucursales. Al completar tu tarjeta recibes una recompensa.",
+        "Acumula 10 tokens visitando nuestras sucursales. Al completar tu tarjeta recibes una recompensa.",
     },
     {
       key: "clientId",

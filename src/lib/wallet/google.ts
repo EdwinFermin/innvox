@@ -129,7 +129,7 @@ export function generateGoogleWalletUrl(
             {
               id: "tokens",
               header: "PUNTOS",
-              body: `${client.tokens}/8`,
+              body: `${client.tokens}/10`,
             },
           ],
         },
@@ -221,7 +221,7 @@ export async function updateGoogleWalletTokens(
             {
               id: "tokens",
               header: "PUNTOS",
-              body: `${newTokens}/8`,
+              body: `${newTokens}/10`,
             },
           ],
         }),

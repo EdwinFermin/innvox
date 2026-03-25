@@ -8,7 +8,7 @@ type TokenDotsProps = {
   size?: "sm" | "md" | "lg";
 };
 
-export function TokenDots({ tokens, max = 8, size = "md" }: TokenDotsProps) {
+export function TokenDots({ tokens, max = 10, size = "md" }: TokenDotsProps) {
   const sizeClass = {
     sm: "h-3 w-3",
     md: "h-4 w-4",

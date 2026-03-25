@@ -117,7 +117,7 @@ export default function ScannerPage() {
           duration: 5000,
         });
       } else {
-        toast.success(`Token agregado (${result.new_tokens}/8)`);
+        toast.success(`Token agregado (${result.new_tokens}/10)`);
       }
     },
     onError: (error) => {
@@ -235,7 +235,7 @@ export default function ScannerPage() {
                 </p>
                 <TokenDots tokens={scannedClient.tokens} size="lg" />
                 <p className="text-3xl font-semibold tracking-tight">
-                  {scannedClient.tokens} / 8
+                  {scannedClient.tokens} / 10
                 </p>
               </div>
 

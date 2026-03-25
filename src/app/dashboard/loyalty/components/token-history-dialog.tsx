@@ -89,7 +89,7 @@ export function TokenHistoryDialog({
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="text-sm font-medium">
-                      {event.tokens_after}/8
+                      {event.tokens_after}/10
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {format(new Date(event.created_at), "d MMM yyyy, HH:mm", {
