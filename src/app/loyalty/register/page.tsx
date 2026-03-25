@@ -17,15 +17,39 @@ export default function LoyaltyRegisterPage() {
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [poBox, setPoBox] = React.useState("");
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  };
+
+  const formatPoBox = (value: string) => {
+    const upper = value.toUpperCase();
+    // If user types digits only, auto-prefix with EV-
+    if (/^\d/.test(upper)) {
+      const digits = upper.replace(/\D/g, "");
+      return `EV-${digits}`;
+    }
+    // Allow typing EV- prefix naturally
+    const match = upper.match(/^([A-Z]{1,2})-?(\d*)$/);
+    if (match) {
+      const prefix = match[1];
+      const digits = match[2];
+      return digits ? `${prefix}-${digits}` : prefix;
+    }
+    return upper.replace(/[^A-Z0-9-]/g, "");
+  };
   const [registeredClientId, setRegisteredClientId] = React.useState<string | null>(null);
 
   const registerMutation = useMutation({
     mutationFn: async () => {
       return registerLoyaltyClient({
         name: name.trim(),
-        phone: phone.trim(),
+        phone: phone.replace(/\./g, "").trim(),
         email: email.trim() || undefined,
-        po_box: poBox.trim() || undefined,
+        po_box: poBox.trim(),
       });
     },
     onSuccess: (result) => {
@@ -45,7 +69,7 @@ export default function LoyaltyRegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) return;
+    if (!name.trim() || !phone.trim() || !poBox.trim()) return;
     registerMutation.mutate();
   };
 
@@ -134,8 +158,8 @@ export default function LoyaltyRegisterPage() {
                       </label>
                       <Input
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="809-000-0000"
+                        onChange={(e) => setPhone(formatPhone(e.target.value))}
+                        placeholder="000.000.0000"
                         type="tel"
                         required
                         className="h-12 rounded-xl border-[#d7dfd1] bg-white text-base"
@@ -157,22 +181,23 @@ export default function LoyaltyRegisterPage() {
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-[#0d2d4f]">
-                        Casillero (opcional)
+                        Casillero *
                       </label>
                       <Input
                         value={poBox}
-                        onChange={(e) => setPoBox(e.target.value)}
-                        placeholder="EV-123450"
+                        onChange={(e) => setPoBox(formatPoBox(e.target.value))}
+                        placeholder="EV-00000"
+                        required
                         className="h-12 rounded-xl border-[#d7dfd1] bg-white text-base"
                       />
                       <p className="text-xs text-[#8a9b95]">
-                        Si ya tienes un casillero, ingresalo para vincular tu tarjeta.
+                        Ingresa tu numero de casillero para vincular tu tarjeta.
                       </p>
                     </div>
 
                     <Button
                       type="submit"
-                      disabled={registerMutation.isPending || !name.trim() || !phone.trim()}
+                      disabled={registerMutation.isPending || !name.trim() || !phone.trim() || !poBox.trim()}
                       className="h-14 w-full rounded-[0.55rem] bg-[#0f6b46] text-base font-semibold text-white shadow-lg shadow-[#0f6b46]/30 transition hover:bg-[#0c593b]"
                     >
                       {registerMutation.isPending ? (
