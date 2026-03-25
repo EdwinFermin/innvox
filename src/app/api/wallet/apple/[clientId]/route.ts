@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { generateApplePass, isAppleWalletConfigured } from "@/lib/wallet/apple";
+import { getAppBaseUrl } from "@/lib/link-payments";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ clientId: string }> },
 ) {
   try {
@@ -31,12 +32,18 @@ export async function GET(
       );
     }
 
-    const buffer = await generateApplePass({
-      id: client.id,
-      name: client.name,
-      phone: client.phone,
-      tokens: client.tokens,
-    });
+    const origin = new URL(request.url).origin;
+    const baseUrl = getAppBaseUrl(origin);
+
+    const buffer = await generateApplePass(
+      {
+        id: client.id,
+        name: client.name,
+        phone: client.phone,
+        tokens: client.tokens,
+      },
+      baseUrl,
+    );
 
     if (!buffer) {
       return NextResponse.json(

@@ -97,7 +97,7 @@ export default function LoyaltyRegisterPage() {
                   Programa de Fidelidad
                 </h1>
                 <p className="mt-2 max-w-xl text-sm text-white/82 sm:text-base">
-                  Registrate y acumula tokens con cada visita. Al completar 8 tokens recibes tu recompensa.
+                  Registrate y acumula tokens con cada visita. Al completar 10 tokens recibes tu recompensa.
                 </p>
               </div>
             </div>

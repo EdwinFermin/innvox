@@ -78,7 +78,7 @@ export function AdjustTokensDialog({
               </p>
               <TokenDots tokens={client?.tokens ?? 0} size="lg" />
               <p className="text-2xl font-semibold tracking-tight">
-                {client?.tokens ?? 0} / 8
+                {client?.tokens ?? 0} / 10
               </p>
             </div>
 
