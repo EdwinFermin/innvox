@@ -207,7 +207,7 @@ export async function sendApplePassUpdateNotification(
       ":path": `/3/device/${pushToken}`,
       "apns-topic": config.passTypeIdentifier,
       "apns-push-type": "background",
-      "apns-priority": "5",
+      "apns-priority": "10",
     });
 
     req.setEncoding("utf8");
