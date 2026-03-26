@@ -111,7 +111,7 @@ export function EditUserDialog({ user }: { user: User }) {
           Editar
         </button>
       </DialogTrigger>
-      <DialogContent className="dashboard-dialog-content max-w-2xl overflow-hidden">
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader className="dashboard-dialog-header">
           <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
             Editar usuario

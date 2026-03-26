@@ -105,7 +105,7 @@ export function NewLinkPaymentDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="dashboard-dialog-content max-w-lg w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg w-[calc(100vw-2rem)] overflow-y-auto">
         <DialogHeader className="dashboard-dialog-header">
           <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">Nuevo link de pago</DialogTitle>
           <DialogDescription className="max-w-md leading-6">

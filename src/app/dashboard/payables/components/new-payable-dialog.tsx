@@ -105,7 +105,7 @@ export function NewPayableDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="dashboard-dialog-content max-w-xl overflow-hidden lg:max-w-2xl">
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
         <DialogHeader className="dashboard-dialog-header">
           <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
             Nueva cuenta por pagar
