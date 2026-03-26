@@ -188,7 +188,7 @@ export function CompleteAlertDialog({ alert, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dashboard-dialog-content gap-0 overflow-hidden sm:max-w-xl">
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] gap-0 overflow-y-auto sm:max-w-xl">
         <DialogHeader className="dashboard-dialog-header">
           <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
             Completar pago

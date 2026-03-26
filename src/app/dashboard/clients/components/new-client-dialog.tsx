@@ -66,7 +66,7 @@ export function NewClientDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="dashboard-dialog-content max-w-lg overflow-hidden">
+      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader className="dashboard-dialog-header">
           <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
             Nuevo cliente
