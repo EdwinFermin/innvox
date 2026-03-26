@@ -13,7 +13,8 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown } from "lucide-react";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -25,6 +26,8 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -67,7 +70,7 @@ const getCreatedAtTime = (value: unknown): number => {
   return 0;
 };
 
-const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
+const getColumns = (queryClient: QueryClient, canDelete: boolean): ColumnDef<User>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -152,7 +155,16 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
     id: "actions",
     enableHiding: false,
     cell: (row) => (
-        <div className="flex gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Abrir menu</span>
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+          <DropdownMenuSeparator />
           <EditUserDialog user={row.row.original} />
           {canDelete && (
             <ConfirmDialog
@@ -163,19 +175,24 @@ const getColumns = (canDelete: boolean): ColumnDef<User>[] => [
                 try {
                   await deleteUser(row.row.original.id);
                   toast.success("Usuario eliminado");
+                  queryClient.invalidateQueries({ queryKey: ["users"] });
                 } catch (error) {
                   toast.error("Error al eliminar el usuario");
                   throw error;
                 }
               }}
             >
-              <Button variant="ghost" className="h-8 px-2 text-red-600">
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+              >
                 Eliminar
-              </Button>
+              </button>
             </ConfirmDialog>
           )}
-        </div>
-      ),
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
   },
 ];
 
@@ -183,6 +200,7 @@ export default function UsersPage() {
   const isMobile = useIsMobile();
   const { user: currentUser } = useAuthStore();
   const { data: users, isLoading } = useUsers();
+  const queryClient = useQueryClient();
   const canManageUsers = can(currentUser?.type, PERMISSIONS.usersManage);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -194,8 +212,8 @@ export default function UsersPage() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   const columns = React.useMemo(
-    () => getColumns(canManageUsers),
-    [canManageUsers]
+    () => getColumns(queryClient, canManageUsers),
+    [queryClient, canManageUsers]
   );
 
   const userSummary = React.useMemo(() => {

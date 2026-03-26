@@ -18,12 +18,12 @@ export async function GET(
 
   const supabase = getSupabaseAdminClient();
 
-  const { data, error } = await (supabase
-    .from("apple_wallet_devices" as any)
+  const { data, error } = await supabase
+    .from("apple_wallet_devices")
     .select("serial_number, updated_at")
     .eq("device_library_id", deviceLibraryId)
     .eq("pass_type_id", passTypeId)
-    .gt("updated_at", passesUpdatedSince ?? "1970-01-01T00:00:00Z") as unknown as Promise<{ data: { serial_number: string; updated_at: string }[] | null; error: any }>);
+    .gt("updated_at", passesUpdatedSince ?? "1970-01-01T00:00:00Z");
 
   if (error || !data || data.length === 0) {
     return new NextResponse(null, { status: 204 });

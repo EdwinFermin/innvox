@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         Saltar al contenido
       </a>
       <AppSidebar />
-      <SidebarInset className="dashboard-shell overflow-x-hidden bg-transparent">
+      <SidebarInset className="dashboard-shell overflow-x-hidden bg-white">
         <header className="bg-white px-3 pt-3 sm:px-4 lg:px-5">
           <div className="dashboard-panel flex min-h-14 items-center gap-3 px-4 py-3 sm:px-5">
             <SidebarTrigger className="size-9 rounded-full border border-border/70 bg-background/80" />

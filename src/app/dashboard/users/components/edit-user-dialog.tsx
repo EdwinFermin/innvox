@@ -31,7 +31,7 @@ import { useAuthStore } from "@/store/auth";
 
 const editUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
-  type: z.enum(["ADMIN", "USER"]),
+  type: z.enum(["ADMIN", "USER", "ACCOUNTANT"]),
   branch_ids: z.array(z.string()).optional(),
 });
 
@@ -104,9 +104,12 @@ export function EditUserDialog({ user }: { user: User }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start rounded-xl">
+        <button
+          type="button"
+          className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent"
+        >
           Editar
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent className="dashboard-dialog-content max-w-2xl overflow-hidden">
         <DialogHeader className="dashboard-dialog-header">
@@ -157,6 +160,7 @@ export function EditUserDialog({ user }: { user: User }) {
                   <SelectContent>
                     <SelectItem value="ADMIN">ADMIN</SelectItem>
                     <SelectItem value="USER">USER</SelectItem>
+                    <SelectItem value="ACCOUNTANT">ACCOUNTANT</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}

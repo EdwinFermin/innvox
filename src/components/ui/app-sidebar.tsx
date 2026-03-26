@@ -237,6 +237,96 @@ const data = {
       ],
     },
   ],
+  navAccountant: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
+      isActive: true,
+    },
+    {
+      title: "Transacciones",
+      icon: HandCoins,
+      items: [
+        {
+          title: "Ingresos",
+          url: "/dashboard/transactions/incomes",
+        },
+        {
+          title: "Gastos",
+          url: "/dashboard/transactions/expenses",
+        },
+        {
+          title: "Cuentas por cobrar",
+          url: "/dashboard/receivables",
+        },
+        {
+          title: "Cuentas por pagar",
+          url: "/dashboard/payables",
+        },
+        {
+          title: "Link de pago",
+          url: "/dashboard/link-de-pago",
+        },
+      ],
+    },
+    {
+      title: "Facturación",
+      url: "/dashboard/invoices",
+      icon: FileSpreadsheet,
+      isActive: true,
+    },
+    {
+      title: "Clientes",
+      url: "/dashboard/clients",
+      icon: Users,
+      isActive: true,
+    },
+    {
+      title: "Cuentas financieras",
+      url: "/dashboard/bank-accounts",
+      icon: Landmark,
+      isActive: true,
+    },
+    {
+      title: "Costos operativos",
+      url: "/dashboard/costos-operativos",
+      icon: CalendarClock,
+      isActive: true,
+    },
+    {
+      title: "Reportes",
+      icon: BarChart,
+      items: [
+        {
+          title: "Utilidades",
+          url: "/dashboard/reports/profit",
+        },
+        {
+          title: "Cuadre del dia",
+          url: "/dashboard/reports/cuadre-del-dia",
+        },
+        {
+          title: "Formulario DGII",
+          url: "/dashboard/reports/formulario-dgii",
+        },
+      ],
+    },
+    {
+      title: "Parametros",
+      icon: Settings2,
+      items: [
+        {
+          title: "Tipos de ingresos",
+          url: "/dashboard/parameters/income-types",
+        },
+        {
+          title: "Tipos de gastos",
+          url: "/dashboard/parameters/expense-types",
+        },
+      ],
+    },
+  ],
   navSecondary: [
     {
       title: "Mi cuenta",
@@ -340,8 +430,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
-        <NavMain items={canManageSettings ? data.navAdmin : data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={canManageSettings ? data.navAdmin : user?.type === "ACCOUNTANT" ? data.navAccountant : data.navMain} />
+        <NavSecondary items={canManageSettings ? data.navSecondary : data.navSecondary.filter((item) => item.url !== "/dashboard/settings")} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border/70 px-3 py-3">
         <NavUser user={user} />

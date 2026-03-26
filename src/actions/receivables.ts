@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAuth } from "@/lib/auth/guards";
+import { requireAuth, requirePermission } from "@/lib/auth/guards";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { dateOnlyToISOString } from "@/utils/dates";
@@ -38,11 +39,11 @@ export async function createReceivable(data: CreateReceivableData) {
     );
   }
 
-  revalidatePath("/dashboard/cuentas-por-cobrar");
+  revalidatePath("/dashboard/receivables");
 }
 
 export async function deleteReceivable(id: string) {
-  await requireAuth();
+  await requirePermission(PERMISSIONS.dataDelete);
 
   const supabase = await getSupabaseServerClient();
 
@@ -57,5 +58,5 @@ export async function deleteReceivable(id: string) {
     );
   }
 
-  revalidatePath("/dashboard/cuentas-por-cobrar");
+  revalidatePath("/dashboard/receivables");
 }

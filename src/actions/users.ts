@@ -11,7 +11,7 @@ interface CreateUserData {
   email: string;
   password: string;
   name: string;
-  type: "ADMIN" | "USER";
+  type: "ADMIN" | "USER" | "ACCOUNTANT";
   branch_ids?: string[];
 }
 
@@ -69,7 +69,7 @@ export async function createUser(data: CreateUserData) {
     }
   }
 
-  revalidatePath("/dashboard/usuarios");
+  revalidatePath("/dashboard/users");
 }
 
 export async function updateUser(
@@ -77,7 +77,7 @@ export async function updateUser(
   data: {
     name?: string;
     email?: string;
-    type?: "ADMIN" | "USER";
+    type?: "ADMIN" | "USER" | "ACCOUNTANT";
     branch_ids?: string[];
   },
 ) {
@@ -151,7 +151,7 @@ export async function updateUser(
     }
   }
 
-  revalidatePath("/dashboard/usuarios");
+  revalidatePath("/dashboard/users");
 }
 
 export async function deleteUser(id: string) {
@@ -192,5 +192,5 @@ export async function deleteUser(id: string) {
     );
   }
 
-  revalidatePath("/dashboard/usuarios");
+  revalidatePath("/dashboard/users");
 }

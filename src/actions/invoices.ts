@@ -51,7 +51,7 @@ export async function createInvoice(data: CreateInvoiceData) {
     throw new Error(`Error al crear la factura: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/facturas");
+  revalidatePath("/dashboard/invoices");
 }
 
 export async function deleteInvoice(id: string) {
@@ -67,5 +67,5 @@ export async function deleteInvoice(id: string) {
     throw new Error(`Error al eliminar la factura: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/facturas");
+  revalidatePath("/dashboard/invoices");
 }

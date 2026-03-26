@@ -33,19 +33,3 @@ export function incrementNCF(ncf: string): string {
 
   return prefix + next;
 }
-
-/**
- * Increments the given CF string to the next sequential value.
- * @param cf The current CF string.
- * @returns The next sequential CF string.
- */
-export function incrementCF(cf: string): string {
-  const prefix = cf.slice(0, 3);
-  const numberPart = cf.slice(3);
-
-  const next = (parseInt(numberPart) + 1)
-    .toString()
-    .padStart(numberPart.length, "0");
-
-  return prefix + next;
-}

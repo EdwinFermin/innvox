@@ -62,6 +62,7 @@ npm run typecheck    # TypeScript check
 ## Git workflow
 
 - After a PR is merged (or before starting a new implementation), always switch to `main` and pull: `git checkout main && git pull origin main`.
+- After creating a PR, switch back to main and pull: `git checkout main && git pull origin main`.
 - Create a new feature branch from the updated `main` before making changes.
 - Never continue working on a merged or stale branch.
 

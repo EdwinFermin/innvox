@@ -5,6 +5,6 @@ export interface User {
   email: string;
   avatar: string;
   created_at: string;
-  type: "ADMIN" | "USER";
+  type: "ADMIN" | "USER" | "ACCOUNTANT";
   branch_ids: string[];
 }

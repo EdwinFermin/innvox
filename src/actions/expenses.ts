@@ -45,7 +45,7 @@ export async function createExpense(data: CreateExpenseData) {
     throw new Error(`Error al registrar el gasto: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/gastos");
+  revalidatePath("/dashboard/transactions/expenses");
 }
 
 export async function deleteExpense(id: string) {
@@ -80,7 +80,7 @@ export async function deleteExpense(id: string) {
     }
   }
 
-  revalidatePath("/dashboard/gastos");
+  revalidatePath("/dashboard/transactions/expenses");
 }
 
 export async function updateExpenseAccount(data: UpdateExpenseAccountData) {

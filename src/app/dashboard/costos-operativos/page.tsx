@@ -12,7 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, RefreshCw } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { es } from "date-fns/locale";
 
@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -524,9 +523,6 @@ export default function OperatingCostsPage() {
   // Stats
   const pendingAlerts = alerts.filter((a) => a.status === "pending");
   const overdueAlerts = pendingAlerts.filter((a) => getDaysUntil(a.due_date) < 0);
-  const totalMonthly = operatingCosts
-    .filter((c) => c.is_active)
-    .reduce((acc, c) => acc + Number(c.default_amount), 0);
 
   const isLoading = !userId || costsLoading || alertsLoading;
 
