@@ -19,7 +19,7 @@ export async function createIncomeType(name: string) {
     );
   }
 
-  revalidatePath("/dashboard/configuracion");
+  revalidatePath("/dashboard/parameters/income-types");
 }
 
 export async function deleteIncomeType(id: string) {
@@ -38,5 +38,5 @@ export async function deleteIncomeType(id: string) {
     );
   }
 
-  revalidatePath("/dashboard/configuracion");
+  revalidatePath("/dashboard/parameters/income-types");
 }

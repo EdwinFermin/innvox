@@ -67,7 +67,7 @@ import {
   ListVisibilityControl,
   type VisibilityScope,
 } from "@/components/ui/list-visibility-control";
-import { deleteExpense } from "@/lib/financial-movements";
+import { deleteExpense } from "@/actions/expenses";
 import {
   extractDateOnlyKey,
   getDateInputValue,

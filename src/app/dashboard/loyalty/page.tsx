@@ -40,6 +40,8 @@ import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { TablePageSize } from "@/components/ui/table-page-size";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import { useLoyaltyClients } from "@/hooks/use-loyalty";
 import { Client } from "@/types/client.types";
 import { TokenDots } from "./components/token-dots";
@@ -141,6 +143,7 @@ const getColumns = (
 export default function LoyaltyPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
+  const canAccessLoyalty = can(user?.type, PERMISSIONS.loyaltyAccess);
   const { data: clients, isLoading } = useLoyaltyClients(user?.id || "");
   const [searchQuery, setSearchQuery] = React.useState("");
 
@@ -183,6 +186,21 @@ export default function LoyaltyPage() {
       columnVisibility,
     },
   });
+
+  if (!canAccessLoyalty) {
+    return (
+      <div className="dashboard-grid w-full">
+        <DashboardPageHeader
+          eyebrow="Fidelidad"
+          title="Tarjetas de fidelidad"
+          description="No tienes permisos para acceder a esta sección."
+        />
+        <p className="text-sm text-muted-foreground">
+          No tienes permisos para acceder a esta sección.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-grid w-full">

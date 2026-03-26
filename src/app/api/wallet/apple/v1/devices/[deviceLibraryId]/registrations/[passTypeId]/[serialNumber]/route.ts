@@ -38,8 +38,8 @@ export async function POST(
 
     const supabase = getSupabaseAdminClient();
 
-    const { error } = await (supabase
-      .from("apple_wallet_devices" as any)
+    const { error } = await supabase
+      .from("apple_wallet_devices")
       .upsert(
         {
           device_library_id: deviceLibraryId,
@@ -47,9 +47,9 @@ export async function POST(
           pass_type_id: passTypeId,
           serial_number: serialNumber,
           updated_at: new Date().toISOString(),
-        } as any,
+        },
         { onConflict: "device_library_id,pass_type_id,serial_number" },
-      ) as any);
+      );
 
     if (error) {
       console.error("Apple Wallet device registration error:", error);
@@ -76,12 +76,12 @@ export async function DELETE(
 
   const supabase = getSupabaseAdminClient();
 
-  await (supabase
-    .from("apple_wallet_devices" as any)
+  await supabase
+    .from("apple_wallet_devices")
     .delete()
     .eq("device_library_id", deviceLibraryId)
     .eq("pass_type_id", passTypeId)
-    .eq("serial_number", serialNumber) as any);
+    .eq("serial_number", serialNumber);
 
   return new NextResponse(null, { status: 200 });
 }

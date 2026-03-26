@@ -92,7 +92,7 @@ export async function createBankAccount(data: CreateBankAccountData) {
     }
   }
 
-  revalidatePath("/dashboard/cuentas");
+  revalidatePath("/dashboard/bank-accounts");
 }
 
 export async function updateBankAccount(
@@ -157,7 +157,7 @@ export async function updateBankAccount(
     }
   }
 
-  revalidatePath("/dashboard/cuentas");
+  revalidatePath("/dashboard/bank-accounts");
 }
 
 export async function deleteBankAccount(id: string) {
@@ -186,7 +186,7 @@ export async function deleteBankAccount(id: string) {
     throw new Error(`Error al eliminar la cuenta bancaria: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/cuentas");
+  revalidatePath("/dashboard/bank-accounts");
 }
 
 export async function toggleBankAccountActive(id: string, isActive: boolean) {
@@ -205,7 +205,7 @@ export async function toggleBankAccountActive(id: string, isActive: boolean) {
     );
   }
 
-  revalidatePath("/dashboard/cuentas");
+  revalidatePath("/dashboard/bank-accounts");
 }
 
 export async function transferFunds(data: TransferFundsData) {
@@ -228,7 +228,7 @@ export async function transferFunds(data: TransferFundsData) {
     throw new Error(`Error al transferir fondos: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/cuentas");
+  revalidatePath("/dashboard/bank-accounts");
 }
 
 export async function adjustBalance(data: AdjustBalanceData) {
@@ -248,5 +248,5 @@ export async function adjustBalance(data: AdjustBalanceData) {
     throw new Error(`Error al ajustar el balance: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/cuentas");
+  revalidatePath("/dashboard/bank-accounts");
 }

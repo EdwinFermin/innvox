@@ -245,7 +245,7 @@ export default function ClientsPage() {
           { label: "Con casillero", value: String(clientSummary.withPoBox), tone: "positive" },
           { label: "Sin casillero", value: String(clientSummary.total - clientSummary.withPoBox), tone: "warning" },
         ]}
-        actions={<NewClientDialog />}
+        actions={can(user?.type, PERMISSIONS.clientsCreate) ? <NewClientDialog /> : undefined}
       />
       <div
         className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}

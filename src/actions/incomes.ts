@@ -41,7 +41,7 @@ export async function createIncome(data: CreateIncomeData) {
     throw new Error(`Error al registrar el ingreso: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/ingresos");
+  revalidatePath("/dashboard/transactions/incomes");
 }
 
 export async function deleteIncome(id: string) {
@@ -76,7 +76,7 @@ export async function deleteIncome(id: string) {
     }
   }
 
-  revalidatePath("/dashboard/ingresos");
+  revalidatePath("/dashboard/transactions/incomes");
 }
 
 export async function updateIncomeAccount(data: UpdateIncomeAccountData) {

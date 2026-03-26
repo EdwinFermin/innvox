@@ -24,7 +24,7 @@ export interface Database {
           name: string;
           email: string;
           avatar: string;
-          type: "ADMIN" | "USER";
+          type: "ADMIN" | "USER" | "ACCOUNTANT";
           created_at: string;
         };
         Insert: {
@@ -33,7 +33,7 @@ export interface Database {
           name: string;
           email: string;
           avatar?: string;
-          type?: "ADMIN" | "USER";
+          type?: "ADMIN" | "USER" | "ACCOUNTANT";
           created_at?: string;
         };
         Update: {
@@ -42,7 +42,7 @@ export interface Database {
           name?: string;
           email?: string;
           avatar?: string;
-          type?: "ADMIN" | "USER";
+          type?: "ADMIN" | "USER" | "ACCOUNTANT";
           created_at?: string;
         };
         Relationships: [];
@@ -636,6 +636,36 @@ export interface Database {
           is_active?: boolean;
           created_at?: string;
           created_by?: string | null;
+        };
+        Relationships: [];
+      };
+      apple_wallet_devices: {
+        Row: {
+          id: string;
+          device_library_id: string;
+          push_token: string;
+          pass_type_id: string;
+          serial_number: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          device_library_id: string;
+          push_token: string;
+          pass_type_id: string;
+          serial_number: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          device_library_id?: string;
+          push_token?: string;
+          pass_type_id?: string;
+          serial_number?: string;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

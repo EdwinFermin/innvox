@@ -11,7 +11,7 @@ import {
 export type VisibilityScope = "all" | "mine";
 
 type ListVisibilityControlProps = {
-  role?: "ADMIN" | "USER";
+  role?: "ADMIN" | "USER" | "ACCOUNTANT";
   value: VisibilityScope;
   onChange: (value: VisibilityScope) => void;
 };

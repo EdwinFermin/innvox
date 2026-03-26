@@ -17,7 +17,7 @@ function toUser(
         name?: string | null;
         email?: string | null;
         image?: string | null;
-        role?: "ADMIN" | "USER";
+        role?: "ADMIN" | "USER" | "ACCOUNTANT";
         branchIds?: string[];
       }
     | undefined,
@@ -36,7 +36,7 @@ function toUser(
     email: sessionUser.email,
     avatar: sessionUser.image ?? "",
     created_at: "",
-    type: sessionUser.role === "ADMIN" ? "ADMIN" : "USER",
+    type: sessionUser.role === "ADMIN" ? "ADMIN" : sessionUser.role === "ACCOUNTANT" ? "ACCOUNTANT" : "USER",
     branch_ids: sessionUser.branchIds ?? [],
   };
 }

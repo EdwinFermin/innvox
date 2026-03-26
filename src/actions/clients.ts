@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAuth } from "@/lib/auth/guards";
+import { requireAuth, requirePermission } from "@/lib/auth/guards";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function createClient(data: { po_box: string; name: string }) {
   const { po_box: poBox, name } = data;
-  await requireAuth();
+  await requirePermission(PERMISSIONS.clientsCreate);
 
   const supabase = await getSupabaseServerClient();
 
@@ -20,7 +21,7 @@ export async function createClient(data: { po_box: string; name: string }) {
     throw new Error(`Error al crear el cliente: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/clientes");
+  revalidatePath("/dashboard/clients");
 }
 
 export async function deleteClient(id: string) {
@@ -34,5 +35,5 @@ export async function deleteClient(id: string) {
     throw new Error(`Error al eliminar el cliente: ${error.message}`);
   }
 
-  revalidatePath("/dashboard/clientes");
+  revalidatePath("/dashboard/clients");
 }

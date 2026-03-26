@@ -13,8 +13,13 @@ import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Client } from "@/types/client.types";
 import { TokenDots } from "../components/token-dots";
+import { useAuthStore } from "@/store/auth";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 
 export default function ScannerPage() {
+  const { user } = useAuthStore();
+  const canAccessLoyalty = can(user?.type, PERMISSIONS.loyaltyAccess);
   const [scannedClient, setScannedClient] = React.useState<Client | null>(null);
   const [manualId, setManualId] = React.useState("");
   const [isScanning, setIsScanning] = React.useState(false);
@@ -22,6 +27,19 @@ export default function ScannerPage() {
   const scannerRef = React.useRef<HTMLDivElement>(null);
   const html5QrCodeRef = React.useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const queryClient = useQueryClient();
+
+  const stopScanner = React.useCallback(async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current.clear();
+      } catch {
+        // already stopped
+      }
+      html5QrCodeRef.current = null;
+    }
+    setIsScanning(false);
+  }, []);
 
   const fetchClient = React.useCallback(async (clientId: string) => {
     setIsFetching(true);
@@ -48,7 +66,7 @@ export default function ScannerPage() {
     } finally {
       setIsFetching(false);
     }
-  }, []);
+  }, [stopScanner]);
 
   const startScanner = React.useCallback(async () => {
     if (!scannerRef.current) return;
@@ -77,19 +95,6 @@ export default function ScannerPage() {
       toast.error("No se pudo acceder a la camara. Verifica los permisos.");
     }
   }, [fetchClient]);
-
-  const stopScanner = React.useCallback(async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current.clear();
-      } catch {
-        // already stopped
-      }
-      html5QrCodeRef.current = null;
-    }
-    setIsScanning(false);
-  }, []);
 
   React.useEffect(() => {
     return () => {
@@ -138,6 +143,21 @@ export default function ScannerPage() {
   const handleScanAnother = async () => {
     setScannedClient(null);
   };
+
+  if (!canAccessLoyalty) {
+    return (
+      <div className="dashboard-grid w-full">
+        <DashboardPageHeader
+          eyebrow="Fidelidad"
+          title="Scanner"
+          description="No tienes permisos para acceder a esta sección."
+        />
+        <p className="text-sm text-muted-foreground">
+          No tienes permisos para acceder a esta sección.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-grid w-full">

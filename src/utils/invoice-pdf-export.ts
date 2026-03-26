@@ -304,12 +304,6 @@ export async function parseInvoicePdf(
   return parseLegacyInvoice(text, lines);
 }
 
-export function toExcelSerial(date: Date): number {
-  const utcDate = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  const excelEpoch = Date.UTC(1899, 11, 30);
-  return Math.floor((utcDate - excelEpoch) / 86_400_000);
-}
-
 export function getSpanishMonthName(date: Date): string {
   const month = new Intl.DateTimeFormat("es-DO", { month: "long" }).format(date);
   return month.charAt(0).toUpperCase() + month.slice(1);

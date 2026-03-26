@@ -32,7 +32,7 @@ import { useAuthStore } from "@/store/auth";
 const newUserSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   email: z.string().email("Correo inválido"),
-  type: z.enum(["ADMIN", "USER"]),
+  type: z.enum(["ADMIN", "USER", "ACCOUNTANT"]),
   password: z.string().min(6, "Mínimo 6 caracteres"),
   branch_ids: z.array(z.string()).optional(),
 });
@@ -157,6 +157,7 @@ export function NewUserDialog() {
                   <SelectContent>
                     <SelectItem value="ADMIN">ADMIN</SelectItem>
                     <SelectItem value="USER">USER</SelectItem>
+                    <SelectItem value="ACCOUNTANT">ACCOUNTANT</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.type && <p className="dashboard-field-error">{errors.type.message}</p>}

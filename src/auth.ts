@@ -70,7 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email,
           name: profile?.name ?? email.split("@")[0] ?? "Usuario",
           image: profile?.avatar ?? "",
-          role: profile?.type === "ADMIN" ? "ADMIN" : "USER",
+          role: profile?.type === "ADMIN" ? "ADMIN" : profile?.type === "ACCOUNTANT" ? "ACCOUNTANT" : "USER",
           branchIds,
         };
       },
@@ -80,7 +80,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     jwt: async ({ token, user }) => {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: "ADMIN" | "USER" }).role ?? "USER";
+        token.role = (user as { role?: "ADMIN" | "USER" | "ACCOUNTANT" }).role ?? "USER";
         token.branchIds = (user as { branchIds?: string[] }).branchIds ?? [];
       }
 
@@ -89,7 +89,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: async ({ session, token }) => {
       if (session.user) {
         session.user.id = (token.id as string) ?? "";
-        session.user.role = (token.role as "ADMIN" | "USER") ?? "USER";
+        session.user.role = (token.role as "ADMIN" | "USER" | "ACCOUNTANT") ?? "USER";
         session.user.branchIds = (token.branchIds as string[]) ?? [];
       }
 
