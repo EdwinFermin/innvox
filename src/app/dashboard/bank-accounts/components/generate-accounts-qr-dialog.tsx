@@ -421,13 +421,13 @@ export function GenerateAccountsQrDialog({
                 <Input value={publicLink} readOnly />
               </div>
 
-              <div className="rounded-[0.7rem] border border-dashed border-[#d7dfd1] bg-white/80 p-4 text-sm text-muted-foreground">
+              <div className="rounded-[0.7rem] border border-dashed border-border/70 bg-muted/60 p-4 text-sm text-muted-foreground">
                 Descarga una imagen lista para imprimir y colocar en la
                 sucursal. Los clientes podran escanear el QR para ver las
                 cuentas bancarias disponibles.
               </div>
 
-              <div className="rounded-[0.7rem] border border-[#dce6db] bg-white p-4">
+              <div className="rounded-[0.7rem] border border-border/70 bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -442,7 +442,7 @@ export function GenerateAccountsQrDialog({
                     </p>
                   </div>
                   {publicAccounts.length > 0 ? (
-                    <span className="rounded-full border border-[#d9e5db] bg-[#f2f7f0] px-2.5 py-0.5 text-xs font-semibold text-[#0f6b46]">
+                    <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                       {publicAccounts.length} total
                     </span>
                   ) : null}
@@ -459,26 +459,26 @@ export function GenerateAccountsQrDialog({
                     printableAccounts.map((account) => (
                       <div
                         key={account.id}
-                        className="rounded-lg border border-[#d9e5db] bg-[#f8fbf7] px-3 py-2"
+                        className="rounded-lg border border-border/70 bg-muted/50 px-3 py-2"
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <p className="min-w-0 truncate text-sm font-semibold text-[#0d2d4f]">
+                          <p className="min-w-0 truncate text-sm font-semibold text-foreground">
                             {account.bank_name || account.account_name}
                           </p>
-                          <span className="shrink-0 text-xs font-semibold text-[#0f6b46]">
+                          <span className="shrink-0 text-xs font-semibold text-primary">
                             {account.currency}
                           </span>
                         </div>
                         <p className="mt-1 truncate text-xs text-muted-foreground">
                           {account.account_name}
                         </p>
-                        <p className="mt-1 font-mono text-sm text-[#0d2d4f]">
+                        <p className="mt-1 font-mono text-sm text-foreground">
                           {account.account_number || "Numero no disponible"}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-lg border border-dashed border-[#d9e5db] px-3 py-4 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground">
                       Esta sucursal no tiene cuentas publicas disponibles para mostrar en el afiche.
                     </div>
                   )}

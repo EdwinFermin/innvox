@@ -161,7 +161,7 @@ export function DashboardHero() {
               Cruza compromisos abiertos contra cobranza pendiente para priorizar acciones.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button asChild variant="secondary" className="rounded-2xl bg-white text-slate-900 hover:bg-white/90">
+              <Button asChild variant="secondary" className="rounded-2xl bg-white text-slate-900 hover:bg-white/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
                 <Link href="/dashboard/transactions/incomes?new=1">Registrar ingreso</Link>
               </Button>
               <Button asChild variant="ghost" className="rounded-2xl border border-white/15 bg-white/8 text-white hover:bg-white/14 hover:text-white">

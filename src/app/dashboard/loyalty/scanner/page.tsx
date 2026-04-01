@@ -175,7 +175,7 @@ export default function ScannerPage() {
               <div
                 id="qr-scanner-container"
                 ref={scannerRef}
-                className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-dashed border-border bg-slate-50"
+                className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted"
               >
                 {!isScanning && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-muted-foreground">
@@ -228,14 +228,14 @@ export default function ScannerPage() {
 
           {/* Loading state */}
           {isFetching && (
-            <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-border/70 bg-slate-50/70">
+            <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-border/70 bg-muted/70">
               <SpinnerLabel label="Buscando cliente..." />
             </div>
           )}
 
           {/* View 2: Client result (after successful scan) */}
           {scannedClient && !isFetching && (
-            <div className="space-y-4 rounded-2xl border border-border/70 bg-slate-50/70 p-5 sm:p-6">
+            <div className="space-y-4 rounded-2xl border border-border/70 bg-muted/70 p-5 sm:p-6">
               <div className="space-y-1 text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                   Cliente

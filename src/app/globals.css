@@ -121,19 +121,22 @@
     color-scheme: light;
     -webkit-tap-highlight-color: transparent;
   }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
     background-image:
       radial-gradient(circle at top left, color-mix(in oklch, var(--primary) 10%, transparent), transparent 28%),
       radial-gradient(circle at top right, color-mix(in oklch, var(--chart-2) 12%, transparent), transparent 26%),
-      linear-gradient(180deg, color-mix(in oklch, var(--background) 96%, white) 0%, var(--background) 100%);
+      linear-gradient(180deg, color-mix(in oklch, var(--background) 96%, var(--card)) 0%, var(--background) 100%);
     background-attachment: fixed;
     min-height: 100vh;
     touch-action: manipulation;
   }
 
   ::selection {
-    background: color-mix(in oklch, var(--primary) 28%, white);
+    background: color-mix(in oklch, var(--primary) 28%, var(--card));
     color: var(--foreground);
   }
 }
@@ -144,15 +147,15 @@
   }
 
   .dashboard-panel {
-    @apply rounded-[1rem] border border-border/70 bg-card/88 shadow-[0_18px_48px_-28px_rgba(15,23,42,0.24)] backdrop-blur-xl;
+    @apply rounded-[1rem] border border-border/70 bg-card/88 shadow-[0_18px_48px_-28px_rgba(15,23,42,0.24)] backdrop-blur-xl dark:shadow-[0_18px_48px_-28px_rgba(0,0,0,0.4)];
   }
 
   .dashboard-soft-panel {
-    @apply rounded-[1rem] border border-border/60 bg-background/72 shadow-[0_12px_36px_-24px_rgba(15,23,42,0.18)] backdrop-blur;
+    @apply rounded-[1rem] border border-border/60 bg-background/72 shadow-[0_12px_36px_-24px_rgba(15,23,42,0.18)] backdrop-blur dark:shadow-[0_12px_36px_-24px_rgba(0,0,0,0.35)];
   }
 
   .dashboard-table-frame {
-    @apply overflow-hidden rounded-[1rem] border border-border/70 bg-card/92 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.18)];
+    @apply overflow-hidden rounded-[1rem] border border-border/70 bg-card/92 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.18)] dark:shadow-[0_18px_48px_-34px_rgba(0,0,0,0.4)];
   }
 
   .dashboard-grid {
@@ -160,7 +163,7 @@
   }
 
   .dashboard-dialog-content {
-    @apply rounded-[1.9rem] border border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,1))] p-0 shadow-[0_30px_90px_-34px_rgba(15,23,42,0.32)];
+    @apply rounded-[1.9rem] border border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.08),transparent_24%),linear-gradient(180deg,var(--card),var(--card))] p-0 shadow-[0_30px_90px_-34px_rgba(15,23,42,0.32)];
   }
 
   .dashboard-dialog-header {
@@ -192,11 +195,11 @@
   }
 
   .dashboard-form-card {
-    @apply min-w-0 rounded-[1.25rem] border border-border/70 bg-slate-50/70 p-4 shadow-sm;
+    @apply min-w-0 rounded-[1.25rem] border border-border/70 bg-muted/70 p-4 shadow-sm;
   }
 
   .dashboard-info-surface {
-    @apply rounded-[1rem] border border-border/60 bg-slate-50/85 p-4;
+    @apply rounded-[1rem] border border-border/60 bg-muted/85 p-4;
   }
 }
 

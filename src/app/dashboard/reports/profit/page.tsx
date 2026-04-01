@@ -79,7 +79,7 @@ const typeLabel: Record<RowType, string> = {
 
 const typeColor: Record<RowType, string> = {
   INGRESO: "bg-emerald-100 text-emerald-800",
-  GASTO: "bg-red-100 text-red-800",
+  GASTO: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400",
   CXC: "bg-blue-100 text-blue-800",
   CXP: "bg-amber-100 text-amber-800",
 };
@@ -423,52 +423,14 @@ export default function ProfitReportPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="rounded-[1rem] border border-border/60 bg-slate-50/80 p-4 text-sm leading-6 text-muted-foreground">
+              <div className="rounded-[1rem] border border-border/60 bg-muted/80 p-4 text-sm leading-6 text-muted-foreground">
                 El filtro aplica tanto al resumen diario como al detalle tabular.
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
-          <CardHeader>
-            <CardTitle>Resumen diario</CardTitle>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead className="text-right">Ingresos</TableHead>
-                  <TableHead className="text-right">Gastos</TableHead>
-                  <TableHead className="text-right">CxC</TableHead>
-                  <TableHead className="text-right">CxP</TableHead>
-                  <TableHead className="text-right">Utilidad</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groupedByDay.length ? (
-                  groupedByDay.map((row) => (
-                    <TableRow key={row.key}>
-                      <TableCell>{row.label}</TableCell>
-                      <TableCell className="text-right">{currency.format(row.ingresos)}</TableCell>
-                      <TableCell className="text-right">{currency.format(row.gastos)}</TableCell>
-                      <TableCell className="text-right">{currency.format(row.cxc)}</TableCell>
-                      <TableCell className="text-right">{currency.format(row.cxp)}</TableCell>
-                      <TableCell className="text-right font-semibold">{currency.format(row.utilidad)}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      Sin datos en el rango seleccionado.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <DailySummaryCard groupedByDay={groupedByDay} currency={currency} />
 
         <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -548,5 +510,68 @@ export default function ProfitReportPage() {
       {/* Contenedor oculto para impresión */}
       <PrintContainer {...printPayload} />
     </div>
+  );
+}
+
+const DAILY_PAGE_SIZE = 10;
+
+function DailySummaryCard({
+  groupedByDay,
+  currency,
+}: {
+  groupedByDay: { key: string; label: string; ingresos: number; gastos: number; cxc: number; cxp: number; utilidad: number }[];
+  currency: Intl.NumberFormat;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  const visibleRows = expanded ? groupedByDay : groupedByDay.slice(0, DAILY_PAGE_SIZE);
+  const hasMore = groupedByDay.length > DAILY_PAGE_SIZE;
+
+  return (
+    <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+      <CardHeader>
+        <CardTitle>Resumen diario</CardTitle>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Fecha</TableHead>
+              <TableHead className="text-right">Ingresos</TableHead>
+              <TableHead className="text-right">Gastos</TableHead>
+              <TableHead className="text-right">CxC</TableHead>
+              <TableHead className="text-right">CxP</TableHead>
+              <TableHead className="text-right">Utilidad</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleRows.length ? (
+              visibleRows.map((row) => (
+                <TableRow key={row.key}>
+                  <TableCell>{row.label}</TableCell>
+                  <TableCell className="text-right">{currency.format(row.ingresos)}</TableCell>
+                  <TableCell className="text-right">{currency.format(row.gastos)}</TableCell>
+                  <TableCell className="text-right">{currency.format(row.cxc)}</TableCell>
+                  <TableCell className="text-right">{currency.format(row.cxp)}</TableCell>
+                  <TableCell className="text-right font-semibold">{currency.format(row.utilidad)}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Sin datos en el rango seleccionado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {hasMore && (
+          <div className="flex justify-center border-t border-border/60 pt-3">
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? "Ver menos" : `Ver todos (${groupedByDay.length})`}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

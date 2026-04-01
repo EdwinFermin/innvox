@@ -44,7 +44,7 @@ const getTransactionTypeBadgeClassName = (type: BankTransactionType): string => 
     case "transfer_out":
     case "lbtr_fee":
     case "transfer_tax":
-      return "border-transparent bg-rose-100 text-rose-800";
+      return "border-transparent bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-400";
     case "adjustment":
       return "border-transparent bg-amber-100 text-amber-800";
     default:

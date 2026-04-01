@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggleItems } from "@/components/ui/theme-toggle";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -97,6 +98,11 @@ export function NavUser({ user }: { user: User | null }) {
               </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Tema</DropdownMenuLabel>
+              <ThemeToggleItems />
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
             <ConfirmDialog
               title="Cerrar sesion"
               description="Tu sesion actual se cerrara y volveras a la pantalla de acceso."
@@ -105,7 +111,7 @@ export function NavUser({ user }: { user: User | null }) {
             >
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-destructive outline-none hover:bg-destructive/10"
               >
                 <LogOut className="size-4" />
                 Cerrar sesion

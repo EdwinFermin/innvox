@@ -234,7 +234,7 @@ export default function DgiiFormPage() {
             />
           </div>
 
-          <div className="space-y-1 rounded-[1rem] border border-border/60 bg-slate-50/80 p-4 text-sm text-muted-foreground">
+          <div className="space-y-1 rounded-[1rem] border border-border/60 bg-muted/80 p-4 text-sm text-muted-foreground">
             {processedCount > 0 ? <p>Procesadas: {processedCount}</p> : null}
             {skippedFiles.length > 0 ? <p>Omitidas: {skippedFiles.length}</p> : null}
             <p>
@@ -244,7 +244,7 @@ export default function DgiiFormPage() {
           </div>
 
           {skippedFiles.length > 0 ? (
-            <div className="rounded-[1rem] border border-destructive/30 bg-red-50/80 p-4">
+            <div className="rounded-[1rem] border border-destructive/30 bg-red-50/80 p-4 dark:bg-red-950/40">
               <p className="text-sm font-medium text-destructive mb-2">
                 Archivos omitidos
               </p>

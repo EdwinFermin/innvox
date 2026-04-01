@@ -109,14 +109,14 @@ const getTransactionTypeBadgeClassName = (
   switch (type) {
     case "deposit":
     case "transfer_in":
-      return "border-transparent bg-emerald-100 text-emerald-800";
+      return "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400";
     case "withdrawal":
     case "transfer_out":
     case "lbtr_fee":
     case "transfer_tax":
-      return "border-transparent bg-rose-100 text-rose-800";
+      return "border-transparent bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-400";
     case "adjustment":
-      return "border-transparent bg-amber-100 text-amber-800";
+      return "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400";
     default:
       return "border-transparent bg-slate-100 text-slate-800";
   }
@@ -639,7 +639,7 @@ export default function BankAccountDetailPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:bg-none dark:bg-card dark:shadow-[0_18px_44px_-32px_rgba(0,0,0,0.5)]">
           <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -660,7 +660,7 @@ export default function BankAccountDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:bg-none dark:bg-card dark:shadow-[0_18px_44px_-32px_rgba(0,0,0,0.5)]">
           <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -677,7 +677,7 @@ export default function BankAccountDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+        <Card className="overflow-hidden rounded-[1.4rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,255,255,0.97))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:bg-none dark:bg-card dark:shadow-[0_18px_44px_-32px_rgba(0,0,0,0.5)]">
           <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">

@@ -240,7 +240,7 @@ export function BusinessWidgets() {
   return (
     <div className="grid grid-cols-1 gap-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.96))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:from-slate-950 dark:to-slate-950">
+        <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.96))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:bg-none dark:bg-card dark:shadow-[0_18px_44px_-32px_rgba(0,0,0,0.5)]">
           <CardHeader>
             <CardTitle className="text-xl tracking-[-0.03em]">Actividad reciente</CardTitle>
             <CardDescription>
@@ -252,14 +252,14 @@ export function BusinessWidgets() {
               recentActivity.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-border/60 bg-white/72 p-3 backdrop-blur-sm"
+                  className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-border/60 bg-white/72 p-3 backdrop-blur-sm dark:bg-card/60"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
                         item.tone === "positive"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-rose-100 text-rose-700"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                          : "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400"
                       }`}
                     >
                       {item.tone === "positive" ? (
@@ -280,7 +280,7 @@ export function BusinessWidgets() {
                   </div>
                   <div
                     className={`shrink-0 text-right text-sm font-semibold ${
-                      item.tone === "positive" ? "text-emerald-700" : "text-rose-700"
+                      item.tone === "positive" ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
                     }`}
                   >
                     {item.tone === "positive" ? "+" : "-"}
@@ -300,7 +300,7 @@ export function BusinessWidgets() {
           </CardFooter>
         </Card>
 
-        <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.12),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.96))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:from-slate-950 dark:to-slate-950">
+        <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.12),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.96))] shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] dark:bg-none dark:bg-card dark:shadow-[0_18px_44px_-32px_rgba(0,0,0,0.5)]">
           <CardHeader>
             <CardTitle className="text-xl tracking-[-0.03em]">Pendientes y alertas</CardTitle>
             <CardDescription>
@@ -309,15 +309,15 @@ export function BusinessWidgets() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[1.2rem] border border-sky-200/70 bg-sky-50/80 p-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-sky-800/80">Por cobrar</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-sky-950">
+              <div className="rounded-[1.2rem] border border-sky-200/70 bg-sky-50/80 p-4 dark:border-sky-800/40 dark:bg-sky-900/30">
+                <div className="text-xs uppercase tracking-[0.18em] text-sky-800/80 dark:text-sky-400">Por cobrar</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-sky-950 dark:text-sky-100">
                   {currencyFormatter.format(receivablesPendingTotal)}
                 </div>
               </div>
-              <div className="rounded-[1.2rem] border border-orange-200/70 bg-orange-50/80 p-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-orange-800/80">Por pagar</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-orange-950">
+              <div className="rounded-[1.2rem] border border-orange-200/70 bg-orange-50/80 p-4 dark:border-orange-800/40 dark:bg-orange-900/30">
+                <div className="text-xs uppercase tracking-[0.18em] text-orange-800/80 dark:text-orange-400">Por pagar</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-orange-950 dark:text-orange-100">
                   {currencyFormatter.format(payablesPendingTotal)}
                 </div>
               </div>
@@ -361,7 +361,7 @@ export function BusinessWidgets() {
         </Card>
       </div>
 
-      <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.95))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:from-slate-950 dark:to-slate-950">
+      <Card className="overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.95))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:bg-none dark:bg-card dark:shadow-[0_20px_52px_-34px_rgba(0,0,0,0.5)]">
         <CardHeader>
           <CardTitle className="text-xl tracking-[-0.03em]">Pulso operativo por sucursal</CardTitle>
           <CardDescription>
@@ -400,7 +400,7 @@ export function BusinessWidgets() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="grid grid-cols-1 gap-3 border-t border-border/50 bg-white/70 sm:grid-cols-2 xl:grid-cols-4 dark:bg-background/30">
+        <CardFooter className="grid grid-cols-1 gap-3 border-t border-border/50 bg-white/70 dark:bg-background/30 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-border/60 p-3">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
               <Building2 className="size-4" />

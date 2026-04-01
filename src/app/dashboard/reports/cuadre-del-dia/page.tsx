@@ -53,10 +53,10 @@ function movementTypeLabel(row: DailyCloseMovementRow) {
 }
 
 function movementPillClass(row: DailyCloseMovementRow) {
-  if (row.kind === "expense") return "border-red-200 bg-red-50 text-red-700";
+  if (row.kind === "expense") return "border-red-200 bg-red-50 text-red-700 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-400";
   return row.method === "cash"
-    ? "border-amber-200 bg-amber-50 text-amber-700"
-    : "border-emerald-200 bg-emerald-50 text-emerald-700";
+    ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-900/30 dark:text-amber-300"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400";
 }
 
 function accountLabel(row: DailyCloseMovementRow) {

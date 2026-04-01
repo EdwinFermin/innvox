@@ -376,7 +376,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               size="lg"
               asChild
-              className="h-auto rounded-[1.4rem] border border-sidebar-border/70 bg-white/80 px-3 py-3 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.28)]"
+              className="h-auto rounded-[1.4rem] border border-sidebar-border/70 bg-sidebar/80 px-3 py-3 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.28)]"
             >
               <Link href="/dashboard" className="flex items-center gap-3">
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -402,7 +402,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             Acciones rapidas
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <div className="rounded-[1.25rem] border border-sidebar-border/70 bg-white/80 p-2 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.28)]">
+            <div className="rounded-[1.25rem] border border-sidebar-border/70 bg-sidebar/80 p-2 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.28)]">
               <SidebarMenuSub className="m-0 space-y-1 border-l-0 p-0">
                 {quickActions.map((action) => (
                   <SidebarMenuSubItem key={action.title}>

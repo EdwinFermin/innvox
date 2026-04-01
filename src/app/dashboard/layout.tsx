@@ -22,8 +22,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         Saltar al contenido
       </a>
       <AppSidebar />
-      <SidebarInset className="dashboard-shell overflow-x-hidden bg-white">
-        <header className="bg-white px-3 pt-3 sm:px-4 lg:px-5">
+      <SidebarInset className="dashboard-shell overflow-x-hidden bg-background">
+        <header className="bg-background px-3 pt-3 sm:px-4 lg:px-5">
           <div className="dashboard-panel flex min-h-14 items-center gap-3 px-4 py-3 sm:px-5">
             <SidebarTrigger className="size-9 rounded-full border border-border/70 bg-background/80" />
             <Separator orientation="vertical" className="mr-1 hidden h-5 sm:block" />
@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
         <main
           id="main-content"
-          className="flex min-w-0 flex-1 flex-col gap-5 bg-white px-3 py-5 sm:px-4 lg:px-5 lg:py-6"
+          className="flex min-w-0 flex-1 flex-col gap-5 bg-background px-3 py-5 sm:px-4 lg:px-5 lg:py-6"
         >
           {children}
         </main>
