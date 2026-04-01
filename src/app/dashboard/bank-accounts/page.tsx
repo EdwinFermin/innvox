@@ -271,8 +271,8 @@ function AccountIdentity({ account }: { account: BankAccountWithBranches }) {
             className={cn(
               "border-transparent",
               account.is_active
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-slate-200 text-slate-700",
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400"
+                : "bg-slate-200 text-slate-700 dark:bg-muted dark:text-muted-foreground",
             )}
           >
             {account.is_active ? "Activa" : "Inactiva"}
@@ -282,8 +282,8 @@ function AccountIdentity({ account }: { account: BankAccountWithBranches }) {
             className={cn(
               "border-transparent",
               account.is_public
-                ? "bg-sky-100 text-sky-800"
-                : "bg-amber-100 text-amber-800",
+                ? "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-400"
+                : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400",
             )}
           >
             {account.is_public ? "Publica" : "Interna"}
@@ -446,7 +446,7 @@ const getColumns = (
               >
                 <button
                   type="button"
-                  className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+                  className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-destructive outline-none hover:bg-destructive/10"
                 >
                   Eliminar
                 </button>
@@ -784,7 +784,7 @@ export default function BankAccountsPage() {
                     placeholder="Cuenta, banco, codigo o numero"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    className="h-11 rounded-2xl border-border/70 bg-slate-50 pl-9"
+                    className="h-11 rounded-2xl border-border/70 bg-muted pl-9"
                   />
                 </div>
               </FilterField>
@@ -794,7 +794,7 @@ export default function BankAccountsPage() {
                   value={statusFilter}
                   onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por estado" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
+                  <SelectTrigger aria-label="Filtrar por estado" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -810,7 +810,7 @@ export default function BankAccountsPage() {
                   value={typeFilter}
                   onValueChange={(value) => setTypeFilter(value as AccountTypeFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por tipo de cuenta" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
+                  <SelectTrigger aria-label="Filtrar por tipo de cuenta" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
                     <SelectValue placeholder="Tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -826,7 +826,7 @@ export default function BankAccountsPage() {
                   value={branchFilter}
                   onValueChange={(value) => setBranchFilter(value as BranchFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por sucursal" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
+                  <SelectTrigger aria-label="Filtrar por sucursal" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
                     <SelectValue placeholder="Sucursal" />
                   </SelectTrigger>
                   <SelectContent>
@@ -845,7 +845,7 @@ export default function BankAccountsPage() {
                   value={currencyFilter}
                   onValueChange={(value) => setCurrencyFilter(value as CurrencyFilter)}
                 >
-                  <SelectTrigger aria-label="Filtrar por moneda" className="h-11 w-full rounded-2xl border-border/70 bg-slate-50 data-[size=default]:h-11">
+                  <SelectTrigger aria-label="Filtrar por moneda" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
                     <SelectValue placeholder="Moneda" />
                   </SelectTrigger>
                   <SelectContent>
@@ -886,7 +886,7 @@ export default function BankAccountsPage() {
       <Card className="overflow-hidden rounded-[1.9rem] border-border/70 shadow-[0_20px_52px_-34px_rgba(15,23,42,0.24)]">
         <CardContent className="px-2 pt-0 pb-2">
           {isError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-400">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="font-semibold">No se pudieron cargar las cuentas</div>
@@ -994,7 +994,7 @@ export default function BankAccountsPage() {
                             >
                               <button
                                 type="button"
-                                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+                                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-destructive outline-none hover:bg-destructive/10"
                               >
                                 Eliminar
                               </button>

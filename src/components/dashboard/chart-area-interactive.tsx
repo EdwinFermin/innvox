@@ -192,7 +192,7 @@ export function ChartAreaInteractive() {
   }
 
   return (
-    <Card className="@container/card overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.94))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:from-slate-950 dark:to-slate-950">
+    <Card className="@container/card overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.94))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:bg-none dark:bg-card dark:shadow-[0_20px_52px_-34px_rgba(0,0,0,0.5)]">
       <CardHeader className="gap-4 border-b border-border/60 pb-5">
         <CardTitle className="text-xl tracking-[-0.03em]">Flujo de caja</CardTitle>
         <CardDescription>

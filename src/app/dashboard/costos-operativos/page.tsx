@@ -172,8 +172,8 @@ const getCostColumns = (
         variant="outline"
         className={
           row.original.is_active
-            ? "border-transparent bg-emerald-100 text-emerald-800"
-            : "border-transparent bg-slate-200 text-slate-700"
+            ? "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400"
+            : "border-transparent bg-slate-200 text-slate-700 dark:bg-muted dark:text-muted-foreground"
         }
       >
         {row.original.is_active ? "Activo" : "Inactivo"}

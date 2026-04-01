@@ -54,7 +54,7 @@ export function TokenHistoryDialog({
               <SpinnerLabel label="Cargando historial..." />
             </div>
           ) : events.length === 0 ? (
-            <div className="rounded-[1.2rem] border border-dashed border-border/70 bg-slate-50/60 p-6 text-center text-sm text-muted-foreground">
+            <div className="rounded-[1.2rem] border border-dashed border-border/70 bg-muted/60 p-6 text-center text-sm text-muted-foreground">
               No hay eventos registrados para este cliente.
             </div>
           ) : (
@@ -72,7 +72,7 @@ export function TokenHistoryDialog({
                             ? "bg-amber-100 text-amber-800"
                             : event.delta > 0
                               ? "bg-emerald-100 text-emerald-800"
-                              : "bg-red-100 text-red-800"
+                              : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400"
                         }`}
                       >
                         {event.delta > 0 ? `+${event.delta}` : event.delta}

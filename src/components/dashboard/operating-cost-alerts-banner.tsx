@@ -72,8 +72,8 @@ export function OperatingCostAlertsBanner() {
       <div
         className={`relative overflow-hidden rounded-2xl border p-4 shadow-sm ${
           hasOverdue
-            ? "border-red-300/80 bg-gradient-to-r from-red-50 via-red-50/80 to-amber-50/60 dark:border-red-800/50 dark:from-red-950/40 dark:to-amber-950/20"
-            : "border-amber-200/70 bg-gradient-to-r from-amber-50/90 to-amber-50/40 dark:border-amber-800/40 dark:from-amber-950/30 dark:to-amber-950/10"
+            ? "border-red-300/80 bg-gradient-to-r from-red-50 via-red-50/80 to-amber-50/60 dark:border-red-500/20 dark:from-card dark:via-card dark:to-card"
+            : "border-amber-200/70 bg-gradient-to-r from-amber-50/90 to-amber-50/40 dark:border-amber-500/20 dark:from-card dark:via-card dark:to-card"
         }`}
       >
         {/* Animated accent bar */}
@@ -142,10 +142,10 @@ export function OperatingCostAlertsBanner() {
                 disabled={!isAdmin}
                 className={`rounded-xl border p-3 text-left transition-all ${
                   isOverdue
-                    ? "border-red-300 bg-red-50 shadow-[0_0_0_1px_rgba(239,68,68,0.15),0_2px_8px_-2px_rgba(239,68,68,0.2)]"
+                    ? "border-red-300 bg-red-50 shadow-[0_0_0_1px_rgba(239,68,68,0.15),0_2px_8px_-2px_rgba(239,68,68,0.2)] dark:border-red-500/30 dark:bg-card dark:shadow-none"
                     : isDueSoon
-                      ? "border-amber-300 bg-amber-50/50 shadow-sm"
-                      : "border-border/50 bg-white/70"
+                      ? "border-amber-300 bg-amber-50/50 shadow-sm dark:border-amber-500/30 dark:bg-card"
+                      : "border-border/50 bg-white/70 dark:bg-card/50"
                 } ${isAdmin ? "cursor-pointer hover:ring-2 hover:ring-primary/30 hover:shadow-md" : "cursor-default"}`}
               >
                 <div className="truncate text-sm font-medium text-foreground">
@@ -158,9 +158,9 @@ export function OperatingCostAlertsBanner() {
                   <span
                     className={`text-xs ${
                       isOverdue
-                        ? "font-medium text-red-600"
+                        ? "font-medium text-destructive"
                         : isDueSoon
-                          ? "text-amber-700"
+                          ? "text-amber-700 dark:text-amber-400"
                           : "text-muted-foreground"
                     }`}
                   >

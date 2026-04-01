@@ -16,7 +16,6 @@ import {
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -121,7 +120,6 @@ export default function InvoicesPage() {
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
 
   const { print, PrintContainer } = usePrintInvoice();
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(
@@ -132,28 +130,6 @@ export default function InvoicesPage() {
   );
 
   const columns: ColumnDef<Invoice>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
     {
       accessorKey: "id",
       header: "No. Factura",
@@ -318,7 +294,7 @@ export default function InvoicesPage() {
                   description="Esta accion no se puede deshacer."
                   onConfirm={() => handleDeleteInvoice(row.original.id)}
                 >
-                  <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer">
+                  <div className="px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 rounded-md cursor-pointer">
                     Eliminar
                   </div>
                 </ConfirmDialog>
@@ -340,12 +316,10 @@ export default function InvoicesPage() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
   });
 
@@ -488,7 +462,7 @@ export default function InvoicesPage() {
           />
           <TablePageSize table={table} />
           <div className="text-muted-foreground flex-1 text-sm">
-            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+            {table.getFilteredRowModel().rows.length} filas
           </div>
           <div className="space-x-2">
             <Button

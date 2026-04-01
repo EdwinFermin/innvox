@@ -72,7 +72,7 @@ export function AdjustTokensDialog({
 
         <div className="dashboard-dialog-body">
           <div className="dashboard-form-card space-y-5">
-            <div className="flex flex-col items-center gap-3 rounded-[1.2rem] border border-border/70 bg-slate-50/70 p-5">
+            <div className="flex flex-col items-center gap-3 rounded-[1.2rem] border border-border/70 bg-muted/70 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Tokens actuales
               </p>

@@ -272,7 +272,7 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
             </div>
 
             {publicLink ? (
-              <div className="space-y-4 rounded-[1.2rem] border border-border/70 bg-slate-50/70 p-5 sm:p-6">
+              <div className="space-y-4 rounded-[1.2rem] border border-border/70 bg-muted/70 p-5 sm:p-6">
                 <div className="flex justify-center">
                   <Image
                     src={qrCodeUrl}
@@ -289,7 +289,7 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
                   <Input value={publicLink} readOnly className="h-11 rounded-2xl border-border/70 bg-background" />
                 </div>
 
-                <div className="rounded-[1rem] border border-dashed border-border/70 bg-white/80 p-4 text-sm text-muted-foreground">
+                <div className="rounded-[1rem] border border-dashed border-border/70 bg-muted/60 p-4 text-sm text-muted-foreground">
                   Descarga una imagen lista para imprimir y colocar en la sucursal.
                 </div>
 
@@ -328,7 +328,7 @@ export function GenerateBranchQrDialog({ branches }: GenerateBranchQrDialogProps
                 </div>
               </div>
             ) : (
-              <div className="rounded-[1.2rem] border border-dashed border-border/70 bg-slate-50/60 p-6 text-center text-sm text-muted-foreground">
+              <div className="rounded-[1.2rem] border border-dashed border-border/70 bg-muted/60 p-6 text-center text-sm text-muted-foreground">
                 Selecciona una sucursal para generar su QR y copiar el link publico.
               </div>
             )}

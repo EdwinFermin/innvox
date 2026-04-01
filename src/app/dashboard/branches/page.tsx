@@ -174,7 +174,7 @@ const getColumns = (
             >
               <button
                 type="button"
-                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-destructive outline-none hover:bg-destructive/10"
               >
                 Eliminar
               </button>

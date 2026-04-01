@@ -68,9 +68,9 @@ export function DashboardPageHeader({
                   className={cn(
                     "min-w-0 rounded-2xl border px-4 py-3 shadow-sm",
                     stat.tone === "positive" &&
-                      "border-emerald-200/80 bg-emerald-50/80 text-emerald-950",
+                      "border-emerald-200/80 bg-emerald-50/80 text-emerald-950 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-100",
                     stat.tone === "warning" &&
-                      "border-amber-200/80 bg-amber-50/80 text-amber-950",
+                      "border-amber-200/80 bg-amber-50/80 text-amber-950 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-100",
                     (!stat.tone || stat.tone === "neutral") &&
                       "border-border/70 bg-background/75 text-foreground",
                   )}

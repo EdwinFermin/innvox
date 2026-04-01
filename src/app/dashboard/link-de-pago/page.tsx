@@ -90,8 +90,8 @@ function StatusBadge({ status }: { status: LinkPayment["status"] }) {
     <Badge
       className={
         isCompleted
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
-          : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400"
+          : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-400"
       }
       variant="outline"
     >
@@ -286,7 +286,7 @@ const getColumns = (
             >
               <button
                 type="button"
-                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-red-600 outline-none hover:bg-red-50"
+                className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm text-destructive outline-none hover:bg-destructive/10"
               >
                 Eliminar
               </button>
