@@ -2,21 +2,31 @@
 
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { CheckCircle2, UserPlus } from "lucide-react";
+import { CheckCircle2, Search, UserPlus, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 
+import { searchEnviosRDClient } from "@/actions/enviosrd";
 import { registerLoyaltyClient } from "@/actions/loyalty";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { WalletButtons } from "./components/wallet-buttons";
 
+type Step = "lookup" | "confirm" | "manual" | "done";
+
 export default function LoyaltyRegisterPage() {
+  const [step, setStep] = React.useState<Step>("lookup");
+  const [code, setCode] = React.useState("");
+
+  // Client data (from API or manual entry)
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [poBox, setPoBox] = React.useState("");
+  const [oficina, setOficina] = React.useState("");
+
+  const [registeredClientId, setRegisteredClientId] = React.useState<string | null>(null);
 
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -27,12 +37,10 @@ export default function LoyaltyRegisterPage() {
 
   const formatPoBox = (value: string) => {
     const upper = value.toUpperCase();
-    // If user types digits only, auto-prefix with EV-
     if (/^\d/.test(upper)) {
       const digits = upper.replace(/\D/g, "");
       return `EV-${digits}`;
     }
-    // Allow typing EV- prefix naturally
     const match = upper.match(/^([A-Z]{1,2})-?(\d*)$/);
     if (match) {
       const prefix = match[1];
@@ -41,7 +49,29 @@ export default function LoyaltyRegisterPage() {
     }
     return upper.replace(/[^A-Z0-9-]/g, "");
   };
-  const [registeredClientId, setRegisteredClientId] = React.useState<string | null>(null);
+
+  const lookupMutation = useMutation({
+    mutationFn: async () => {
+      return searchEnviosRDClient(code.trim());
+    },
+    onSuccess: (client) => {
+      if (client) {
+        setName(client.nombre);
+        setPhone(client.telefono ? formatPhone(client.telefono) : "");
+        setEmail(client.email ?? "");
+        setPoBox(`EV-${client.codigo}`);
+        setOficina(client.oficina);
+        setStep("confirm");
+      } else {
+        toast.error("Codigo no encontrado. Puedes registrarte manualmente.");
+        setStep("manual");
+      }
+    },
+    onError: () => {
+      toast.error("Error al buscar. Intenta de nuevo o registrate manualmente.");
+      setStep("manual");
+    },
+  });
 
   const registerMutation = useMutation({
     mutationFn: async () => {
@@ -54,6 +84,7 @@ export default function LoyaltyRegisterPage() {
     },
     onSuccess: (result) => {
       setRegisteredClientId(result.clientId);
+      setStep("done");
       toast.success(
         result.isNew
           ? "Registro exitoso!"
@@ -67,10 +98,42 @@ export default function LoyaltyRegisterPage() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLookup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim()) return;
+    lookupMutation.mutate();
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !poBox.trim()) return;
     registerMutation.mutate();
+  };
+
+  const resetToLookup = () => {
+    setStep("lookup");
+    setCode("");
+    setName("");
+    setPhone("");
+    setEmail("");
+    setPoBox("");
+    setOficina("");
+    lookupMutation.reset();
+    registerMutation.reset();
+  };
+
+  const stepLabel = {
+    lookup: "Buscar cuenta",
+    confirm: "Confirmar datos",
+    manual: "Registro manual",
+    done: "Registro completo",
+  };
+
+  const stepDescription = {
+    lookup: "Ingresa tu codigo de cliente para buscar tu informacion.",
+    confirm: "Verifica que tus datos sean correctos antes de continuar.",
+    manual: "Completa tus datos para unirte al programa de fidelidad.",
+    done: "Agrega tu tarjeta a tu billetera digital.",
   };
 
   return (
@@ -110,35 +173,129 @@ export default function LoyaltyRegisterPage() {
             <div className="flex flex-1 flex-col overflow-hidden rounded-[0.7rem] border border-[#d7dfd1] bg-white/95 shadow-[0_30px_90px_rgba(0,44,90,0.16)]">
               <div className="border-b border-[#e8ede6] bg-[linear-gradient(180deg,#fffaf0_0%,#ffffff_100%)] px-6 py-5 sm:px-8">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9c6f04]">
-                  {registeredClientId ? "Registro completo" : "Registro"}
+                  {stepLabel[step]}
                 </p>
                 <p className="mt-2 text-sm text-[#647570]">
-                  {registeredClientId
-                    ? "Agrega tu tarjeta a tu billetera digital."
-                    : "Completa tus datos para unirte al programa de fidelidad."}
+                  {stepDescription[step]}
                 </p>
               </div>
 
               <div className="flex flex-1 flex-col justify-center px-6 py-8 sm:px-8">
-                {registeredClientId ? (
-                  <div className="space-y-6 text-center">
-                    <div className="rounded-full bg-[#eef7ef] p-4 text-[#0f6b46] inline-flex">
-                      <CheckCircle2 className="h-10 w-10" />
+                {/* Step: Lookup by code */}
+                {step === "lookup" && (
+                  <form onSubmit={handleLookup} className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-[#0d2d4f]">
+                        Codigo de cliente *
+                      </label>
+                      <Input
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Ej: 111494"
+                        required
+                        inputMode="numeric"
+                        className="h-12 rounded-xl border-[#d7dfd1] bg-white text-base"
+                      />
+                      <p className="text-xs text-[#8a9b95]">
+                        Ingresa el codigo numerico que te asigno EnviosRD.
+                      </p>
                     </div>
 
-                    <div>
-                      <p className="text-xl font-semibold text-[#0d2d4f]">
-                        Bienvenido, {name}!
-                      </p>
-                      <p className="mt-1 text-sm text-[#647570]">
-                        Tu codigo de cliente es: <span className="font-semibold">{registeredClientId}</span>
-                      </p>
+                    <Button
+                      type="submit"
+                      disabled={lookupMutation.isPending || !code.trim()}
+                      className="h-14 w-full rounded-[0.55rem] bg-[#0f6b46] text-base font-semibold text-white shadow-lg shadow-[#0f6b46]/30 transition hover:bg-[#0c593b]"
+                    >
+                      {lookupMutation.isPending ? (
+                        <SpinnerLabel label="Buscando..." />
+                      ) : (
+                        <>
+                          <Search className="mr-2 h-5 w-5" />
+                          Buscar
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="relative py-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-[#e8ede6]" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-white px-2 text-[#8a9b95]">o</span>
+                      </div>
                     </div>
 
-                    <WalletButtons clientId={registeredClientId} />
+                    <button
+                      type="button"
+                      onClick={() => setStep("manual")}
+                      className="w-full text-center text-sm font-medium text-[#0f6b46] hover:underline"
+                    >
+                      Registrarme manualmente
+                    </button>
+                  </form>
+                )}
+
+                {/* Step: Confirm API data */}
+                {step === "confirm" && (
+                  <div className="space-y-5">
+                    <div className="rounded-xl border border-[#d7dfd1] bg-[#f8faf7] p-5 space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-[#8a9b95]">Nombre</p>
+                        <p className="text-base font-semibold text-[#0d2d4f]">{name}</p>
+                      </div>
+                      {phone && (
+                        <div>
+                          <p className="text-xs font-medium text-[#8a9b95]">Telefono</p>
+                          <p className="text-base text-[#0d2d4f]">{phone}</p>
+                        </div>
+                      )}
+                      {email && (
+                        <div>
+                          <p className="text-xs font-medium text-[#8a9b95]">Email</p>
+                          <p className="text-base text-[#0d2d4f]">{email}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-medium text-[#8a9b95]">Casillero</p>
+                        <p className="text-base text-[#0d2d4f]">{poBox}</p>
+                      </div>
+                      {oficina && (
+                        <div>
+                          <p className="text-xs font-medium text-[#8a9b95]">Oficina</p>
+                          <p className="text-base text-[#0d2d4f]">{oficina}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      onClick={() => registerMutation.mutate()}
+                      disabled={registerMutation.isPending}
+                      className="h-14 w-full rounded-[0.55rem] bg-[#0f6b46] text-base font-semibold text-white shadow-lg shadow-[#0f6b46]/30 transition hover:bg-[#0c593b]"
+                    >
+                      {registerMutation.isPending ? (
+                        <SpinnerLabel label="Registrando..." />
+                      ) : (
+                        <>
+                          <UserPlus className="mr-2 h-5 w-5" />
+                          Confirmar y registrarme
+                        </>
+                      )}
+                    </Button>
+
+                    <button
+                      type="button"
+                      onClick={resetToLookup}
+                      className="flex w-full items-center justify-center gap-1 text-sm font-medium text-[#647570] hover:text-[#0d2d4f]"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Volver a buscar
+                    </button>
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-5">
+                )}
+
+                {/* Step: Manual entry */}
+                {step === "manual" && (
+                  <form onSubmit={handleRegister} className="space-y-5">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-[#0d2d4f]">
                         Nombre completo *
@@ -210,10 +367,39 @@ export default function LoyaltyRegisterPage() {
                       )}
                     </Button>
 
+                    <button
+                      type="button"
+                      onClick={resetToLookup}
+                      className="flex w-full items-center justify-center gap-1 text-sm font-medium text-[#647570] hover:text-[#0d2d4f]"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Volver a buscar con codigo
+                    </button>
+
                     <p className="text-center text-xs leading-5 text-[#748680]">
                       Al registrarte aceptas participar en el programa de fidelidad de EnviosRD.
                     </p>
                   </form>
+                )}
+
+                {/* Step: Done */}
+                {step === "done" && registeredClientId && (
+                  <div className="space-y-6 text-center">
+                    <div className="inline-flex rounded-full bg-[#eef7ef] p-4 text-[#0f6b46]">
+                      <CheckCircle2 className="h-10 w-10" />
+                    </div>
+
+                    <div>
+                      <p className="text-xl font-semibold text-[#0d2d4f]">
+                        Bienvenido, {name}!
+                      </p>
+                      <p className="mt-1 text-sm text-[#647570]">
+                        Tu codigo de cliente es: <span className="font-semibold">{registeredClientId}</span>
+                      </p>
+                    </div>
+
+                    <WalletButtons clientId={registeredClientId} />
+                  </div>
                 )}
               </div>
             </div>
