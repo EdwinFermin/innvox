@@ -98,6 +98,8 @@ export function NewOperatingCostDialog({ editData, trigger, onSuccess, open: con
     resolver: zodResolver(schema),
     mode: "onChange",
     defaultValues: {
+      branchId: "",
+      expenseTypeId: "",
       currency: "DOP",
       frequency: "monthly",
       allowsCustomAmount: false,
@@ -170,6 +172,8 @@ export function NewOperatingCostDialog({ editData, trigger, onSuccess, open: con
       });
     } else {
       reset({
+        branchId: branches.length === 1 ? branches[0].id : "",
+        expenseTypeId: expenseTypes.length === 1 ? expenseTypes[0].id : "",
         currency: "DOP",
         frequency: "monthly",
         allowsCustomAmount: false,
@@ -177,7 +181,7 @@ export function NewOperatingCostDialog({ editData, trigger, onSuccess, open: con
         customIntervalDays: "",
       });
     }
-  }, [editData, isEdit, open, reset]);
+  }, [editData, isEdit, open, reset, branches, expenseTypes]);
 
   const isControlled = controlledOpen !== undefined;
 

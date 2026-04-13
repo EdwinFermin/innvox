@@ -88,6 +88,12 @@ export function NewIncomeDialog({
   } = useForm<NewIncomeFormValues>({
     resolver: zodResolver(newIncomeSchema),
     mode: "onChange",
+    defaultValues: {
+      date: getTodayDateKey(),
+      branchId: "",
+      incomeTypeId: "",
+      bankAccountId: "",
+    },
   });
 
   const isEditMode = mode === "edit-account";
@@ -103,6 +109,13 @@ export function NewIncomeDialog({
     () => availableAccounts.find((account) => account.id === selectedAccountId) ?? null,
     [availableAccounts, selectedAccountId],
   );
+
+  // Auto-select when only one option is available
+  React.useEffect(() => {
+    if (availableAccounts.length === 1 && !selectedAccountId) {
+      setValue("bankAccountId", availableAccounts[0].id, { shouldValidate: true });
+    }
+  }, [availableAccounts, selectedAccountId, setValue]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewIncomeValues) => {
@@ -170,8 +183,13 @@ export function NewIncomeDialog({
       return;
     }
 
-    reset();
-  }, [initialData, isEditMode, open, reset]);
+    reset({
+      date: getTodayDateKey(),
+      branchId: branches.length === 1 ? branches[0].id : "",
+      incomeTypeId: incomeTypes.length === 1 ? incomeTypes[0].id : "",
+      bankAccountId: "",
+    });
+  }, [initialData, isEditMode, open, reset, branches, incomeTypes]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

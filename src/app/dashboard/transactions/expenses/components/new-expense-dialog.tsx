@@ -113,6 +113,12 @@ export function NewExpenseDialog({
   } = useForm<NewExpenseFormValues>({
     resolver: zodResolver(newExpenseSchema),
     mode: "onChange",
+    defaultValues: {
+      date: getTodayDateKey(),
+      branchId: "",
+      expenseTypeId: "",
+      bankAccountId: "",
+    },
   });
 
   const isEditMode = mode === "edit-account";
@@ -137,6 +143,13 @@ export function NewExpenseDialog({
     ? Math.round(currentAmount * (transferTaxPercentage / 100) * 100) / 100
     : 0;
   const totalDeduction = currentAmount + computedLBTR + computedTax;
+
+  // Auto-select when only one option is available
+  React.useEffect(() => {
+    if (availableAccounts.length === 1 && !selectedAccountId) {
+      setValue("bankAccountId", availableAccounts[0].id, { shouldValidate: true });
+    }
+  }, [availableAccounts, selectedAccountId, setValue]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewExpenseValues) => {
@@ -216,8 +229,13 @@ export function NewExpenseDialog({
       return;
     }
 
-    reset();
-  }, [initialData, isEditMode, open, reset]);
+    reset({
+      date: getTodayDateKey(),
+      branchId: branches.length === 1 ? branches[0].id : "",
+      expenseTypeId: expenseTypes.length === 1 ? expenseTypes[0].id : "",
+      bankAccountId: "",
+    });
+  }, [initialData, isEditMode, open, reset, branches, expenseTypes]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

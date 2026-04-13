@@ -28,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBranches } from "@/hooks/use-branches";
 import { useAuthStore } from "@/store/auth";
-import { getDateInputValue } from "@/utils/dates";
+import { getDateInputValue, getTodayDateKey } from "@/utils/dates";
 
 const newReceivableSchema = z.object({
   branch_id: z.string().min(1, "La sucursal es obligatoria"),
@@ -64,6 +64,7 @@ export function NewReceivableDialog() {
     defaultValues: {
       branch_id: "",
       status: "pendiente",
+      due_date: getTodayDateKey(),
     },
   });
 
@@ -82,7 +83,7 @@ export function NewReceivableDialog() {
     onSuccess: () => {
       toast.success("Cuenta por cobrar registrada");
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
-      reset({ status: "pendiente", branch_id: "" });
+      reset({ status: "pendiente", branch_id: branches.length === 1 ? branches[0].id : "", due_date: getTodayDateKey() });
       setOpen(false);
     },
     onError: (error: Error) => {
@@ -98,7 +99,7 @@ export function NewReceivableDialog() {
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
-          onClick={() => reset({ status: "pendiente", branch_id: "" })}
+          onClick={() => reset({ status: "pendiente", branch_id: branches.length === 1 ? branches[0].id : "", due_date: getTodayDateKey() })}
         >
           <PlusCircle className="mr-1" />
           Nueva cuenta por cobrar

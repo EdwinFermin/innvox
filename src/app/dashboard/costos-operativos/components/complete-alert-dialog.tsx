@@ -83,6 +83,9 @@ export function CompleteAlertDialog({ alert, open, onOpenChange }: Props) {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
+    defaultValues: {
+      bankAccountId: "",
+    },
   });
 
   const selectedAccountId = watch("bankAccountId");
@@ -167,6 +170,13 @@ export function CompleteAlertDialog({ alert, open, onOpenChange }: Props) {
   const isBusy = isPending || isSkipping;
 
   const onSubmit = handleSubmit((values) => mutate(values));
+
+  // Auto-select when only one option is available
+  React.useEffect(() => {
+    if (availableAccounts.length === 1 && !selectedAccountId) {
+      setValue("bankAccountId", availableAccounts[0].id, { shouldValidate: true });
+    }
+  }, [availableAccounts, selectedAccountId, setValue]);
 
   React.useEffect(() => {
     if (!open) return;
