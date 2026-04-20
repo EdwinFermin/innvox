@@ -10,12 +10,20 @@ export function usePayables(userId: string) {
     queryKey: ["payables", userId],
     queryFn: async (): Promise<Payable[]> => {
       const supabase = getSupabaseBrowserClient();
-      // RLS handles role-based filtering automatically
-      const { data, error } = await supabase.from("payables").select("*");
-
-      if (error) throw error;
-
-      return data as Payable[];
+      const PAGE = 1000;
+      const rows: Payable[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("payables")
+          .select("*")
+          .order("due_date", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as Payable[];
+        rows.push(...batch);
+        if (batch.length < PAGE) break;
+      }
+      return rows;
     },
     enabled: !!userId,
   });

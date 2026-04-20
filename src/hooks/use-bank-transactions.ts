@@ -28,27 +28,32 @@ export function useBankTransactions(
     queryFn: async (): Promise<BankTransaction[]> => {
       const supabase = getSupabaseBrowserClient();
 
-      let query = supabase
-        .from("bank_transactions")
-        .select("*")
-        .eq("bank_account_id", bankAccountId)
-        .order("date", { ascending: false })
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false });
+      const PAGE = 1000;
+      const transactions: BankTransaction[] = [];
+      for (let from = 0; ; from += PAGE) {
+        let query = supabase
+          .from("bank_transactions")
+          .select("*")
+          .eq("bank_account_id", bankAccountId)
+          .order("date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, from + PAGE - 1);
 
-      if (startDate) {
-        query = query.gte("date", startDate.toISOString());
+        if (startDate) {
+          query = query.gte("date", startDate.toISOString());
+        }
+
+        if (endDate) {
+          query = query.lte("date", endDate.toISOString());
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        const batch = (data ?? []) as BankTransaction[];
+        transactions.push(...batch);
+        if (batch.length < PAGE) break;
       }
-
-      if (endDate) {
-        query = query.lte("date", endDate.toISOString());
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const transactions = (data ?? []) as BankTransaction[];
 
       const incomeIds = Array.from(
         new Set(
@@ -186,28 +191,32 @@ export function useBranchTransactions(
       const accountIds = (junctions ?? []).map((j) => j.bank_account_id);
       if (accountIds.length === 0) return [];
 
-      // Get transactions for all branch accounts in a single query
-      let query = supabase
-        .from("bank_transactions")
-        .select("*")
-        .in("bank_account_id", accountIds)
-        .order("date", { ascending: false })
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false });
+      const PAGE = 1000;
+      const transactions: BankTransaction[] = [];
+      for (let from = 0; ; from += PAGE) {
+        let query = supabase
+          .from("bank_transactions")
+          .select("*")
+          .in("bank_account_id", accountIds)
+          .order("date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, from + PAGE - 1);
 
-      if (startDate) {
-        query = query.gte("date", startDate.toISOString());
+        if (startDate) {
+          query = query.gte("date", startDate.toISOString());
+        }
+
+        if (endDate) {
+          query = query.lte("date", endDate.toISOString());
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        const batch = (data ?? []) as BankTransaction[];
+        transactions.push(...batch);
+        if (batch.length < PAGE) break;
       }
-
-      if (endDate) {
-        query = query.lte("date", endDate.toISOString());
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const transactions = (data ?? []) as BankTransaction[];
 
       const incomeIds = Array.from(
         new Set(
