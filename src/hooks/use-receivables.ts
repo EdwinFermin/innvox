@@ -10,12 +10,20 @@ export function useReceivables(userId: string) {
     queryKey: ["receivables", userId],
     queryFn: async (): Promise<Receivable[]> => {
       const supabase = getSupabaseBrowserClient();
-      // RLS handles role-based filtering automatically
-      const { data, error } = await supabase.from("receivables").select("*");
-
-      if (error) throw error;
-
-      return data as Receivable[];
+      const PAGE = 1000;
+      const rows: Receivable[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("receivables")
+          .select("*")
+          .order("due_date", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as Receivable[];
+        rows.push(...batch);
+        if (batch.length < PAGE) break;
+      }
+      return rows;
     },
     enabled: !!userId,
   });
