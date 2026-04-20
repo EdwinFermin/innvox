@@ -296,7 +296,18 @@ export default function IncomesPage() {
   const router = useRouter();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
-  const { data: incomes, isLoading } = useIncomes(user?.id || "");
+  const [startDate, setStartDate] = React.useState<string>(getTodayDateKey);
+  const [endDate, setEndDate] = React.useState<string>(getTodayDateKey);
+  const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
+  const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [openDialog, setOpenDialog] = React.useState(false);
+
+  const hasSearch = searchTerm.trim().length > 0;
+  const { data: incomes, isLoading } = useIncomes(
+    user?.id || "",
+    hasSearch ? {} : { startDate, endDate },
+  );
   const { data: branches } = useBranches(
     user?.id || "",
     user?.type === "USER" ? user?.branch_ids : undefined,
@@ -314,13 +325,6 @@ export default function IncomesPage() {
 
     setVisibilityScope("mine");
   }, [user?.type]);
-
-  const [startDate, setStartDate] = React.useState<string>(getTodayDateKey);
-  const [endDate, setEndDate] = React.useState<string>(getTodayDateKey);
-  const [branchFilter, setBranchFilter] = React.useState<string>("ALL");
-  const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [openDialog, setOpenDialog] = React.useState(false);
 
   React.useEffect(() => {
     if (searchParams.get("new") === "1") {
