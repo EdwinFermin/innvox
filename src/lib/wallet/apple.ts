@@ -107,7 +107,7 @@ export async function generateApplePass(
       backgroundColor: "rgb(0, 40, 87)",
       labelColor: "rgb(212, 160, 23)",
       authenticationToken: authToken,
-      webServiceURL: `${baseUrl}/api/wallet/apple/v1`,
+      webServiceURL: `${baseUrl}/api/wallet/apple`,
     },
   );
 
