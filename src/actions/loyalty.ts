@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { requireAuth } from "@/lib/auth/guards";
 import { resolveSessionUserId } from "@/lib/auth/session-user";
@@ -37,13 +38,24 @@ export async function adjustTokens(
   const result = Array.isArray(data) ? data[0] : data;
   const newTokens = result?.new_tokens ?? 0;
 
-  // Update wallet passes in the background (fire-and-forget)
-  updateGoogleWalletTokens(clientId, newTokens).catch((err) =>
-    console.error("Google Wallet update error:", err),
-  );
-  notifyAppleWalletDevices(clientId).catch((err) =>
-    console.error("Apple Wallet push error:", err),
-  );
+  after(async () => {
+    const [g, a] = await Promise.allSettled([
+      updateGoogleWalletTokens(clientId, newTokens),
+      notifyAppleWalletDevices(clientId),
+    ]);
+    if (g.status === "rejected") {
+      console.error(
+        `[wallet] Google update failed for ${clientId} (tokens=${newTokens}):`,
+        g.reason,
+      );
+    }
+    if (a.status === "rejected") {
+      console.error(
+        `[wallet] Apple push failed for ${clientId}:`,
+        a.reason,
+      );
+    }
+  });
 
   return {
     new_tokens: newTokens,
