@@ -207,7 +207,7 @@ export async function sendApplePassUpdateNotification(
       ":path": `/3/device/${pushToken}`,
       "apns-topic": config.passTypeIdentifier,
       "apns-push-type": "background",
-      "apns-priority": "10",
+      "apns-priority": "5",
     });
 
     req.setEncoding("utf8");
@@ -216,15 +216,24 @@ export async function sendApplePassUpdateNotification(
     req.write(JSON.stringify({}));
     req.end();
 
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+
     req.on("response", (headers) => {
       const status = headers[":status"];
-      if (status === 200) {
-        resolve();
-      } else {
-        console.error(`APNs push failed with status ${status}`);
-        resolve(); // Don't fail the main operation
-      }
-      client.close();
+      req.on("end", () => {
+        if (status === 200) {
+          resolve();
+        } else {
+          console.error(
+            `APNs push failed with status ${status}: ${body || "(no body)"}`,
+          );
+          resolve();
+        }
+        client.close();
+      });
     });
 
     req.on("error", (err) => {
