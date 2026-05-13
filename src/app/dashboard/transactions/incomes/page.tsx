@@ -318,7 +318,7 @@ export default function IncomesPage() {
   const queryClient = useQueryClient();
 
   React.useEffect(() => {
-    if (user?.type === "ADMIN") {
+    if (user?.type === "ADMIN" || user?.type === "USER") {
       setVisibilityScope("all");
       return;
     }

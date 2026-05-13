@@ -21,9 +21,9 @@ export function ListVisibilityControl({
   value,
   onChange,
 }: ListVisibilityControlProps) {
-  const isAdmin = role === "ADMIN";
+  const canToggle = role === "ADMIN" || role === "USER";
 
-  if (!isAdmin) {
+  if (!canToggle) {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Vista</span>
