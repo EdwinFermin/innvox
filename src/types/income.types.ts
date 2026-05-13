@@ -13,4 +13,6 @@ export interface Income {
   bank_transaction_id: string | null;
   created_at: string;
   created_by: string | null;
+  external_source: string | null;
+  external_ref: string | null;
 }

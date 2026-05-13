@@ -349,7 +349,11 @@ export default function IncomesPage() {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return incomes.filter((income) => {
-      if (visibilityScope === "mine" && income.created_by !== user?.id) {
+      if (
+        visibilityScope === "mine" &&
+        income.created_by !== user?.id &&
+        !income.external_source
+      ) {
         return false;
       }
       if (allowedBranches && !allowedBranches.has(income.branch_id))
