@@ -67,16 +67,22 @@ export interface Database {
           id: string;
           name: string;
           created_at: string;
+          default_cash_account_id: string | null;
+          enviosrd_branch_key: string | null;
         };
         Insert: {
           id: string;
           name: string;
           created_at?: string;
+          default_cash_account_id?: string | null;
+          enviosrd_branch_key?: string | null;
         };
         Update: {
           id?: string;
           name?: string;
           created_at?: string;
+          default_cash_account_id?: string | null;
+          enviosrd_branch_key?: string | null;
         };
         Relationships: [];
       };
@@ -313,6 +319,8 @@ export interface Database {
           bank_transaction_id: string | null;
           created_at: string;
           created_by: string | null;
+          external_source: string | null;
+          external_ref: string | null;
         };
         Insert: {
           id?: string;
@@ -327,6 +335,8 @@ export interface Database {
           bank_transaction_id?: string | null;
           created_at?: string;
           created_by?: string | null;
+          external_source?: string | null;
+          external_ref?: string | null;
         };
         Update: {
           id?: string;
@@ -341,6 +351,41 @@ export interface Database {
           bank_transaction_id?: string | null;
           created_at?: string;
           created_by?: string | null;
+          external_source?: string | null;
+          external_ref?: string | null;
+        };
+        Relationships: [];
+      };
+      cuadre_syncs: {
+        Row: {
+          id: string;
+          branch_id: string;
+          cuadre_date: string;
+          enviosrd_branch_key: string;
+          transaction_count: number;
+          total_amount: number;
+          synced_at: string;
+          synced_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          branch_id: string;
+          cuadre_date: string;
+          enviosrd_branch_key: string;
+          transaction_count: number;
+          total_amount: number;
+          synced_at?: string;
+          synced_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          branch_id?: string;
+          cuadre_date?: string;
+          enviosrd_branch_key?: string;
+          transaction_count?: number;
+          total_amount?: number;
+          synced_at?: string;
+          synced_by?: string | null;
         };
         Relationships: [];
       };
@@ -835,6 +880,21 @@ export interface Database {
         Returns: {
           new_tokens: number;
           was_reset: boolean;
+        }[];
+      };
+      apply_cuadre_sync: {
+        Args: {
+          p_branch_id: string;
+          p_cuadre_date: string;
+          p_enviosrd_branch_key: string;
+          p_transactions: Json;
+          p_synced_by?: string | null;
+        };
+        Returns: {
+          sync_id: string;
+          created_count: number;
+          skipped_count: number;
+          total_amount: number;
         }[];
       };
     };
