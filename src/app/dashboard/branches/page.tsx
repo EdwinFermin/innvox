@@ -44,6 +44,7 @@ import { SpinnerLabel } from "@/components/ui/spinner-label";
 import { Branch } from "@/types/branch.types";
 import { useBranches } from "@/hooks/use-branches";
 import { NewBranchDialog } from "./components/new-branch-dialog";
+import { BranchSyncSettingsDialog } from "./components/branch-sync-settings-dialog";
 import { deleteBranch } from "@/actions/branches";
 import { toast } from "sonner";
 import { can } from "@/lib/auth/can";
@@ -145,7 +146,22 @@ const getColumns = (
   {
     id: "actions",
     enableHiding: false,
-    cell: (row) => (
+    cell: (row) => <BranchActionsCell branch={row.row.original} canDelete={canDelete} queryClient={queryClient} />,
+  },
+];
+
+function BranchActionsCell({
+  branch,
+  canDelete,
+  queryClient,
+}: {
+  branch: Branch;
+  canDelete: boolean;
+  queryClient: QueryClient;
+}) {
+  const [syncOpen, setSyncOpen] = React.useState(false);
+  return (
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -156,6 +172,13 @@ const getColumns = (
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <button
+            type="button"
+            className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-muted"
+            onClick={() => setSyncOpen(true)}
+          >
+            Configurar sincronización
+          </button>
           {canDelete && (
             <ConfirmDialog
               title="Eliminar sucursal"
@@ -163,7 +186,7 @@ const getColumns = (
               confirmLabel="Eliminar"
               onConfirm={async () => {
                 try {
-                  await deleteBranch(row.row.original.id);
+                  await deleteBranch(branch.id);
                   toast.success("Sucursal eliminada");
                   queryClient.invalidateQueries({ queryKey: ["branches"] });
                 } catch (error) {
@@ -182,9 +205,14 @@ const getColumns = (
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-    ),
-  },
-];
+      <BranchSyncSettingsDialog
+        branch={branch}
+        open={syncOpen}
+        onOpenChange={setSyncOpen}
+      />
+    </>
+  );
+}
 
 export default function BranchesPage() {
   const isMobile = useIsMobile();

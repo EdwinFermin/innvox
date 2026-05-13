@@ -76,6 +76,10 @@ const data = {
           title: "Link de pago",
           url: "/dashboard/link-de-pago",
         },
+        {
+          title: "Sincronizar Envios RD",
+          url: "/dashboard/sync-cuadres",
+        },
       ],
     },
     {
@@ -198,6 +202,10 @@ const data = {
           title: "Link de pago",
           url: "/dashboard/link-de-pago",
         },
+        {
+          title: "Sincronizar Envios RD",
+          url: "/dashboard/sync-cuadres",
+        },
       ],
     },
     {
@@ -267,6 +275,10 @@ const data = {
         {
           title: "Link de pago",
           url: "/dashboard/link-de-pago",
+        },
+        {
+          title: "Sincronizar Envios RD",
+          url: "/dashboard/sync-cuadres",
         },
       ],
     },
