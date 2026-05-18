@@ -1,6 +1,7 @@
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -106,8 +107,9 @@ export function EditUserDialog({ user }: { user: User }) {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent"
+          className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent"
         >
+          <Pencil className="size-4" />
           Editar
         </button>
       </DialogTrigger>
