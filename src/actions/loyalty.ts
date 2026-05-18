@@ -63,6 +63,63 @@ export async function adjustTokens(
   };
 }
 
+interface CompleteLoyaltyRewardData {
+  clientId: string;
+  amount: number;
+  bankAccountId: string;
+  note?: string;
+}
+
+export async function completeLoyaltyReward(data: CompleteLoyaltyRewardData) {
+  const session = await requireAuth();
+
+  const supabase = await getSupabaseServerClient();
+  const userId = await resolveSessionUserId(session, supabase);
+
+  const { data: rpcData, error } = await supabase.rpc("complete_loyalty_reward", {
+    p_client_id: data.clientId,
+    p_amount: data.amount,
+    p_bank_account_id: data.bankAccountId,
+    p_user_id: userId,
+    p_note: data.note ?? null,
+  });
+
+  if (error) {
+    throw new Error(`Error al completar la recompensa: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/loyalty");
+  revalidatePath("/dashboard/transactions/expenses");
+
+  const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+  const newTokens = result?.new_tokens ?? 0;
+
+  after(async () => {
+    const [g, a] = await Promise.allSettled([
+      updateGoogleWalletTokens(data.clientId, newTokens),
+      notifyAppleWalletDevices(data.clientId),
+    ]);
+    if (g.status === "rejected") {
+      console.error(
+        `[wallet] Google update failed for ${data.clientId} (tokens=${newTokens}):`,
+        g.reason,
+      );
+    }
+    if (a.status === "rejected") {
+      console.error(
+        `[wallet] Apple push failed for ${data.clientId}:`,
+        a.reason,
+      );
+    }
+  });
+
+  return {
+    new_tokens: newTokens,
+    was_reset: result?.was_reset ?? false,
+    expense_id: result?.expense_id ?? null,
+  };
+}
+
 interface RegisterLoyaltyClientData {
   name: string;
   phone: string;

@@ -13,6 +13,7 @@ import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Client } from "@/types/client.types";
 import { TokenDots } from "../components/token-dots";
+import { RewardExpenseDialog } from "../components/reward-expense-dialog";
 import { useAuthStore } from "@/store/auth";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
@@ -24,6 +25,7 @@ export default function ScannerPage() {
   const [manualId, setManualId] = React.useState("");
   const [isScanning, setIsScanning] = React.useState(false);
   const [isFetching, setIsFetching] = React.useState(false);
+  const [rewardExpenseOpen, setRewardExpenseOpen] = React.useState(false);
   const scannerRef = React.useRef<HTMLDivElement>(null);
   const html5QrCodeRef = React.useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const queryClient = useQueryClient();
@@ -131,6 +133,17 @@ export default function ScannerPage() {
       );
     },
   });
+
+  const handleAddToken = () => {
+    if (!scannedClient) return;
+
+    if (scannedClient.tokens >= 9) {
+      setRewardExpenseOpen(true);
+      return;
+    }
+
+    addTokenMutation.mutate();
+  };
 
   const handleManualSearch = () => {
     const id = manualId.trim();
@@ -260,7 +273,7 @@ export default function ScannerPage() {
               </div>
 
               <Button
-                onClick={() => addTokenMutation.mutate()}
+                onClick={handleAddToken}
                 disabled={addTokenMutation.isPending}
                 className="h-14 w-full rounded-2xl text-lg font-semibold"
               >
@@ -286,6 +299,17 @@ export default function ScannerPage() {
           )}
         </div>
       </div>
+
+      <RewardExpenseDialog
+        client={scannedClient}
+        open={rewardExpenseOpen}
+        onOpenChange={setRewardExpenseOpen}
+        onCompleted={(result) => {
+          setScannedClient((prev) =>
+            prev ? { ...prev, tokens: result.new_tokens } : null,
+          );
+        }}
+      />
     </div>
   );
 }

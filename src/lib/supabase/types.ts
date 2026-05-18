@@ -882,6 +882,20 @@ export interface Database {
           was_reset: boolean;
         }[];
       };
+      complete_loyalty_reward: {
+        Args: {
+          p_client_id: string;
+          p_amount: number;
+          p_bank_account_id: string;
+          p_user_id?: string | null;
+          p_note?: string | null;
+        };
+        Returns: {
+          new_tokens: number;
+          was_reset: boolean;
+          expense_id: string;
+        }[];
+      };
       apply_cuadre_sync: {
         Args: {
           p_branch_id: string;
