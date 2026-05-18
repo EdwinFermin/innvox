@@ -14,7 +14,7 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, KeyRound, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -49,8 +49,10 @@ import { useAuthStore } from "@/store/auth";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
-import { deleteUser } from "@/actions/users";
+import { deleteUser, resetUserPasswordToDefault } from "@/actions/users";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
+
+const DEFAULT_RESET_PASSWORD = "@Envios01.";
 
 const getColumnLabel = (id: string): string => {
   const map: Record<string, string> = {
@@ -166,6 +168,31 @@ const getColumns = (queryClient: QueryClient, canDelete: boolean): ColumnDef<Use
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <EditUserDialog user={row.row.original} />
+          {canDelete && (
+            <ConfirmDialog
+              title="Restablecer contraseña"
+              description={`La contraseña de ${row.row.original.name} se cambiará a ${DEFAULT_RESET_PASSWORD}.`}
+              confirmLabel="Restablecer"
+              onConfirm={async () => {
+                try {
+                  await resetUserPasswordToDefault(row.row.original.id);
+                  toast.success("Contraseña restablecida");
+                  queryClient.invalidateQueries({ queryKey: ["users"] });
+                } catch (error) {
+                  toast.error("Error al restablecer la contraseña");
+                  throw error;
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent"
+              >
+                <KeyRound className="size-4" />
+                Restablecer contraseña
+              </button>
+            </ConfirmDialog>
+          )}
           {canDelete && (
             <ConfirmDialog
               title="Eliminar usuario"

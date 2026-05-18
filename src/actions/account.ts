@@ -1,17 +1,28 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import { requireAuth } from "@/lib/auth/guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
-function getBaseUrl() {
+async function getBaseUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+
+  const requestHeaders = await headers();
+
+  const forwardedHost = requestHeaders.get("x-forwarded-host");
+  const forwardedProto = requestHeaders.get("x-forwarded-proto") ?? "https";
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+
+  const host = requestHeaders.get("host");
+  if (host) return `${process.env.NODE_ENV === "development" ? "http" : "https"}://${host}`;
+
   return "http://localhost:3000";
 }
 
@@ -96,57 +107,11 @@ export async function sendPasswordResetEmail(email: string) {
   const adminClient = getSupabaseAdminClient();
 
   const { error } = await adminClient.auth.resetPasswordForEmail(trimmed, {
-    redirectTo: `${getBaseUrl()}/reset-password`,
+    redirectTo: `${await getBaseUrl()}/reset-password`,
   });
 
   if (error) {
     // Don't reveal whether the email exists
     console.error("Password reset error:", error.message);
-  }
-}
-
-const resetPasswordSchema = z
-  .object({
-    newPassword: z.string().min(6, "La nueva contrasena debe tener al menos 6 caracteres"),
-    confirmPassword: z.string().min(1, "Confirma la nueva contrasena"),
-    accessToken: z.string().min(1),
-    refreshToken: z.string().min(1),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "La confirmacion no coincide con la nueva contrasena",
-    path: ["confirmPassword"],
-  });
-
-type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
-
-export async function resetPassword(input: ResetPasswordInput) {
-  const values = resetPasswordSchema.parse(input);
-
-  const supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    },
-  );
-
-  const { error: sessionError } = await supabase.auth.setSession({
-    access_token: values.accessToken,
-    refresh_token: values.refreshToken,
-  });
-
-  if (sessionError) {
-    throw new Error("El enlace de recuperacion es invalido o ha expirado.");
-  }
-
-  const { error: updateError } = await supabase.auth.updateUser({
-    password: values.newPassword,
-  });
-
-  if (updateError) {
-    throw new Error(`No se pudo actualizar la contrasena: ${updateError.message}`);
   }
 }

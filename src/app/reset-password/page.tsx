@@ -14,7 +14,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { resetPassword } from "@/actions/account";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
@@ -32,52 +31,83 @@ function ResetPasswordContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [tokens, setTokens] = useState<{
-    accessToken: string;
-    refreshToken: string;
-  } | null>(null);
+  const [canReset, setCanReset] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
+    let isMounted = true;
 
-    // Handle PKCE flow: exchange code from query params for a session
-    const code = searchParams.get("code");
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+    const markReady = () => {
+      if (!isMounted) return;
+      setCanReset(true);
+      setLoading(false);
+    };
+
+    const markInvalid = () => {
+      if (!isMounted) return;
+      setCanReset(false);
+      setLoading(false);
+    };
+
+    const initializeRecoverySession = async () => {
+      const code = searchParams.get("code");
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error || !data.session) {
-          setLoading(false);
+          markInvalid();
           return;
         }
-        setTokens({
-          accessToken: data.session.access_token,
-          refreshToken: data.session.refresh_token,
-        });
-        setLoading(false);
-      });
-      return;
-    }
 
-    // Fallback: handle implicit flow (tokens in URL fragment)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" && session) {
-        setTokens({
-          accessToken: session.access_token,
-          refreshToken: session.refresh_token,
+        markReady();
+        return;
+      }
+
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
         });
-        setLoading(false);
+
+        if (error) {
+          markInvalid();
+          return;
+        }
+
+        window.history.replaceState(null, "", window.location.pathname);
+        markReady();
+        return;
+      }
+
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        markReady();
+        return;
+      }
+
+      markInvalid();
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
+        markReady();
       }
     });
 
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+    void initializeRecoverySession();
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, [searchParams]);
 
@@ -95,7 +125,7 @@ function ResetPasswordContent() {
       return;
     }
 
-    if (!tokens) {
+    if (!canReset) {
       setError("El enlace de recuperacion es invalido o ha expirado.");
       return;
     }
@@ -103,12 +133,16 @@ function ResetPasswordContent() {
     setIsSubmitting(true);
 
     try {
-      await resetPassword({
-        newPassword,
-        confirmPassword,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+      const supabase = getSupabaseBrowserClient();
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
       });
+
+      if (updateError) {
+        throw new Error(`No se pudo actualizar la contrasena: ${updateError.message}`);
+      }
+
+      await supabase.auth.signOut();
       setSuccess(true);
     } catch (err) {
       setError(
@@ -162,7 +196,7 @@ function ResetPasswordContent() {
                   </p>
                 </div>
               </FieldGroup>
-            ) : !tokens ? (
+            ) : !canReset ? (
               <FieldGroup>
                 <div className="flex flex-col items-center gap-2 text-center">
                   <h1 className="text-2xl font-bold">Enlace invalido</h1>

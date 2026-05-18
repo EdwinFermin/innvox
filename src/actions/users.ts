@@ -7,6 +7,8 @@ import { PERMISSIONS } from "@/lib/auth/permissions";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
+const DEFAULT_RESET_PASSWORD = "@Envios01.";
+
 interface CreateUserData {
   email: string;
   password: string;
@@ -189,6 +191,34 @@ export async function deleteUser(id: string) {
   if (authError) {
     throw new Error(
       `Error al eliminar el usuario de autenticación: ${authError.message}`,
+    );
+  }
+
+  revalidatePath("/dashboard/users");
+}
+
+export async function resetUserPasswordToDefault(id: string) {
+  await requirePermission(PERMISSIONS.usersManage);
+
+  const supabase = getSupabaseAdminClient();
+
+  const { data: user, error: userError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("id", id)
+    .single();
+
+  if (userError || !user?.id) {
+    throw new Error("No se pudo encontrar el usuario seleccionado.");
+  }
+
+  const { error } = await supabase.auth.admin.updateUserById(id, {
+    password: DEFAULT_RESET_PASSWORD,
+  });
+
+  if (error) {
+    throw new Error(
+      `Error al restablecer la contraseña del usuario: ${error.message}`,
     );
   }
 
