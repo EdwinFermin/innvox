@@ -3,11 +3,18 @@
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlusCircle } from "lucide-react";
+import {
+  Loader2,
+  PlusCircle,
+  ScanText,
+  UploadCloud,
+  X,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { analyzeExpenseReceipt } from "@/actions/expense-receipts";
 import { createExpense, updateExpenseAccount } from "@/actions/expenses";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
@@ -37,6 +44,7 @@ import { useExpenseTypes } from "@/hooks/use-expense-types";
 import { accountSupportsBranch } from "@/lib/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { Expense } from "@/types/expense.types";
+import { ExpenseReceiptAnalysis } from "@/types/expense-receipt.types";
 import {
   dateOnlyToISOString,
   extractDateOnlyKey,
@@ -83,6 +91,9 @@ export function NewExpenseDialog({
 
   const [includeLBTR, setIncludeLBTR] = React.useState(false);
   const [includeTransferTax, setIncludeTransferTax] = React.useState(false);
+  const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
+  const [receiptPreviewUrl, setReceiptPreviewUrl] = React.useState<string | null>(null);
+  const receiptInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const lbtrFeeAmount = React.useMemo(() => {
     const raw = configs.LBTR_FEE?.amount;
@@ -144,12 +155,119 @@ export function NewExpenseDialog({
     : 0;
   const totalDeduction = currentAmount + computedLBTR + computedTax;
 
+  React.useEffect(() => {
+    if (!receiptFile) {
+      setReceiptPreviewUrl(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(receiptFile);
+    setReceiptPreviewUrl(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [receiptFile]);
+
   // Auto-select when only one option is available
   React.useEffect(() => {
     if (availableAccounts.length === 1 && !selectedAccountId) {
       setValue("bankAccountId", availableAccounts[0].id, { shouldValidate: true });
     }
   }, [availableAccounts, selectedAccountId, setValue]);
+
+  const applyReceiptAnalysis = React.useCallback(
+    (analysis: ExpenseReceiptAnalysis) => {
+      if (analysis.branchId) {
+        setValue("branchId", analysis.branchId, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (analysis.expenseTypeId) {
+        setValue("expenseTypeId", analysis.expenseTypeId, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (analysis.date) {
+        setValue("date", analysis.date, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (analysis.amount !== null) {
+        setValue("amount", analysis.amount, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (analysis.description) {
+        setValue("description", analysis.description, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (analysis.bankAccountId) {
+        setValue("bankAccountId", analysis.bankAccountId, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (analysis.transferTax && analysis.transferTax > 0 && transferTaxPercentage > 0) {
+        setIncludeTransferTax(true);
+      }
+    },
+    [setValue, transferTaxPercentage],
+  );
+
+  const {
+    mutate: analyzeReceipt,
+    isPending: isAnalyzingReceipt,
+  } = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("receipt", file);
+      return analyzeExpenseReceipt(formData);
+    },
+    onSuccess: (analysis) => {
+      applyReceiptAnalysis(analysis);
+      if (analysis.issues.length > 0) {
+        toast.warning("Comprobante leído. Completa los campos pendientes.");
+        return;
+      }
+
+      toast.success("Comprobante leído y formulario actualizado");
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message || "No se pudo analizar el comprobante.");
+    },
+  });
+
+  const handleReceiptFileChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.currentTarget.files?.[0] ?? null;
+      event.currentTarget.value = "";
+
+      if (!file) return;
+
+      setReceiptFile(file);
+      analyzeReceipt(file);
+    },
+    [analyzeReceipt],
+  );
+
+  const clearReceiptFile = React.useCallback(() => {
+    setReceiptFile(null);
+
+    if (receiptInputRef.current) {
+      receiptInputRef.current.value = "";
+    }
+  }, []);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: NewExpenseValues) => {
@@ -192,6 +310,7 @@ export function NewExpenseDialog({
       queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
       queryClient.invalidateQueries({ queryKey: ["bankTransactions"] });
       reset();
+      clearReceiptFile();
       setOpen(false);
     },
     onError: (error: Error) => {
@@ -206,15 +325,17 @@ export function NewExpenseDialog({
       reset();
       setIncludeLBTR(false);
       setIncludeTransferTax(false);
+      clearReceiptFile();
       setOpen(true);
     }
-  }, [openOnMount, reset]);
+  }, [clearReceiptFile, openOnMount, reset]);
 
   React.useEffect(() => {
     if (!open) return;
 
     setIncludeLBTR(false);
     setIncludeTransferTax(false);
+    clearReceiptFile();
 
     if (isEditMode && initialData) {
       const date = extractDateOnlyKey(initialData.date) ?? "";
@@ -235,7 +356,7 @@ export function NewExpenseDialog({
       expenseTypeId: expenseTypes.length === 1 ? expenseTypes[0].id : "",
       bankAccountId: "",
     });
-  }, [initialData, isEditMode, open, reset, branches, expenseTypes]);
+  }, [clearReceiptFile, initialData, isEditMode, open, reset, branches, expenseTypes]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -250,18 +371,66 @@ export function NewExpenseDialog({
 
       <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
         <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            {isEditMode ? "Cambiar cuenta del gasto" : "Nuevo gasto"}
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            {isEditMode
-              ? "Actualiza la cuenta financiera asociada a este gasto sin modificar el resto de la operación."
-              : "Registra una salida de dinero con su sucursal, categoría, fecha y cuenta financiera asociada."}
-          </DialogDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
+                {isEditMode ? "Cambiar cuenta del gasto" : "Nuevo gasto"}
+              </DialogTitle>
+              <DialogDescription className="max-w-2xl leading-6">
+                {isEditMode
+                  ? "Actualiza la cuenta financiera asociada a este gasto sin modificar el resto de la operación."
+                  : "Registra una salida de dinero con su sucursal, categoría, fecha y cuenta financiera asociada."}
+              </DialogDescription>
+            </div>
+
+            {!isEditMode ? (
+              <div className="flex shrink-0 items-center gap-2">
+                <Input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleReceiptFileChange}
+                  disabled={isPending || isAnalyzingReceipt}
+                />
+                {receiptFile ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 shrink-0 rounded-2xl"
+                    onClick={clearReceiptFile}
+                    disabled={isPending || isAnalyzingReceipt}
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Quitar comprobante</span>
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto min-h-11 w-full justify-start gap-2 rounded-2xl px-3 text-left sm:w-auto"
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={isPending || isAnalyzingReceipt}
+                >
+                  {isAnalyzingReceipt ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  ) : (
+                    <ScanText className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="leading-tight">Crear gasto desde comprobante</span>
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </DialogHeader>
 
         <form onSubmit={onSubmit}>
           <div className="dashboard-dialog-body">
+            {!isEditMode && receiptFile ? (
+              <ReceiptPreview file={receiptFile} previewUrl={receiptPreviewUrl} />
+            ) : null}
+
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
@@ -460,5 +629,36 @@ export function NewExpenseDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ReceiptPreview({
+  file,
+  previewUrl,
+}: {
+  file: File;
+  previewUrl: string | null;
+}) {
+  return (
+    <div className="dashboard-form-card flex items-center gap-3">
+      <div className="flex h-20 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/70 bg-muted/30">
+        {previewUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={previewUrl}
+            alt="Vista previa del comprobante"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <UploadCloud className="h-6 w-6 text-muted-foreground" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">{file.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {(file.size / 1024 / 1024).toFixed(2)} MB
+        </p>
+      </div>
+    </div>
   );
 }
