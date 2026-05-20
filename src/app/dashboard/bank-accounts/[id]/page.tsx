@@ -13,7 +13,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpDown, Building2, MoreHorizontal, Printer, Search, Wallet } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -63,6 +63,7 @@ import { EditBankAccountDialog } from "@/app/dashboard/bank-accounts/components/
 import { TransferFundsDialog } from "@/app/dashboard/bank-accounts/components/transfer-funds-dialog";
 import { AdjustBalanceDialog } from "@/app/dashboard/bank-accounts/components/adjust-balance-dialog";
 import { TransactionDetailDialog } from "@/app/dashboard/bank-accounts/components/transaction-detail-dialog";
+import { BankStatementSyncDialog } from "@/app/dashboard/bank-accounts/components/bank-statement-sync-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -359,6 +360,7 @@ const getColumns = (
 export default function BankAccountDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const accountId = params.id;
   const { user } = useAuthStore();
   const allowedBranchIds = user?.type === "USER" ? user?.branch_ids : undefined;
@@ -397,6 +399,7 @@ export default function BankAccountDetailPage() {
     data: transactions,
     isLoading: isLoadingTransactions,
     error: transactionsError,
+    refetch,
   } = useBankTransactions(user?.id || "", accountId, { enabled: !!account });
 
   const branchNameById = React.useMemo(
@@ -527,13 +530,14 @@ export default function BankAccountDetailPage() {
     },
   });
 
-  const batchSelection = React.useMemo(() => {
-    const selectedRows = table.getSelectedRowModel().rows;
-    const count = selectedRows.length;
-    const sum = selectedRows.reduce((acc, r) => acc + r.original.amount, 0);
-    const description = selectedRows.map((r) => r.original.friendly_id).join(", ");
-    return { count, sum: Math.round(sum * 100) / 100, description };
-  }, [table, rowSelection]);
+  const selectedRows = table.getSelectedRowModel().rows;
+  const batchSelection = {
+    count: selectedRows.length,
+    sum: Math.round(
+      selectedRows.reduce((acc, r) => acc + r.original.amount, 0) * 100,
+    ) / 100,
+    description: selectedRows.map((r) => r.original.friendly_id).join(", "),
+  };
 
   const printableTransactions = React.useMemo(
     () => {
@@ -710,6 +714,16 @@ export default function BankAccountDetailPage() {
         <Button variant="outline" className="rounded-2xl" onClick={() => setAdjustOpen(true)}>
           Ajustar balance
         </Button>
+        {account.account_type === "bank" ? (
+          <BankStatementSyncDialog
+            account={account}
+            onSynced={() => {
+              void refetch();
+              void queryClient.invalidateQueries({ queryKey: ["bankAccount", accountId] });
+              void queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
+            }}
+          />
+        ) : null}
         <Button variant="outline" className="rounded-2xl" onClick={() => setPrintDialogOpen(true)}>
           <Printer className="mr-2 h-4 w-4" />
           Imprimir

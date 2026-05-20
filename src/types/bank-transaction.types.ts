@@ -20,6 +20,10 @@ export interface BankTransaction {
   linked_income_id: string | null;
   related_transfer_id: string | null;
   related_account_id: string | null;
+  statement_import_id: string | null;
+  statement_import_item_id: string | null;
+  source_fingerprint: string | null;
+  external_reference: string | null;
   created_at: string;
   created_by: string | null;
   linked_income_friendly_id?: string | null;

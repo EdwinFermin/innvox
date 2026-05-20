@@ -27,6 +27,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { deleteBankAccount, toggleBankAccountActive } from "@/actions/bank-accounts";
+import { BankStatementSyncDialog } from "@/app/dashboard/bank-accounts/components/bank-statement-sync-dialog";
 import { GenerateAccountsQrDialog } from "@/app/dashboard/bank-accounts/components/generate-accounts-qr-dialog";
 import { NewBankAccountDialog } from "@/app/dashboard/bank-accounts/components/new-bank-account-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -412,6 +413,13 @@ const getColumns = (
             <DropdownMenuItem asChild>
               <Link href={`/dashboard/bank-accounts/${row.original.id}`}>Ver detalle</Link>
             </DropdownMenuItem>
+            {row.original.account_type === "bank" ? (
+              <BankStatementSyncDialog account={row.original} onSynced={invalidate}>
+                <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                  Sincronizar estado
+                </DropdownMenuItem>
+              </BankStatementSyncDialog>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={async () => {
