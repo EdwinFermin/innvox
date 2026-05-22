@@ -62,6 +62,7 @@ import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { EditBankAccountDialog } from "@/app/dashboard/bank-accounts/components/edit-bank-account-dialog";
 import { TransferFundsDialog } from "@/app/dashboard/bank-accounts/components/transfer-funds-dialog";
 import { AdjustBalanceDialog } from "@/app/dashboard/bank-accounts/components/adjust-balance-dialog";
+import { WithdrawFundsDialog } from "@/app/dashboard/bank-accounts/components/withdraw-funds-dialog";
 import { TransactionDetailDialog } from "@/app/dashboard/bank-accounts/components/transaction-detail-dialog";
 import { BankStatementSyncDialog } from "@/app/dashboard/bank-accounts/components/bank-statement-sync-dialog";
 import {
@@ -428,6 +429,7 @@ export default function BankAccountDetailPage() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [transferOpen, setTransferOpen] = React.useState(false);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
+  const [withdrawOpen, setWithdrawOpen] = React.useState(false);
   const [printDialogOpen, setPrintDialogOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<BankTransaction | null>(null);
@@ -714,6 +716,9 @@ export default function BankAccountDetailPage() {
         <Button variant="outline" className="rounded-2xl" onClick={() => setAdjustOpen(true)}>
           Ajustar balance
         </Button>
+        <Button variant="outline" className="rounded-2xl" onClick={() => setWithdrawOpen(true)}>
+          Retirar
+        </Button>
         {account.account_type === "bank" ? (
           <BankStatementSyncDialog
             account={account}
@@ -802,6 +807,11 @@ export default function BankAccountDetailPage() {
         account={account}
         open={adjustOpen}
         onOpenChange={setAdjustOpen}
+      />
+      <WithdrawFundsDialog
+        account={account}
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
       />
       <TransactionDetailDialog
         transaction={detailTransaction}

@@ -43,6 +43,7 @@ import { useAuthStore } from "@/store/auth";
 import { useReceivables } from "@/hooks/use-receivables";
 import { Receivable } from "@/types/receivable.types";
 import { NewReceivableDialog } from "./components/new-receivable-dialog";
+import { ReceivablePaymentDialog } from "./components/receivable-payment-dialog";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { TablePageSize } from "@/components/ui/table-page-size";
@@ -60,6 +61,7 @@ const getColumnLabel = (id: string): string => {
     id: "ID",
     name: "Nombre",
     amount: "Monto",
+    outstanding: "Pendiente",
     due_date: "Vencimiento",
     status: "Estado",
     description: "Descripción",
@@ -90,7 +92,8 @@ const matchesSearch = (receivable: Receivable, search: string) => {
 const getColumns = (
   queryClient: QueryClient,
   userNameById: Record<string, string>,
-  canDelete: boolean
+  canDelete: boolean,
+  onPay: (receivable: Receivable) => void
 ): ColumnDef<Receivable>[] => [
   {
     accessorKey: "friendly_id",
@@ -128,6 +131,27 @@ const getColumns = (
     cell: ({ row }) => (
       <div className="text-right font-medium">
         {currencyFormatter.format(Number(row.original.amount || 0))}
+      </div>
+    ),
+  },
+  {
+    id: "outstanding",
+    accessorFn: (row) => Number(row.amount || 0) - Number(row.paid_amount || 0),
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="w-full justify-end px-0 hover:bg-transparent"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Pendiente
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <div className="text-right font-medium">
+        {currencyFormatter.format(
+          Number(row.original.amount || 0) - Number(row.original.paid_amount || 0),
+        )}
       </div>
     ),
   },
@@ -192,6 +216,14 @@ const getColumns = (
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <button
+            type="button"
+            disabled={(row.row.original.status ?? "").toLowerCase() === "pagado"}
+            onClick={() => onPay(row.row.original)}
+            className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Registrar cobro
+          </button>
           {canDelete && (
             <ConfirmDialog
               title="Eliminar cuenta por cobrar"
@@ -231,6 +263,7 @@ export default function ReceivablesPage() {
   const { data: receivables, isLoading } = useReceivables(user?.id || "");
   const { data: users } = useUsers();
   const queryClient = useQueryClient();
+  const [payTarget, setPayTarget] = React.useState<Receivable | null>(null);
 
   React.useEffect(() => {
     if (user?.type === "ADMIN") {
@@ -262,8 +295,12 @@ export default function ReceivablesPage() {
   }, [receivables, searchQuery, user?.id, visibilityScope]);
 
   const receivablesSummary = React.useMemo(() => {
-    const total = filteredReceivables.reduce((acc, receivable) => acc + Number(receivable.amount || 0), 0);
-    const pending = filteredReceivables.filter((receivable) => (receivable.status ?? "").toLowerCase() === "pendiente").length;
+    const total = filteredReceivables.reduce(
+      (acc, receivable) =>
+        acc + (Number(receivable.amount || 0) - Number(receivable.paid_amount || 0)),
+      0,
+    );
+    const pending = filteredReceivables.filter((receivable) => (receivable.status ?? "").toLowerCase() !== "pagado").length;
 
     return { total, pending };
   }, [filteredReceivables]);
@@ -274,6 +311,7 @@ export default function ReceivablesPage() {
         queryClient,
         userNameById,
         can(user?.type, PERMISSIONS.dataDelete),
+        setPayTarget,
       ),
     [queryClient, userNameById, user?.type]
   );
@@ -447,6 +485,14 @@ export default function ReceivablesPage() {
           </div>
         </div>
       </div>
+
+      <ReceivablePaymentDialog
+        receivable={payTarget}
+        open={!!payTarget}
+        onOpenChange={(open) => {
+          if (!open) setPayTarget(null);
+        }}
+      />
     </div>
   );
 }

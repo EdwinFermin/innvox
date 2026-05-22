@@ -616,11 +616,14 @@ export interface Database {
           id: string;
           friendly_id: string;
           branch_id: string | null;
+          client_id: string | null;
           name: string;
           amount: number;
+          paid_amount: number;
           due_date: string;
           description: string | null;
           status: string;
+          source_bank_transaction_id: string | null;
           created_at: string;
           created_by: string | null;
         };
@@ -628,11 +631,14 @@ export interface Database {
           id?: string;
           friendly_id?: string;
           branch_id?: string | null;
+          client_id?: string | null;
           name: string;
           amount: number;
+          paid_amount?: number;
           due_date: string;
           description?: string | null;
           status: string;
+          source_bank_transaction_id?: string | null;
           created_at?: string;
           created_by?: string | null;
         };
@@ -640,11 +646,47 @@ export interface Database {
           id?: string;
           friendly_id?: string;
           branch_id?: string | null;
+          client_id?: string | null;
           name?: string;
           amount?: number;
+          paid_amount?: number;
           due_date?: string;
           description?: string | null;
           status?: string;
+          source_bank_transaction_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
+      receivable_payments: {
+        Row: {
+          id: string;
+          receivable_id: string;
+          income_id: string;
+          bank_account_id: string;
+          amount: number;
+          date: string;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          receivable_id: string;
+          income_id: string;
+          bank_account_id: string;
+          amount: number;
+          date: string;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          receivable_id?: string;
+          income_id?: string;
+          bank_account_id?: string;
+          amount?: number;
+          date?: string;
           created_at?: string;
           created_by?: string | null;
         };
@@ -957,6 +999,30 @@ export interface Database {
           p_created_by: string;
         };
         Returns: undefined;
+      };
+      withdraw_funds: {
+        Args: {
+          p_bank_account_id: string;
+          p_amount: number;
+          p_description: string | null;
+          p_created_by: string;
+          p_create_receivable?: boolean;
+          p_receivable_client_id?: string | null;
+          p_receivable_branch_id?: string | null;
+          p_receivable_due_date?: string | null;
+        };
+        Returns: undefined;
+      };
+      pay_receivable: {
+        Args: {
+          p_receivable_id: string;
+          p_amount: number;
+          p_income_type_id: string;
+          p_bank_account_id: string;
+          p_date: string;
+          p_created_by: string;
+        };
+        Returns: string;
       };
       generate_ncf: {
         Args: Record<string, never>;

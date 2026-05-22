@@ -47,6 +47,16 @@ interface AdjustBalanceData {
   description?: string | null;
 }
 
+interface WithdrawFundsData {
+  bankAccountId: string;
+  amount: number;
+  description?: string | null;
+  createReceivable?: boolean;
+  receivableClientId?: string | null;
+  receivableBranchId?: string | null;
+  receivableDueDate?: string | null;
+}
+
 export async function createBankAccount(data: CreateBankAccountData) {
   const session = await requireAuth();
 
@@ -249,4 +259,29 @@ export async function adjustBalance(data: AdjustBalanceData) {
   }
 
   revalidatePath("/dashboard/bank-accounts");
+}
+
+export async function withdrawFunds(data: WithdrawFundsData) {
+  const session = await requireAuth();
+
+  const supabase = await getSupabaseServerClient();
+  const createdBy = await resolveSessionUserId(session, supabase);
+
+  const { error } = await supabase.rpc("withdraw_funds", {
+    p_bank_account_id: data.bankAccountId,
+    p_amount: data.amount,
+    p_description: data.description ?? null,
+    p_created_by: createdBy,
+    p_create_receivable: data.createReceivable ?? false,
+    p_receivable_client_id: data.receivableClientId ?? null,
+    p_receivable_branch_id: data.receivableBranchId ?? null,
+    p_receivable_due_date: data.receivableDueDate ?? null,
+  });
+
+  if (error) {
+    throw new Error(`Error al realizar el retiro: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/bank-accounts");
+  revalidatePath("/dashboard/receivables");
 }

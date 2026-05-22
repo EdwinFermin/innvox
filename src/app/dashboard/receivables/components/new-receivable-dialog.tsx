@@ -2,11 +2,13 @@ import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlusCircle } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { ClientsCombobox } from "@/app/dashboard/invoices/components/clients-combobox";
 import { createReceivable } from "@/actions/receivables";
+import { useClients } from "@/hooks/use-clients";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +34,7 @@ import { getDateInputValue, getTodayDateKey } from "@/utils/dates";
 
 const newReceivableSchema = z.object({
   branch_id: z.string().min(1, "La sucursal es obligatoria"),
-  name: z.string().min(1, "El nombre es obligatorio"),
+  client_id: z.string().min(1, "El cliente es obligatorio"),
   amount: z.coerce.number().positive("Monto inválido"),
   due_date: z.string().min(1, "La fecha de vencimiento es obligatoria"),
   status: z.string().min(1, "El estado es obligatorio"),
@@ -50,6 +52,7 @@ export function NewReceivableDialog() {
     user?.id || "",
     user?.type === "USER" ? user?.branch_ids : undefined,
   );
+  const { data: clients } = useClients(user?.id || "");
 
   const {
     register,
@@ -58,6 +61,7 @@ export function NewReceivableDialog() {
     reset,
     setValue,
     watch,
+    control,
   } = useForm<NewReceivableFormValues>({
     resolver: zodResolver(newReceivableSchema),
     mode: "onChange",
@@ -74,8 +78,11 @@ export function NewReceivableDialog() {
         throw new Error("No se encontró el usuario autenticado.");
       }
 
+      const clientName = clients.find((c) => c.id === data.client_id)?.name;
+
       await createReceivable({
         ...data,
+        name: clientName ?? "Cliente",
         amount: Number(data.amount),
         due_date: data.due_date,
       });
@@ -142,14 +149,21 @@ export function NewReceivableDialog() {
                 </div>
 
                 <div className="dashboard-field">
-                  <label className="dashboard-field-label">Nombre</label>
-                  <Input
-                    placeholder="Cliente o referencia…"
-                    className="h-11 rounded-2xl border-border/70 bg-background"
-                    {...register("name")}
-                    disabled={isPending}
+                  <label className="dashboard-field-label">Cliente</label>
+                  <Controller
+                    control={control}
+                    name="client_id"
+                    render={({ field }) => (
+                      <ClientsCombobox
+                        clients={clients || []}
+                        value={field.value || ""}
+                        onChange={(val) =>
+                          setValue("client_id", val, { shouldValidate: true })
+                        }
+                      />
+                    )}
                   />
-                  {errors.name && <p className="dashboard-field-error">{errors.name.message}</p>}
+                  {errors.client_id && <p className="dashboard-field-error">{errors.client_id.message}</p>}
                 </div>
 
                 <div className="dashboard-field">
