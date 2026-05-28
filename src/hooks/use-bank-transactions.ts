@@ -5,6 +5,24 @@ import { BankTransaction } from "@/types/bank-transaction.types";
 
 const EMPTY_TRANSACTIONS: BankTransaction[] = [];
 
+// PostgREST rejects very long URLs (Bad Request) when `id=in.(...)` lists
+// hundreds of UUIDs. Chunk lookups to keep each request under safe limits.
+const IN_LOOKUP_CHUNK = 100;
+
+async function fetchByIdsInChunks<T>(
+  ids: string[],
+  loader: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const results: T[] = [];
+  for (let i = 0; i < ids.length; i += IN_LOOKUP_CHUNK) {
+    const chunk = ids.slice(i, i + IN_LOOKUP_CHUNK);
+    const { data, error } = await loader(chunk);
+    if (error) throw error;
+    if (data) results.push(...data);
+  }
+  return results;
+}
+
 export function useBankTransactions(
   userId: string,
   bankAccountId: string,
@@ -77,45 +95,47 @@ export function useBankTransactions(
         ),
       );
 
-      const [incomeResult, expenseResult, relatedAccountsResult] = await Promise.all([
-        incomeIds.length > 0
-          ? supabase.from("incomes").select("id, friendly_id, branch_id").in("id", incomeIds)
-          : Promise.resolve({ data: [], error: null }),
-        expenseIds.length > 0
-          ? supabase.from("expenses").select("id, friendly_id, branch_id").in("id", expenseIds)
-          : Promise.resolve({ data: [], error: null }),
-        relatedAccountIds.length > 0
-          ? supabase
+      const [incomeRows, expenseRows, relatedAccountRows] = await Promise.all([
+        fetchByIdsInChunks<{ id: string; friendly_id: string; branch_id: string | null }>(
+          incomeIds,
+          (chunk) =>
+            supabase.from("incomes").select("id, friendly_id, branch_id").in("id", chunk),
+        ),
+        fetchByIdsInChunks<{ id: string; friendly_id: string; branch_id: string | null }>(
+          expenseIds,
+          (chunk) =>
+            supabase.from("expenses").select("id, friendly_id, branch_id").in("id", chunk),
+        ),
+        fetchByIdsInChunks<{ id: string; account_name: string; account_number: string | null }>(
+          relatedAccountIds,
+          (chunk) =>
+            supabase
               .from("bank_accounts")
               .select("id, account_name, account_number")
-              .in("id", relatedAccountIds)
-          : Promise.resolve({ data: [], error: null }),
+              .in("id", chunk),
+        ),
       ]);
 
-      if (incomeResult.error) throw incomeResult.error;
-      if (expenseResult.error) throw expenseResult.error;
-      if (relatedAccountsResult.error) throw relatedAccountsResult.error;
-
       const incomeFriendlyIdById = new Map(
-        (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+        incomeRows.map((item) => [item.id, item.friendly_id]),
       );
       const incomeBranchIdById = new Map(
-        (incomeResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
+        incomeRows.map((item) => [item.id, item.branch_id]),
       );
       const expenseFriendlyIdById = new Map(
-        (expenseResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+        expenseRows.map((item) => [item.id, item.friendly_id]),
       );
       const expenseBranchIdById = new Map(
-        (expenseResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
+        expenseRows.map((item) => [item.id, item.branch_id]),
       );
       const transactionFriendlyIdById = new Map(
         transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
       );
       const relatedAccountNameById = new Map(
-        (relatedAccountsResult.data ?? []).map((item) => [item.id, item.account_name]),
+        relatedAccountRows.map((item) => [item.id, item.account_name]),
       );
       const relatedAccountLast4ById = new Map(
-        (relatedAccountsResult.data ?? []).map((item) => [
+        relatedAccountRows.map((item) => [
           item.id,
           item.account_number ? String(item.account_number).replace(/\s+/g, "").slice(-4) : null,
         ]),
@@ -240,45 +260,47 @@ export function useBranchTransactions(
         ),
       );
 
-      const [incomeResult, expenseResult, relatedAccountsResult] = await Promise.all([
-        incomeIds.length > 0
-          ? supabase.from("incomes").select("id, friendly_id, branch_id").in("id", incomeIds)
-          : Promise.resolve({ data: [], error: null }),
-        expenseIds.length > 0
-          ? supabase.from("expenses").select("id, friendly_id, branch_id").in("id", expenseIds)
-          : Promise.resolve({ data: [], error: null }),
-        relatedAccountIds.length > 0
-          ? supabase
+      const [incomeRows, expenseRows, relatedAccountRows] = await Promise.all([
+        fetchByIdsInChunks<{ id: string; friendly_id: string; branch_id: string | null }>(
+          incomeIds,
+          (chunk) =>
+            supabase.from("incomes").select("id, friendly_id, branch_id").in("id", chunk),
+        ),
+        fetchByIdsInChunks<{ id: string; friendly_id: string; branch_id: string | null }>(
+          expenseIds,
+          (chunk) =>
+            supabase.from("expenses").select("id, friendly_id, branch_id").in("id", chunk),
+        ),
+        fetchByIdsInChunks<{ id: string; account_name: string; account_number: string | null }>(
+          relatedAccountIds,
+          (chunk) =>
+            supabase
               .from("bank_accounts")
               .select("id, account_name, account_number")
-              .in("id", relatedAccountIds)
-          : Promise.resolve({ data: [], error: null }),
+              .in("id", chunk),
+        ),
       ]);
 
-      if (incomeResult.error) throw incomeResult.error;
-      if (expenseResult.error) throw expenseResult.error;
-      if (relatedAccountsResult.error) throw relatedAccountsResult.error;
-
       const incomeFriendlyIdById = new Map(
-        (incomeResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+        incomeRows.map((item) => [item.id, item.friendly_id]),
       );
       const incomeBranchIdById = new Map(
-        (incomeResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
+        incomeRows.map((item) => [item.id, item.branch_id]),
       );
       const expenseFriendlyIdById = new Map(
-        (expenseResult.data ?? []).map((item) => [item.id, item.friendly_id]),
+        expenseRows.map((item) => [item.id, item.friendly_id]),
       );
       const expenseBranchIdById = new Map(
-        (expenseResult.data ?? []).map((item) => [item.id, item.branch_id as string | null]),
+        expenseRows.map((item) => [item.id, item.branch_id]),
       );
       const transactionFriendlyIdById = new Map(
         transactions.map((transaction) => [transaction.id, transaction.friendly_id]),
       );
       const relatedAccountNameById = new Map(
-        (relatedAccountsResult.data ?? []).map((item) => [item.id, item.account_name]),
+        relatedAccountRows.map((item) => [item.id, item.account_name]),
       );
       const relatedAccountLast4ById = new Map(
-        (relatedAccountsResult.data ?? []).map((item) => [
+        relatedAccountRows.map((item) => [
           item.id,
           item.account_number ? String(item.account_number).replace(/\s+/g, "").slice(-4) : null,
         ]),
