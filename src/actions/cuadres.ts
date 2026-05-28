@@ -5,9 +5,9 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/guards";
 import { resolveSessionUserId } from "@/lib/auth/session-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { dateOnlyToISOString } from "@/utils/dates";
 import type {
   CuadreApplyResult,
+  CuadreDateInput,
   CuadreFetchResult,
   CuadrePaymentKind,
   CuadrePreparedTransaction,
@@ -31,16 +31,35 @@ function toIsoFromEnviosRDFecha(value: string): string {
   return new Date(`${trimmed}-04:00`).toISOString();
 }
 
+function validateDateInput(input: CuadreDateInput): void {
+  if (input.mode === "single") {
+    if (!input.date) throw new Error("Selecciona una fecha.");
+    return;
+  }
+  if (!input.startDate || !input.endDate) {
+    throw new Error("Selecciona la fecha inicio y la fecha fin.");
+  }
+  if (input.startDate > input.endDate) {
+    throw new Error("La fecha inicio debe ser menor o igual a la fecha fin.");
+  }
+}
+
+function buildCuadrePath(input: CuadreDateInput): string {
+  return input.mode === "range"
+    ? `${encodeURIComponent(input.startDate)}/${encodeURIComponent(input.endDate)}`
+    : encodeURIComponent(input.date);
+}
+
 async function fetchEnviosRDCuadreRaw(
   enviosrdBranchKey: string,
-  date: string,
+  input: CuadreDateInput,
 ): Promise<EnviosRDCuadreResponse> {
   const baseUrl = process.env.ENVIOSRD_API_URL;
   if (!baseUrl) {
     throw new Error("ENVIOSRD_API_URL no está configurada en el servidor.");
   }
 
-  const url = `${baseUrl}/api/cuadre/${encodeURIComponent(date)}?branch=${encodeURIComponent(enviosrdBranchKey)}`;
+  const url = `${baseUrl}/api/cuadre/${buildCuadrePath(input)}?branch=${encodeURIComponent(enviosrdBranchKey)}`;
   const response = await fetch(url, { cache: "no-store" });
 
   if (response.status === 401) {
@@ -63,9 +82,10 @@ async function fetchEnviosRDCuadreRaw(
 
 export async function fetchCuadre(
   branchId: string,
-  date: string,
+  input: CuadreDateInput,
 ): Promise<CuadreFetchResult> {
   await requireAuth();
+  validateDateInput(input);
 
   const supabase = await getSupabaseServerClient();
 
@@ -85,7 +105,7 @@ export async function fetchCuadre(
     throw new Error("Esta sucursal no tiene una cuenta de caja por defecto configurada.");
   }
 
-  const cuadre = await fetchEnviosRDCuadreRaw(branch.enviosrd_branch_key, date);
+  const cuadre = await fetchEnviosRDCuadreRaw(branch.enviosrd_branch_key, input);
 
   const externalRefs = cuadre.transacciones.map((t) => t.no_factura);
   let alreadySyncedRefs = new Set<string>();
@@ -103,30 +123,34 @@ export async function fetchCuadre(
     );
   }
 
-  const prepared: CuadrePreparedTransaction[] = cuadre.transacciones.map((t) => ({
-    external_ref: t.no_factura,
-    receipt: t.recibo,
-    customer: t.cliente_nombre,
-    amount: t.total,
-    date: toIsoFromEnviosRDFecha(t.fecha),
-    forma_pago_raw: t.forma_pago,
-    kind: classifyPaymentMethod(t.forma_pago),
-    alreadySynced: alreadySyncedRefs.has(t.no_factura),
-  }));
+  const prepared: CuadrePreparedTransaction[] = cuadre.transacciones
+    .map((t) => ({
+      external_ref: t.no_factura,
+      receipt: t.recibo,
+      customer: t.cliente_nombre,
+      amount: t.total,
+      date: toIsoFromEnviosRDFecha(t.fecha),
+      forma_pago_raw: t.forma_pago,
+      kind: classifyPaymentMethod(t.forma_pago),
+      alreadySynced: alreadySyncedRefs.has(t.no_factura),
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     prepared,
     totalGeneral: cuadre.total_general,
     resumenPago: cuadre.resumen_pago,
+    rangeLabel: input.mode === "range" ? cuadre.fecha : undefined,
   };
 }
 
 export async function applyCuadreSync(input: {
   branchId: string;
-  date: string;
+  dateInput: CuadreDateInput;
   assignments: CuadreSyncAssignment[];
 }): Promise<CuadreApplyResult> {
   const session = await requireAuth();
+  validateDateInput(input.dateInput);
 
   const supabase = await getSupabaseServerClient();
   const syncedBy = await resolveSessionUserId(session, supabase);
@@ -161,7 +185,7 @@ export async function applyCuadreSync(input: {
     throw new Error("Faltan los tipos de ingreso 'Efectivo' o 'Transferencia'. Aplica la migración 014.");
   }
 
-  const cuadre = await fetchEnviosRDCuadreRaw(branch.enviosrd_branch_key, input.date);
+  const cuadre = await fetchEnviosRDCuadreRaw(branch.enviosrd_branch_key, input.dateInput);
 
   const assignmentByRef = new Map(input.assignments.map((a) => [a.external_ref, a.bank_account_id]));
 
@@ -180,7 +204,7 @@ export async function applyCuadreSync(input: {
       return {
         external_ref: t.no_factura,
         amount: t.total,
-        date: dateOnlyToISOString(input.date),
+        date: toIsoFromEnviosRDFecha(t.fecha),
         description: `Recibo ${t.recibo} — ${t.cliente_nombre}`,
         income_type_id: kind === "efectivo" ? cashTypeId : transferTypeId,
         bank_account_id: bankAccountId,
@@ -192,9 +216,15 @@ export async function applyCuadreSync(input: {
     throw new Error("No hay transacciones válidas para sincronizar.");
   }
 
+  // p_cuadre_date is preserved for signature stability but the RPC now derives
+  // the per-day cuadre_syncs rows from each transaction's date (migration 019).
+  // We still pass a representative value (start of range or the single date).
+  const representativeDate =
+    input.dateInput.mode === "single" ? input.dateInput.date : input.dateInput.startDate;
+
   const { data, error } = await supabase.rpc("apply_cuadre_sync", {
     p_branch_id: input.branchId,
-    p_cuadre_date: input.date,
+    p_cuadre_date: representativeDate,
     p_enviosrd_branch_key: branch.enviosrd_branch_key,
     p_transactions: payload,
     p_synced_by: syncedBy,

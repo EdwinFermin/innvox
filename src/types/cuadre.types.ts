@@ -53,7 +53,12 @@ export interface CuadreFetchResult {
   prepared: CuadrePreparedTransaction[];
   totalGeneral: number;
   resumenPago: EnviosRDResumenPago[];
+  rangeLabel?: string;
 }
+
+export type CuadreDateInput =
+  | { mode: "single"; date: string }
+  | { mode: "range"; startDate: string; endDate: string };
 
 export interface CuadreSync {
   id: string;
