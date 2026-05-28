@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { es } from "date-fns/locale";
 
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ import { useBranchBankAccounts } from "@/hooks/use-bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import type { Branch } from "@/types/branch.types";
 import type { CuadreFetchResult, CuadrePreparedTransaction } from "@/types/cuadre.types";
+import { formatDateOnly } from "@/utils/dates";
 
 const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
@@ -34,6 +36,7 @@ interface CuadreTransactionsTableProps {
   cuadre: CuadreFetchResult;
   branch: Branch;
   assignments: Record<string, string>;
+  showDateColumn?: boolean;
   onAssignmentChange: (externalRef: string, accountId: string) => void;
   onSubmit: () => void;
   submitting: boolean;
@@ -49,6 +52,7 @@ export function CuadreTransactionsTable({
   cuadre,
   branch,
   assignments,
+  showDateColumn = false,
   onAssignmentChange,
   onSubmit,
   submitting,
@@ -71,10 +75,17 @@ export function CuadreTransactionsTable({
     (t) => !t.alreadySynced && t.kind !== "otro",
   );
 
+  const columnCount = 6 + (showDateColumn ? 1 : 0);
+
   return (
     <div className="dashboard-panel flex flex-col gap-4 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">Transacciones del cuadre</h2>
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-lg font-semibold">Transacciones del cuadre</h2>
+          {cuadre.rangeLabel && (
+            <p className="text-xs text-muted-foreground">{cuadre.rangeLabel}</p>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           Total general:{" "}
           <span className="font-medium">{currencyFormatter.format(cuadre.totalGeneral)}</span>
@@ -85,6 +96,7 @@ export function CuadreTransactionsTable({
         <Table>
           <TableHeader>
             <TableRow>
+              {showDateColumn && <TableHead>Fecha</TableHead>}
               <TableHead>Recibo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead className="text-right">Monto</TableHead>
@@ -96,13 +108,18 @@ export function CuadreTransactionsTable({
           <TableBody>
             {cuadre.prepared.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
+                <TableCell colSpan={columnCount} className="h-20 text-center text-muted-foreground">
                   Sin transacciones para esta fecha.
                 </TableCell>
               </TableRow>
             ) : (
               cuadre.prepared.map((tx) => (
                 <TableRow key={tx.external_ref}>
+                  {showDateColumn && (
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {formatDateOnly(tx.date, "dd MMM yyyy", es) ?? "—"}
+                    </TableCell>
+                  )}
                   <TableCell className="font-mono text-xs">{tx.receipt}</TableCell>
                   <TableCell>{tx.customer}</TableCell>
                   <TableCell className="text-right font-medium">
