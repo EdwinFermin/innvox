@@ -8,7 +8,3 @@ export function buildRegistrationLink(origin?: string) {
 export function buildRegistrationQrUrl(origin?: string) {
   return buildQrCodeUrl(buildRegistrationLink(origin));
 }
-
-export function buildClientQrUrl(clientId: string) {
-  return buildQrCodeUrl(clientId);
-}

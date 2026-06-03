@@ -17,19 +17,3 @@ export function generateInvoiceNumber() {
     Math.random() * 9000 + 1000
   )}`;
 }
-
-/**
- * Increments the given NCF string to the next sequential value.
- * @param ncf The current NCF string.
- * @returns The next sequential NCF string.
- */
-export function incrementNCF(ncf: string): string {
-  const prefix = ncf.slice(0, 3);
-  const numberPart = ncf.slice(3);
-
-  const next = (parseInt(numberPart) + 1)
-    .toString()
-    .padStart(numberPart.length, "0");
-
-  return prefix + next;
-}

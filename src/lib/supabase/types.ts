@@ -1028,10 +1028,6 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
-      generate_cf: {
-        Args: Record<string, never>;
-        Returns: string;
-      };
       delete_financial_movement: {
         Args: {
           p_kind: string;

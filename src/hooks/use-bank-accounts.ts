@@ -80,33 +80,6 @@ export function useBankAccounts(
 }
 
 /**
- * Get the petty cash account for a specific branch
- */
-export function useBranchPettyCash(userId: string, branchId: string) {
-  const queryResult = useQuery({
-    queryKey: ["bankAccounts", "pettyCash", userId, branchId],
-    queryFn: async (): Promise<BankAccount | null> => {
-      const accounts = await fetchAccountsWithBranches();
-
-      const account = accounts.find(
-        (item) =>
-          item.account_type === "petty_cash" &&
-          item.is_active &&
-          accountSupportsBranch(item, branchId),
-      );
-
-      return account ?? null;
-    },
-    enabled: !!userId && !!branchId,
-  });
-
-  return {
-    ...queryResult,
-    data: queryResult.data ?? null,
-  };
-}
-
-/**
  * Get bank accounts (excluding petty cash) for a specific branch
  */
 export function useBranchBankAccounts(userId: string, branchId: string) {

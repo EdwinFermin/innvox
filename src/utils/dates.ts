@@ -55,13 +55,6 @@ export function parseDate(value: string | Date | null | undefined): Date | null 
 }
 
 /**
- * Convert a Date to an ISO string suitable for Supabase TIMESTAMPTZ columns.
- */
-export function formatDateForDB(date: Date): string {
-  return date.toISOString();
-}
-
-/**
  * Get the time in milliseconds from any supported date representation.
  * Returns 0 for invalid/missing values.
  */
