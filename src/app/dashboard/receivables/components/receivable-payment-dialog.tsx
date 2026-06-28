@@ -10,14 +10,8 @@ import { z } from "zod";
 import { payReceivable } from "@/actions/receivables";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -150,32 +144,37 @@ export function ReceivablePaymentDialog({
     }).format(value);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Registrar cobro
-          </DialogTitle>
-          <DialogDescription>
-            {receivable ? (
-              <>
-                {receivable.name}
-                {" · "}
-                Total: {formatCurrency(receivable.amount)}
-                {" · "}
-                Abonado: {formatCurrency(receivable.paid_amount)}
-                {" · "}
-                Pendiente:{" "}
-                <span className="font-medium">{formatCurrency(outstanding)}</span>
-              </>
-            ) : null}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form
-          onSubmit={handleSubmit((values) => mutate(values as Values))}
-          className="space-y-4"
-        >
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Registrar cobro"
+      description={
+        receivable
+          ? `${receivable.name} · Total: ${formatCurrency(receivable.amount)} · Abonado: ${formatCurrency(receivable.paid_amount)} · Pendiente: ${formatCurrency(outstanding)}`
+          : undefined
+      }
+      contentClassName="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto"
+      onSubmit={handleSubmit((values) => mutate(values as Values))}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Registrar cobro"
+      submittingLabel="Procesando..."
+      footer={
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isPending}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={!isValid || isPending}>
+            {isPending ? "Procesando..." : "Registrar cobro"}
+          </Button>
+        </DialogFooter>
+      }
+    >
           <div className="space-y-2">
             <label className="text-sm font-medium">Monto del cobro</label>
             <Input
@@ -255,22 +254,6 @@ export function ReceivablePaymentDialog({
               <p className="text-xs text-red-500">{errors.date.message}</p>
             ) : null}
           </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Procesando..." : "Registrar cobro"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

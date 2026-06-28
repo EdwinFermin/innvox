@@ -10,15 +10,7 @@ import z from "zod";
 
 import { createInvoice } from "@/actions/invoices";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useClients } from "@/hooks/use-clients";
@@ -181,7 +173,7 @@ export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceD
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog
+    <FormDialog
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -190,8 +182,10 @@ export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceD
           setOpen(true);
         }
       }}
-    >
-      <DialogTrigger asChild>
+      title={isEditMode ? "Editar factura" : "Nueva factura"}
+      description="Crea una factura fiscal con cliente, monto y desglose de impuestos calculado automáticamente según la configuración actual."
+      contentClassName="max-h-[90vh] max-w-3xl overflow-y-auto"
+      trigger={
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
@@ -203,20 +197,13 @@ export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceD
           <PlusCircle className="mr-1" />
           Nueva factura
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-3xl overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            {isEditMode ? "Editar factura" : "Nueva factura"}
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Crea una factura fiscal con cliente, monto y desglose de impuestos calculado automáticamente según la configuración actual.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel={isEditMode ? "Guardar cambios" : "Imprimir y guardar"}
+      submittingLabel={isEditMode ? "Actualizando…" : "Guardando…"}
+    >
             <div className="grid gap-4">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
@@ -320,24 +307,6 @@ export function NewInvoiceDialog({ onSuccess, invoice, onEditDone }: NewInvoiceD
                 </div>
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={handleClose} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending
-                ? isEditMode
-                  ? "Actualizando…"
-                  : "Guardando…"
-                : isEditMode
-                  ? "Guardar cambios"
-                  : "Imprimir y guardar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

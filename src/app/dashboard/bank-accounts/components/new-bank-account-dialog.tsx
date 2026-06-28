@@ -11,16 +11,7 @@ import { z } from "zod";
 import { createBankAccount } from "@/actions/bank-accounts";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -169,8 +160,13 @@ export function NewBankAccountDialog() {
   const onSubmit = handleSubmit((values) => mutate(values as NewBankAccountValues));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nueva cuenta"
+      description="Configura una cuenta bancaria o caja, define cobertura por sucursal y deja lista su disponibilidad operativa."
+      contentClassName="max-h-[90vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto"
+      trigger={
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
@@ -183,20 +179,13 @@ export function NewBankAccountDialog() {
           <PlusCircle className="mr-1" />
           Nueva cuenta
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Nueva cuenta
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Configura una cuenta bancaria o caja, define cobertura por sucursal y deja lista su disponibilidad operativa.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Crear cuenta"
+      submittingLabel="Creando…"
+    >
             <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
               <div className="dashboard-field">
                 <label className="dashboard-field-label">Tipo de cuenta</label>
@@ -464,20 +453,6 @@ export function NewBankAccountDialog() {
                 </div>
               </label>
             )}
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" className="rounded-2xl">
-                Cancelar
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Creando…" : "Crear cuenta"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

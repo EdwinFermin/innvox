@@ -8,17 +8,8 @@ import { z } from "zod";
 
 import { updateUser } from "@/actions/users";
 import { User } from "@/types/auth.types";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -103,8 +94,13 @@ export function EditUserDialog({ user }: { user: User }) {
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Editar usuario"
+      description="Ajusta nombre, rol y sucursales disponibles sin cambiar el correo de acceso."
+      contentClassName="max-h-[90vh] max-w-2xl overflow-y-auto"
+      trigger={
         <button
           type="button"
           className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent"
@@ -112,18 +108,12 @@ export function EditUserDialog({ user }: { user: User }) {
           <Pencil className="size-4" />
           Editar
         </button>
-      </DialogTrigger>
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Editar usuario
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Ajusta nombre, rol y sucursales disponibles sin cambiar el correo de acceso.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar cambios"
+    >
             <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
               <div className="dashboard-field">
                 <label htmlFor="edit-user-name" className="dashboard-field-label">
@@ -193,24 +183,6 @@ export function EditUserDialog({ user }: { user: User }) {
                 <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
               )}
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : "Guardar cambios"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

@@ -8,15 +8,7 @@ import { z } from "zod";
 
 import { createBranch } from "@/actions/branches";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 
 const newBranchSchema = z.object({
@@ -58,8 +50,13 @@ export function NewBranchDialog() {
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nueva sucursal"
+      description="Define una nueva sede operativa con nombre y código para organizar ventas, usuarios y movimientos."
+      contentClassName="max-h-[90vh] max-w-lg overflow-y-auto"
+      trigger={
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
@@ -71,20 +68,13 @@ export function NewBranchDialog() {
           <PlusCircle className="mr-1" />
           Nueva sucursal
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Nueva sucursal
-          </DialogTitle>
-          <DialogDescription className="max-w-md leading-6">
-            Define una nueva sede operativa con nombre y código para organizar ventas, usuarios y movimientos.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Crear sucursal"
+      submittingLabel="Creando…"
+    >
             <div className="dashboard-form-card grid gap-4">
               <div className="dashboard-field">
                 <label htmlFor="branch-name" className="dashboard-field-label">
@@ -114,29 +104,6 @@ export function NewBranchDialog() {
                 {errors.code && <p className="dashboard-field-error">{errors.code.message}</p>}
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="default"
-              className="rounded-2xl"
-              disabled={!isValid || isPending}
-            >
-              {isPending ? "Creando…" : "Crear sucursal"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

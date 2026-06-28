@@ -4,6 +4,8 @@ import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 import { DashboardChartSkeleton } from "@/components/dashboard/dashboard-loading";
+import { ErrorState } from "@/components/ui/error-state";
+import { mapError } from "@/lib/error-messages";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useIncomes } from "@/hooks/use-incomes";
@@ -65,9 +67,27 @@ export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
   const user = useAuthStore((state) => state.user);
   const userId = user?.id ?? "";
-  const { data: invoices, isLoading: invoicesLoading } = useInvoices(userId);
-  const { data: incomes, isLoading: incomesLoading } = useIncomes(userId);
-  const { data: expenses, isLoading: expensesLoading } = useExpenses(userId);
+  const {
+    data: invoices,
+    isLoading: invoicesLoading,
+    isError: invoicesError,
+    error: invoicesErrorValue,
+    refetch: refetchInvoices,
+  } = useInvoices(userId);
+  const {
+    data: incomes,
+    isLoading: incomesLoading,
+    isError: incomesError,
+    error: incomesErrorValue,
+    refetch: refetchIncomes,
+  } = useIncomes(userId);
+  const {
+    data: expenses,
+    isLoading: expensesLoading,
+    isError: expensesError,
+    error: expensesErrorValue,
+    refetch: refetchExpenses,
+  } = useExpenses(userId);
   const [timeRange, setTimeRange] = React.useState("90d");
 
   React.useEffect(() => {
@@ -186,6 +206,31 @@ export function ChartAreaInteractive() {
       strongestDay,
     };
   }, [filteredData]);
+
+  const isError = invoicesError || incomesError || expensesError;
+  // First truthy error in the spec's listed hook order.
+  const firstError = invoicesErrorValue ?? incomesErrorValue ?? expensesErrorValue;
+  const retryAll = () => {
+    refetchInvoices();
+    refetchIncomes();
+    refetchExpenses();
+  };
+
+  // Error wins over loading: React Query marks isError only after all retries,
+  // so by then the loading flags are already false (R13/R14).
+  if (isError) {
+    return (
+      <Card className="@container/card overflow-hidden rounded-[1.9rem] border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.75),rgba(255,255,255,0.94))] shadow-[0_20px_52px_-34px_rgba(15,23,42,0.26)] dark:bg-none dark:bg-card dark:shadow-[0_20px_52px_-34px_rgba(0,0,0,0.5)]">
+        <CardContent className="px-2 py-6 sm:px-6">
+          <ErrorState
+            title="Algo salió mal"
+            description={mapError(firstError)}
+            onRetry={retryAll}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!userId || invoicesLoading || incomesLoading || expensesLoading) {
     return <DashboardChartSkeleton />;

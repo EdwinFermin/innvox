@@ -1,0 +1,103 @@
+{
+  "$schema": "https://unpkg.com/reins/schema/reins.config.schema.json",
+  "harnessVersion": "0.9.0",
+  "preset": "sdd",
+  "runtime": "claude",
+  "stack": {
+    "language": "node",
+    "packageManager": "npm",
+    "frameworks": [
+      "next",
+      "react"
+    ]
+  },
+  "commands": {
+    "test": null,
+    "build": "npm run build",
+    "lint": "npm run lint",
+    "e2e": null,
+    "typecheck": "npm run typecheck"
+  },
+  "verify": {
+    "required": [
+      "lint",
+      "unit",
+      "security",
+      "design",
+      "feature-list",
+      "traceability"
+    ],
+    "perHook": {
+      "PostToolUse": [
+        "lint",
+        "unit"
+      ],
+      "PreCommit": [
+        "lint",
+        "security",
+        "design"
+      ],
+      "Stop": [
+        "lint",
+        "unit",
+        "security",
+        "design",
+        "feature-list",
+        "traceability"
+      ],
+      "CI": [
+        "lint",
+        "unit",
+        "security",
+        "design",
+        "feature-list",
+        "traceability"
+      ]
+    }
+  },
+  "security": {
+    "depsAudit": {
+      "enabled": true,
+      "tool": "auto",
+      "failOn": "high"
+    },
+    "secretScan": {
+      "enabled": true,
+      "tool": "auto",
+      "failOnAny": true
+    }
+  },
+  "design": {
+    "slopScan": {
+      "enabled": true,
+      "failOn": "block"
+    }
+  },
+  "thresholds": {
+    "maxSubagentsPerSession": 12,
+    "maxSessionCostUsd": 5
+  },
+  "telemetry": {
+    "enabled": true
+  },
+  "agents": {
+    "leader": {
+      "model": "inherit"
+    },
+    "implementer": {
+      "model": "inherit"
+    },
+    "reviewer": {
+      "model": "sonnet"
+    },
+    "security-reviewer": {
+      "model": "inherit"
+    },
+    "design-reviewer": {
+      "model": "sonnet"
+    },
+    "spec_author": {
+      "model": "sonnet"
+    }
+  }
+}

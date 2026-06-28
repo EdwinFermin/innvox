@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -136,23 +137,23 @@ export default function SettingsPage() {
 
   if (!canManageSettings) {
     return (
-      <div className="w-full">
-        <h3 className="text-2xl font-semibold">Configuraciones Generales</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          No tienes permisos para acceder a esta seccion.
-        </p>
+      <div className="dashboard-grid w-full">
+        <DashboardPageHeader
+          eyebrow="Ajustes"
+          title="Configuraciones Generales"
+          description="No tienes permisos para acceder a esta sección."
+        />
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 py-10">
-      <div className="mx-auto w-full max-w-3xl">
-        <h3 className="text-2xl font-semibold">Configuraciones Generales</h3>
-        <span className="text-muted-foreground text-sm">
-          Gestiona toda la configuracion de tu cuenta y preferencias del sistema
-        </span>
-      </div>
+      <DashboardPageHeader
+        eyebrow="Ajustes"
+        title="Configuraciones Generales"
+        description="Gestiona toda la configuración de tu cuenta y preferencias del sistema."
+      />
 
       <div className="mx-auto h-full w-full max-w-3xl">
         <Separator className="my-4" />

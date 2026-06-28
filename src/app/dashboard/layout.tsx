@@ -1,6 +1,10 @@
 import { AppSidebar } from "@/components/ui/app-sidebar";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 import {
+  CommandPalette,
+  CommandPaletteTrigger,
+} from "@/components/dashboard/command-palette";
+import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -23,10 +27,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       </a>
       <AppSidebar />
       <SidebarInset className="dashboard-shell overflow-x-hidden bg-background">
+        <CommandPalette />
         <header className="bg-background px-3 pt-3 sm:px-4 lg:px-5">
           <div className="dashboard-panel flex min-h-14 items-center gap-3 px-4 py-3 sm:px-5">
             <SidebarTrigger className="size-9 rounded-full border border-border/70 bg-background/80" />
             <Separator orientation="vertical" className="mr-1 hidden h-5 sm:block" />
+            <CommandPaletteTrigger />
             <div className="min-w-0 flex-1">
               <DynamicBreadcrumb />
             </div>

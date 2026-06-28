@@ -1,12 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { DialogTitle } from "@radix-ui/react-dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
@@ -54,22 +48,23 @@ export function NewIncomeTypeDialog() {
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nuevo tipo de ingreso"
+      description="Crea una categoría para clasificar tus ingresos."
+      contentClassName="max-w-sm"
+      trigger={
         <Button variant="default" className="w-full" onClick={() => reset()}>
           <PlusCircle className="mr-1" />
           Nuevo tipo de ingreso
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">
-            Nuevo tipo de ingreso
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar"
+    >
           <div className="grid gap-6">
             <div className="grid gap-2">
               <label htmlFor="name" className="text-sm font-medium text-start">
@@ -87,14 +82,6 @@ export function NewIncomeTypeDialog() {
               )}
             </div>
           </div>
-
-          <div className="mt-6 flex justify-end gap-2">
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

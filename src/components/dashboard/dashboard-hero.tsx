@@ -2,18 +2,19 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRightLeft, Landmark, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRightLeft, FileText, Landmark, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ErrorState } from "@/components/ui/error-state";
+import { mapError } from "@/lib/error-messages";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useIncomes } from "@/hooks/use-incomes";
-import { usePayables } from "@/hooks/use-payables";
-import { useReceivables } from "@/hooks/use-receivables";
+import { useInvoices } from "@/hooks/use-invoices";
 import { useAuthStore } from "@/store/auth";
-import { getDateOnlyMonthKey, getTodayDateKey } from "@/utils/dates";
+import { getDateOnlyMonthKey, getTimestampMonthKey, getTodayDateKey } from "@/utils/dates";
 
 const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
@@ -21,23 +22,76 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
   maximumFractionDigits: 2,
 });
 
-function isPendingStatus(status: string | null | undefined) {
-  return (status ?? "").toLowerCase() === "pendiente";
+// Discriminated trend result driving the hero trend badges.
+// previous > 0 → signed % to 1 decimal; previous === 0 && actual > 0 → "Nuevo";
+// both 0 → no badge.
+type TrendResult =
+  | { kind: "percent"; value: number }
+  | { kind: "new" }
+  | { kind: "none" };
+
+function computeTrend(actual: number, previous: number): TrendResult {
+  if (previous > 0) {
+    return {
+      kind: "percent",
+      value: Number((((actual - previous) / previous) * 100).toFixed(1)),
+    };
+  }
+  if (actual > 0) {
+    return { kind: "new" };
+  }
+  return { kind: "none" };
+}
+
+function TrendBadge({ trend }: { trend: TrendResult }) {
+  if (trend.kind === "none") {
+    return null;
+  }
+
+  return (
+    <Badge className="border-white/15 bg-white/12 text-white">
+      {trend.kind === "new" ? "Nuevo" : `${trend.value > 0 ? "+" : ""}${trend.value}%`}
+    </Badge>
+  );
 }
 
 export function DashboardHero() {
   const { user } = useAuthStore();
   const userId = user?.id ?? "";
   const allowedBranchIds = user?.type === "USER" ? user.branch_ids : undefined;
-  const { data: bankAccounts, isLoading: bankAccountsLoading } = useBankAccounts(userId, {
-    allowedBranchIds,
-  });
-  const { data: incomes, isLoading: incomesLoading } = useIncomes(userId);
-  const { data: expenses, isLoading: expensesLoading } = useExpenses(userId);
-  const { data: receivables, isLoading: receivablesLoading } = useReceivables(userId);
-  const { data: payables, isLoading: payablesLoading } = usePayables(userId);
+  const {
+    data: bankAccounts,
+    isLoading: bankAccountsLoading,
+    isError: bankAccountsError,
+    error: bankAccountsErrorValue,
+    refetch: refetchBankAccounts,
+  } = useBankAccounts(userId, { allowedBranchIds });
+  const {
+    data: incomes,
+    isLoading: incomesLoading,
+    isError: incomesError,
+    error: incomesErrorValue,
+    refetch: refetchIncomes,
+  } = useIncomes(userId);
+  const {
+    data: expenses,
+    isLoading: expensesLoading,
+    isError: expensesError,
+    error: expensesErrorValue,
+    refetch: refetchExpenses,
+  } = useExpenses(userId);
+  const {
+    data: invoices,
+    isLoading: invoicesLoading,
+    isError: invoicesError,
+    error: invoicesErrorValue,
+    refetch: refetchInvoices,
+  } = useInvoices(userId);
 
   const currentMonthKey = getTodayDateKey().slice(0, 7);
+  const [currentYear, currentMonth] = currentMonthKey.split("-").map(Number);
+  const previousMonthDate = new Date(currentYear, currentMonth - 2, 1);
+  const previousMonthKey = `${previousMonthDate.getFullYear()}-${`${previousMonthDate.getMonth() + 1}`.padStart(2, "0")}`;
 
   const totals = React.useMemo(() => {
     const balance = bankAccounts.reduce((acc, account) => acc + Number(account.current_balance || 0), 0);
@@ -51,30 +105,79 @@ export function DashboardHero() {
         ? acc + Number(expense.amount || 0)
         : acc;
     }, 0);
-    const receivablePending = receivables
-      .filter((item) => isPendingStatus(item.status))
-      .reduce((acc, item) => acc + Number(item.amount || 0), 0);
-    const payablePending = payables
-      .filter((item) => isPendingStatus(item.status))
-      .reduce((acc, item) => acc + Number(item.amount || 0), 0);
+    const prevIncome = incomes.reduce((acc, income) => {
+      return getDateOnlyMonthKey(income.date) === previousMonthKey
+        ? acc + Number(income.amount || 0)
+        : acc;
+    }, 0);
+    const prevExpense = expenses.reduce((acc, expense) => {
+      return getDateOnlyMonthKey(expense.date) === previousMonthKey
+        ? acc + Number(expense.amount || 0)
+        : acc;
+    }, 0);
+    const facturacionMes = invoices.reduce((acc, invoice) => {
+      return getTimestampMonthKey(invoice.created_at) === currentMonthKey
+        ? acc + Number(invoice.amount || 0)
+        : acc;
+    }, 0);
+    const facturacionPrev = invoices.reduce((acc, invoice) => {
+      return getTimestampMonthKey(invoice.created_at) === previousMonthKey
+        ? acc + Number(invoice.amount || 0)
+        : acc;
+    }, 0);
 
     return {
       balance,
       monthIncome,
       monthExpense,
       netFlow: monthIncome - monthExpense,
-      receivablePending,
-      payablePending,
+      facturacionMes,
+      facturacionPrev,
+      prevNetFlow: prevIncome - prevExpense,
     };
-  }, [bankAccounts, currentMonthKey, expenses, incomes, payables, receivables]);
+  }, [bankAccounts, currentMonthKey, previousMonthKey, expenses, incomes, invoices]);
+
+  const isError =
+    bankAccountsError ||
+    incomesError ||
+    expensesError ||
+    invoicesError;
+  // First truthy error in the spec's listed hook order.
+  const firstError =
+    bankAccountsErrorValue ??
+    incomesErrorValue ??
+    expensesErrorValue ??
+    invoicesErrorValue;
+  const retryAll = () => {
+    refetchBankAccounts();
+    refetchIncomes();
+    refetchExpenses();
+    refetchInvoices();
+  };
 
   const isLoading =
     !userId ||
     bankAccountsLoading ||
     incomesLoading ||
     expensesLoading ||
-    receivablesLoading ||
-    payablesLoading;
+    invoicesLoading;
+
+  // Error wins over loading: React Query marks isError only after all retries,
+  // so by then isLoading is already false (R13/R14).
+  if (isError) {
+    return (
+      <Card className="overflow-hidden border-border/70 bg-[radial-gradient(circle_at_top_right,rgba(17,121,117,0.18),transparent_42%),linear-gradient(135deg,rgba(8,47,73,0.92),rgba(15,118,110,0.96))] text-white shadow-[0_30px_80px_-34px_rgba(15,118,110,0.65)]">
+        <CardContent className="px-6 py-7 sm:px-7">
+          <ErrorState
+            title="Algo salió mal"
+            description={mapError(firstError)}
+            onRetry={retryAll}
+            className="border-0 shadow-none"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -94,6 +197,9 @@ export function DashboardHero() {
       </Card>
     );
   }
+
+  const facturacionTrend = computeTrend(totals.facturacionMes, totals.facturacionPrev);
+  const netFlowTrend = computeTrend(totals.netFlow, totals.prevNetFlow);
 
   return (
     <Card className="overflow-hidden border-0 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.16),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.18),transparent_28%),linear-gradient(135deg,#083344,#0f766e_48%,#115e59)] text-white shadow-[0_32px_90px_-34px_rgba(8,51,68,0.72)]">
@@ -119,10 +225,21 @@ export function DashboardHero() {
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 backdrop-blur-sm">
                 <ArrowRightLeft className="size-4" aria-hidden="true" />
                 Flujo neto del mes {currencyFormatter.format(totals.netFlow)}
+                <TrendBadge trend={netFlowTrend} />
               </span>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[1.4rem] border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/62">Facturación del mes</div>
+                <TrendBadge trend={facturacionTrend} />
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-xl font-semibold tracking-[-0.03em]">
+                <FileText className="size-4 text-sky-300" aria-hidden="true" />
+                {currencyFormatter.format(totals.facturacionMes)}
+              </div>
+            </div>
             <div className="rounded-[1.4rem] border border-white/10 bg-white/10 p-4 backdrop-blur-md">
               <div className="text-xs uppercase tracking-[0.22em] text-white/62">Ingresos</div>
               <div className="mt-2 flex items-center gap-2 text-xl font-semibold tracking-[-0.03em]">
@@ -137,28 +254,14 @@ export function DashboardHero() {
                 {currencyFormatter.format(totals.monthExpense)}
               </div>
             </div>
-            <div className="rounded-[1.4rem] border border-white/10 bg-white/10 p-4 backdrop-blur-md">
-              <div className="text-xs uppercase tracking-[0.22em] text-white/62">Pendiente neto</div>
-              <div className="mt-2 text-xl font-semibold tracking-[-0.03em]">
-                {currencyFormatter.format(totals.receivablePending - totals.payablePending)}
-              </div>
-            </div>
           </div>
         </div>
 
         <div className="relative grid gap-3">
           <div className="rounded-[1.8rem] border border-white/12 bg-white/10 p-5 backdrop-blur-md">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-[0.22em] text-white/62">Presion operativa</div>
-                <div className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
-                  {currencyFormatter.format(totals.payablePending)}
-                </div>
-              </div>
-              <Badge className="border-white/15 bg-white/12 text-white">Por pagar</Badge>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-white/74">
-              Cruza compromisos abiertos contra cobranza pendiente para priorizar acciones.
+            <div className="text-xs uppercase tracking-[0.22em] text-white/62">Acciones rápidas</div>
+            <p className="mt-3 text-sm leading-6 text-white/74">
+              Registra movimientos y revisa tus cuentas sin salir del panorama general.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button asChild variant="secondary" className="rounded-2xl bg-white text-slate-900 hover:bg-white/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
@@ -167,20 +270,6 @@ export function DashboardHero() {
               <Button asChild variant="ghost" className="rounded-2xl border border-white/15 bg-white/8 text-white hover:bg-white/14 hover:text-white">
                 <Link href="/dashboard/bank-accounts">Ver cuentas</Link>
               </Button>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[1.5rem] border border-white/12 bg-white/8 p-4 backdrop-blur-md">
-              <div className="text-xs uppercase tracking-[0.22em] text-white/62">Por cobrar</div>
-              <div className="mt-2 text-lg font-semibold tracking-[-0.03em]">
-                {currencyFormatter.format(totals.receivablePending)}
-              </div>
-            </div>
-            <div className="rounded-[1.5rem] border border-white/12 bg-white/8 p-4 backdrop-blur-md">
-              <div className="text-xs uppercase tracking-[0.22em] text-white/62">Por pagar</div>
-              <div className="mt-2 text-lg font-semibold tracking-[-0.03em]">
-                {currencyFormatter.format(totals.payablePending)}
-              </div>
             </div>
           </div>
         </div>

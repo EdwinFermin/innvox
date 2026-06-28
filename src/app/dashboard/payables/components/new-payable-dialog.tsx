@@ -7,16 +7,9 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { createPayable } from "@/actions/payables";
+import { mapError } from "@/lib/error-messages";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -42,8 +35,14 @@ const newPayableSchema = z.object({
 type NewPayableValues = z.infer<typeof newPayableSchema>;
 type NewPayableFormValues = z.input<typeof newPayableSchema>;
 
-export function NewPayableDialog() {
-  const [open, setOpen] = React.useState(false);
+interface NewPayableDialogProps {
+  /** Controlled open state, owned by the parent page so a single dialog
+   *  instance can be triggered from both the header and the in-table action. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function NewPayableDialog({ open, onOpenChange }: NewPayableDialogProps) {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const { data: branches } = useBranches(
@@ -84,18 +83,23 @@ export function NewPayableDialog() {
       toast.success("Cuenta por pagar registrada");
       queryClient.invalidateQueries({ queryKey: ["payables"] });
       reset({ status: "pendiente", branch_id: branches.length === 1 ? branches[0].id : "", due_date: getTodayDateKey() });
-      setOpen(false);
+      onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error?.message || "Ocurrió un error inesperado.");
+      toast.error(mapError(error));
     },
   });
 
   const onSubmit = handleSubmit((values) => mutate(values as NewPayableValues));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Nueva cuenta por pagar"
+      description="Registra una obligación pendiente y deja trazado su vencimiento, estado y referencia operativa."
+      contentClassName="max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl"
+      trigger={
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
@@ -104,21 +108,13 @@ export function NewPayableDialog() {
           <PlusCircle className="mr-1" />
           Nueva cuenta por pagar
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Nueva cuenta por pagar
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Registra una obligación pendiente y deja trazado su vencimiento, estado y referencia operativa.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar cuenta por pagar"
+    >
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
                   <label className="dashboard-field-label">Sucursal</label>
@@ -221,18 +217,6 @@ export function NewPayableDialog() {
                 <p className="dashboard-field-error">{errors.description.message}</p>
               )}
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : "Guardar cuenta por pagar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

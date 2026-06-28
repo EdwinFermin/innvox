@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth/guards";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { ChangePasswordCard } from "./components/change-password-card";
 
 function initials(name?: string | null, email?: string | null) {
@@ -15,9 +16,12 @@ export default async function AccountPage() {
   const user = session.user;
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <h3 className="text-2xl font-semibold">Cuenta</h3>
-      <p className="text-sm text-muted-foreground">Informacion basica de tu perfil.</p>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Perfil"
+        title="Cuenta"
+        description="Información básica de tu perfil."
+      />
 
       <Card className="mt-4">
         <CardHeader>

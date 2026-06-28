@@ -9,15 +9,7 @@ import { z } from "zod";
 import { createUser } from "@/actions/users";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -84,8 +76,13 @@ export function NewUserDialog() {
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nuevo usuario"
+      description="Crea un acceso nuevo, asigna su rol operativo y limita las sucursales disponibles según el alcance del usuario."
+      contentClassName="max-h-[90vh] max-w-2xl overflow-y-auto"
+      trigger={
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
@@ -94,20 +91,12 @@ export function NewUserDialog() {
           <PlusCircle className="mr-1" />
           Nuevo usuario
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Nuevo usuario
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Crea un acceso nuevo, asigna su rol operativo y limita las sucursales disponibles según el alcance del usuario.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar usuario"
+    >
             <div className="dashboard-form-card grid gap-4 md:grid-cols-2">
               <div className="dashboard-field">
                 <label htmlFor="new-user-name" className="dashboard-field-label">
@@ -215,24 +204,6 @@ export function NewUserDialog() {
                 <p className="dashboard-field-error">{errors.branch_ids.message as string}</p>
               )}
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : "Guardar usuario"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

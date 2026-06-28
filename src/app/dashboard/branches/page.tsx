@@ -14,20 +14,20 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, Inbox, MoreHorizontal, SearchX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -40,7 +40,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
-import { SpinnerLabel } from "@/components/ui/spinner-label";
+import { TableStateBody } from "@/components/ui/table-state-body";
 import { Branch } from "@/types/branch.types";
 import { useBranches } from "@/hooks/use-branches";
 import { NewBranchDialog } from "./components/new-branch-dialog";
@@ -48,17 +48,16 @@ import { BranchSyncSettingsDialog } from "./components/branch-sync-settings-dial
 import { deleteBranch } from "@/actions/branches";
 import { toast } from "sonner";
 import { can } from "@/lib/auth/can";
+import { mapError } from "@/lib/error-messages";
 import { PERMISSIONS } from "@/lib/auth/permissions";
-import { TablePageSize } from "@/components/ui/table-page-size";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 
-const getColumnLabel = (id: string): string => {
-  const map: Record<string, string> = {
-    name: "Nombre",
-    code: "Código",
-    created_at: "Fecha de creación",
-  };
-  return map[id] || id;
+const columnLabels: Record<string, string> = {
+  name: "Nombre",
+  code: "Código",
+  created_at: "Fecha de creación",
 };
 
 const getCreatedAtTime = (value: unknown): number => {
@@ -217,7 +216,7 @@ function BranchActionsCell({
 export default function BranchesPage() {
   const isMobile = useIsMobile();
   const { user } = useAuthStore();
-  const { data: branches, isLoading } = useBranches(
+  const { data: branches, isLoading, isError, error, refetch } = useBranches(
     user?.id || "",
     user?.type === "USER" ? user?.branch_ids : undefined,
   );
@@ -293,48 +292,24 @@ export default function BranchesPage() {
         ]}
         actions={<NewBranchDialog />}
       />
-      <div
-        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
-      >
-        <Input
-          aria-label="Buscar sucursales"
-          placeholder="Buscar sucursales…"
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
-          className="h-11 rounded-2xl border-border/70 bg-background/80"
+      <TableToolbar
+        table={table}
+        columnLabels={columnLabels}
+        isMobile={isMobile}
+        searchValue={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+        onSearchChange={(event) =>
+          table.getColumn("name")?.setFilterValue(event.target.value)
+        }
+        searchPlaceholder="Buscar sucursales…"
+        searchAriaLabel="Buscar sucursales"
+      />
+      {isError ? (
+        <ErrorState
+          title="Algo salió mal"
+          description={mapError(error)}
+          onRetry={refetch}
         />
-
-        <div className="w-full sm:w-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
-                Columnas <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {getColumnLabel(column.id)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      ) : (
       <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
@@ -356,16 +331,38 @@ export default function BranchesPage() {
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24">
-                  <div className="flex justify-center items-center h-full">
-                    <SpinnerLabel label="Cargando..." />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            <TableStateBody
+              isLoading={isLoading}
+              isEmpty={table.getRowModel().rows?.length === 0}
+              colSpan={table.getVisibleLeafColumns().length}
+              loadingRows={table.getState().pagination.pageSize}
+              empty={
+                branches.length === 0 ? (
+                  <EmptyState
+                    icon={Inbox}
+                    title="Sin sucursales"
+                    description="Registra la primera para verla aquí."
+                    action={<NewBranchDialog />}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={SearchX}
+                    title="Sin resultados"
+                    description="Ajusta o limpia el filtro."
+                    action={
+                      <Button
+                        onClick={() =>
+                          table.getColumn("name")?.setFilterValue("")
+                        }
+                      >
+                        Limpiar búsqueda
+                      </Button>
+                    }
+                  />
+                )
+              }
+            >
+              {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
@@ -379,46 +376,21 @@ export default function BranchesPage() {
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No se encontraron sucursales.
-                </TableCell>
-              </TableRow>
-            )}
+              ))}
+            </TableStateBody>
           </TableBody>
         </Table>
-        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
-          <TablePageSize table={table} />
-          <div className="text-muted-foreground flex-1 text-sm">
-            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
-          </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          table={table}
+          totalFiltered={table.getFilteredRowModel().rows.length}
+          rowCountNode={
+            <div className="text-muted-foreground flex-1 text-sm">
+              {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} filas seleccionadas.
+            </div>
+          }
+        />
       </div>
+      )}
     </div>
   );
 }

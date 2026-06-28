@@ -11,15 +11,7 @@ import { z } from "zod";
 import { createIncome, updateIncomeAccount } from "@/actions/incomes";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -192,30 +184,29 @@ export function NewIncomeDialog({
   }, [initialData, isEditMode, open, reset, branches, incomeTypes]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={isEditMode ? "Cambiar cuenta del ingreso" : "Nuevo ingreso"}
+      description={
+        isEditMode
+          ? "Actualiza la cuenta financiera asociada a este ingreso sin cambiar el resto de la operación."
+          : "Registra una entrada de dinero con su sucursal, tipo, fecha y cuenta financiera asociada."
+      }
+      contentClassName="max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl"
+      trigger={
+        trigger ?? (
           <Button variant="default" className="w-full rounded-2xl sm:w-auto" onClick={() => reset()}>
             <PlusCircle className="mr-1" />
             Nuevo ingreso
           </Button>
-        )}
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            {isEditMode ? "Cambiar cuenta del ingreso" : "Nuevo ingreso"}
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            {isEditMode
-              ? "Actualiza la cuenta financiera asociada a este ingreso sin cambiar el resto de la operación."
-              : "Registra una entrada de dinero con su sucursal, tipo, fecha y cuenta financiera asociada."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+        )
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel={isEditMode ? "Actualizar cuenta" : "Guardar ingreso"}
+    >
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
@@ -342,18 +333,6 @@ export function NewIncomeDialog({
                 )}
               </div>
             ) : null}
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : isEditMode ? "Actualizar cuenta" : "Guardar ingreso"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

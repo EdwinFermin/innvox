@@ -14,15 +14,7 @@ import {
 } from "@/actions/operating-costs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -186,32 +178,31 @@ export function NewOperatingCostDialog({ editData, trigger, onSuccess, open: con
   const isControlled = controlledOpen !== undefined;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {!isControlled && (
-        <DialogTrigger asChild>
-          {trigger ?? (
-            <Button variant="default" className="w-full rounded-2xl sm:w-auto">
-              <PlusCircle className="mr-1" />
-              Nuevo costo operativo
-            </Button>
-          )}
-        </DialogTrigger>
-      )}
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            {isEdit ? "Editar costo operativo" : "Nuevo costo operativo"}
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            {isEdit
-              ? "Modifica los detalles del costo operativo recurrente."
-              : "Define un costo operativo recurrente asociado a una sucursal. Se generarán alertas automáticas según la frecuencia."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={isEdit ? "Editar costo operativo" : "Nuevo costo operativo"}
+      description={
+        isEdit
+          ? "Modifica los detalles del costo operativo recurrente."
+          : "Define un costo operativo recurrente asociado a una sucursal. Se generarán alertas automáticas según la frecuencia."
+      }
+      contentClassName="max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl"
+      trigger={
+        !isControlled
+          ? trigger ?? (
+              <Button variant="default" className="w-full rounded-2xl sm:w-auto">
+                <PlusCircle className="mr-1" />
+                Nuevo costo operativo
+              </Button>
+            )
+          : undefined
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel={isEdit ? "Actualizar" : "Crear costo operativo"}
+    >
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
@@ -382,18 +373,6 @@ export function NewOperatingCostDialog({ editData, trigger, onSuccess, open: con
                 </div>
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : isEdit ? "Actualizar" : "Crear costo operativo"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

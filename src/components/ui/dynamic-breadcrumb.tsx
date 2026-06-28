@@ -12,7 +12,16 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+function isDynamicSegment(segment: string): boolean {
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const numericPattern = /^\d+$/;
+  return uuidPattern.test(segment) || numericPattern.test(segment);
+}
+
 function translateSegment(segment: string): string {
+  if (isDynamicSegment(segment)) return "Detalle";
+
   const map: Record<string, string> = {
     dashboard: "Dashboard",
     account: "Cuenta",
@@ -26,15 +35,17 @@ function translateSegment(segment: string): string {
     expenses: "Gastos",
     reports: "Reportes",
     profit: "Utilidades",
-    "cuadre-del-dia": "Cuadre del dia",
+    "cuadre-del-dia": "Cuadre del día",
+    "sync-cuadres": "Sincronizar Envíos RD",
+    "formulario-dgii": "Formulario DGII",
     receivables: "CxC",
     payables: "CxP",
     "link-de-pago": "Link de pago",
     "bank-accounts": "Cuentas financieras",
     branches: "Sucursales",
-    parameters: "Parametros",
-    "Income-types": "Tipos de ingresos",
-    "Expense-types": "Tipos de gastos",
+    parameters: "Parámetros",
+    "income-types": "Tipos de ingresos",
+    "expense-types": "Tipos de gastos",
     loyalty: "Fidelidad",
     scanner: "Scanner",
     register: "Registro",

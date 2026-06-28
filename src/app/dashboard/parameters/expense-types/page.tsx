@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -216,14 +217,19 @@ export default function ExpenseTypesPage() {
   });
 
   return (
-    <div className="w-full">
-      <h3 className="text-2xl font-semibold">Tipos de gastos</h3>
-      <span className="text-muted-foreground text-sm">
-        Gestiona las categorías de gastos
-      </span>
+    <div className="dashboard-grid w-full">
+      <DashboardPageHeader
+        eyebrow="Parámetros"
+        title="Tipos de gastos"
+        description="Gestiona las categorías de gastos."
+        stats={[
+          { label: "Tipos", value: String(expenseTypes.length), tone: "neutral" },
+        ]}
+        actions={<NewExpenseTypeDialog />}
+      />
       <div
-        className={`grid w-full py-4 mt-2 gap-4 ${
-          isMobile ? "grid-cols-1" : "grid-cols-2"
+        className={`dashboard-panel grid w-full gap-4 p-4 ${
+          isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"
         }`}
       >
         <Input
@@ -235,36 +241,30 @@ export default function ExpenseTypesPage() {
           className="w-full"
         />
 
-        <div className="grid grid-cols-2 gap-2 ">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full">
-                Columnas <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {getColumnLabel(column.id)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <NewExpenseTypeDialog />
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full">
+              Columnas <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                  >
+                    {getColumnLabel(column.id)}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>

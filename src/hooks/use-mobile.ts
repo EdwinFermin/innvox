@@ -2,18 +2,28 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+// Single MediaQueryList per document, created once at module evaluation.
+// `null` on the server (no `window`); the `getServerSnapshot` branch covers SSR.
+const mql =
+  typeof window !== "undefined"
+    ? window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    : null
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+function subscribe(callback: () => void): () => void {
+  if (!mql) return () => {}
+  mql.addEventListener("change", callback)
+  return () => mql.removeEventListener("change", callback)
+}
 
-  return !!isMobile
+function getSnapshot(): boolean {
+  return mql ? mql.matches : false
+}
+
+// Stable server snapshot so SSR and the first client render agree (no hydration mismatch).
+function getServerSnapshot(): boolean {
+  return false
+}
+
+export function useIsMobile(): boolean {
+  return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

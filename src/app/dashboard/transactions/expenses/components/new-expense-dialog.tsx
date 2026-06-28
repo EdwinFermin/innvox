@@ -19,15 +19,7 @@ import { createExpense, updateExpenseAccount } from "@/actions/expenses";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -359,74 +351,70 @@ export function NewExpenseDialog({
   }, [clearReceiptFile, initialData, isEditMode, open, reset, branches, expenseTypes]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={isEditMode ? "Cambiar cuenta del gasto" : "Nuevo gasto"}
+      description={
+        isEditMode
+          ? "Actualiza la cuenta financiera asociada a este gasto sin modificar el resto de la operación."
+          : "Registra una salida de dinero con su sucursal, categoría, fecha y cuenta financiera asociada."
+      }
+      contentClassName="max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl"
+      trigger={
+        trigger ?? (
           <Button variant="default" className="w-full rounded-2xl sm:w-auto" onClick={() => reset()}>
             <PlusCircle className="mr-1" />
             Nuevo gasto
           </Button>
-        )}
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
-        <DialogHeader className="dashboard-dialog-header">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-2">
-              <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-                {isEditMode ? "Cambiar cuenta del gasto" : "Nuevo gasto"}
-              </DialogTitle>
-              <DialogDescription className="max-w-2xl leading-6">
-                {isEditMode
-                  ? "Actualiza la cuenta financiera asociada a este gasto sin modificar el resto de la operación."
-                  : "Registra una salida de dinero con su sucursal, categoría, fecha y cuenta financiera asociada."}
-              </DialogDescription>
-            </div>
-
-            {!isEditMode ? (
-              <div className="flex shrink-0 items-center gap-2">
-                <Input
-                  ref={receiptInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={handleReceiptFileChange}
-                  disabled={isPending || isAnalyzingReceipt}
-                />
-                {receiptFile ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 shrink-0 rounded-2xl"
-                    onClick={clearReceiptFile}
-                    disabled={isPending || isAnalyzingReceipt}
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Quitar comprobante</span>
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-auto min-h-11 w-full justify-start gap-2 rounded-2xl px-3 text-left sm:w-auto"
-                  onClick={() => receiptInputRef.current?.click()}
-                  disabled={isPending || isAnalyzingReceipt}
-                >
-                  {isAnalyzingReceipt ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-                  ) : (
-                    <ScanText className="h-4 w-4 shrink-0" />
-                  )}
-                  <span className="leading-tight">Crear gasto desde comprobante</span>
-                </Button>
-              </div>
+        )
+      }
+      headerExtra={
+        !isEditMode ? (
+          <div className="flex shrink-0 items-center gap-2">
+            <Input
+              ref={receiptInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleReceiptFileChange}
+              disabled={isPending || isAnalyzingReceipt}
+            />
+            {receiptFile ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-2xl"
+                onClick={clearReceiptFile}
+                disabled={isPending || isAnalyzingReceipt}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Quitar comprobante</span>
+              </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto min-h-11 w-full justify-start gap-2 rounded-2xl px-3 text-left sm:w-auto"
+              onClick={() => receiptInputRef.current?.click()}
+              disabled={isPending || isAnalyzingReceipt}
+            >
+              {isAnalyzingReceipt ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+              ) : (
+                <ScanText className="h-4 w-4 shrink-0" />
+              )}
+              <span className="leading-tight">Crear gasto desde comprobante</span>
+            </Button>
           </div>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+        ) : undefined
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel={isEditMode ? "Actualizar cuenta" : "Guardar gasto"}
+    >
             {!isEditMode && receiptFile ? (
               <ReceiptPreview file={receiptFile} previewUrl={receiptPreviewUrl} />
             ) : null}
@@ -616,19 +604,7 @@ export function NewExpenseDialog({
                 )}
               </div>
             ) : null}
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : isEditMode ? "Actualizar cuenta" : "Guardar gasto"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }
 

@@ -10,15 +10,7 @@ import { ClientsCombobox } from "@/app/dashboard/invoices/components/clients-com
 import { createReceivable } from "@/actions/receivables";
 import { useClients } from "@/hooks/use-clients";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -101,8 +93,13 @@ export function NewReceivableDialog() {
   const onSubmit = handleSubmit((values) => mutate(values as NewReceivableValues));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nueva cuenta por cobrar"
+      description="Registra un cobro pendiente y deja claro su vencimiento, estado y referencia operativa para seguimiento."
+      contentClassName="max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl"
+      trigger={
         <Button
           variant="default"
           className="w-full rounded-2xl sm:w-auto"
@@ -111,20 +108,12 @@ export function NewReceivableDialog() {
           <PlusCircle className="mr-1" />
           Nueva cuenta por cobrar
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-xl overflow-y-auto lg:max-w-2xl">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Nueva cuenta por cobrar
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Registra un cobro pendiente y deja claro su vencimiento, estado y referencia operativa para seguimiento.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar cuenta por cobrar"
+    >
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <div className="dashboard-form-card grid gap-4">
                 <div className="dashboard-field">
@@ -235,18 +224,6 @@ export function NewReceivableDialog() {
                 <p className="dashboard-field-error">{errors.description.message}</p>
               )}
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : "Guardar cuenta por cobrar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

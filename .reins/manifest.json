@@ -1,0 +1,198 @@
+{
+  "harnessVersion": "0.9.0",
+  "preset": "sdd",
+  "runtime": "claude",
+  "generatedAt": "2026-06-27T22:58:00.918Z",
+  "files": [
+    {
+      "path": "CHECKPOINTS.md",
+      "templateId": "checkpoints",
+      "hash": "c09561d3f366bca106e604cf8034400eadc03806dc2a6155fd2baf8a0fd20844"
+    },
+    {
+      "path": "docs/architecture.md",
+      "templateId": "docs-architecture",
+      "hash": "c5f6a556c25b111bd042694ee36a65d5ab6abd6efcac61a7408dd12fdf033d81"
+    },
+    {
+      "path": "docs/conventions.md",
+      "templateId": "docs-conventions",
+      "hash": "57c60312d1f6836a3245bf53d9d7203160e14755de6744328cb8cb862af9c4bf"
+    },
+    {
+      "path": "docs/verification.md",
+      "templateId": "docs-verification",
+      "hash": "69e130322839d91f00fdb793ffc878b87d02619faca650d87c479b89bdc16448"
+    },
+    {
+      "path": "docs/security.md",
+      "templateId": "docs-security",
+      "hash": "cdb100682625ccbfd78adcab56c3f216365dde74e48450b93064082fe89aa955"
+    },
+    {
+      "path": "docs/four-rs.md",
+      "templateId": "docs-four-rs",
+      "hash": "3da6dfe07274501d525a31f0629692b3e021ed8cdad2bbf21db61d1a92e124b0"
+    },
+    {
+      "path": "docs/design.md",
+      "templateId": "docs-design",
+      "hash": "8c9d33d5c8e3645da9e37018f90ea7fa5d2eb4c01001cb4a60f7a8b6ab5796e2"
+    },
+    {
+      "path": "docs/motion.md",
+      "templateId": "docs-motion",
+      "hash": "a195d28fc50dfeef9012cf46ac556e50a7f22d6a093956bfe53a73f5124004c4"
+    },
+    {
+      "path": "progress/current.md",
+      "templateId": "progress-current",
+      "hash": "77412fabe672d1ac5ad643d5a0f5a76885dafc0550be40bc9a6724822c93bec3"
+    },
+    {
+      "path": "progress/history.md",
+      "templateId": "progress-history",
+      "hash": "6f9fe17be285589b04a91f5d3b2354678930452e77a2661a0cdb39be0c763cdd"
+    },
+    {
+      "path": ".gitignore",
+      "templateId": "gitignore",
+      "hash": "cb25466bb7b75a57eb8b1b3eb049919dd284b58423732b2d6b40209bf0e758a4"
+    },
+    {
+      "path": ".github/workflows/reins-verify.yml",
+      "templateId": "ci",
+      "hash": "e0d3e0c38e41aeef10d687cbfb0d41c2e9860fd525c8d349c50460e739940d4a"
+    },
+    {
+      "path": ".reins/hooks/pre-commit",
+      "templateId": "precommit",
+      "hash": "4648e7d3a13bc83e75a2c6eeb20f1327bd8cdf44e85e7c2297a8567651dac7ae"
+    },
+    {
+      "path": ".claude/agents/leader.md",
+      "templateId": "agent-leader",
+      "hash": "d97cb25c6e78c3e742b4359a749d85891ef58518a93c1cc6cd9ff611c568a4c5"
+    },
+    {
+      "path": ".claude/agents/implementer.md",
+      "templateId": "agent-implementer",
+      "hash": "6f13e50ce1f5f4459264120b3c91ce7028cd122ce7f572386ec37a4597f8a67a"
+    },
+    {
+      "path": ".claude/agents/reviewer.md",
+      "templateId": "agent-reviewer",
+      "hash": "4031d1ee0df7aa1bf2e72b7120c2b8764bef9ed67a2c72e90e56da0b24336d47"
+    },
+    {
+      "path": ".claude/agents/security-reviewer.md",
+      "templateId": "agent-security-reviewer",
+      "hash": "4023d6352b22d2702a73a528dcb0429755e23a28f497a73ee14479f9651c87c4"
+    },
+    {
+      "path": ".claude/agents/design-reviewer.md",
+      "templateId": "agent-design-reviewer",
+      "hash": "24ac2343d8be7a3e9d91379e3a06d0c8d402b274c5b203f71dbfdfa4001462b7"
+    },
+    {
+      "path": ".claude/commands/reins-verify.md",
+      "templateId": "cmd-verify",
+      "hash": "2249b02bea9f99113b08bab025b1df6e9902d8e70026912c66f92dbd17e53827"
+    },
+    {
+      "path": ".claude/commands/reins-status.md",
+      "templateId": "cmd-status",
+      "hash": "912f861d6de4be3b7bfcaca6d802eba02df49bf0e522cfd3c0ed682899d43c8c"
+    },
+    {
+      "path": ".claude/commands/next-feature.md",
+      "templateId": "cmd-next",
+      "hash": "f24c2ac2cc8a1bae7b3ef573e7922bb73aaefe4c97eeea51010c6f0f38d7fad6"
+    },
+    {
+      "path": ".claude/commands/brainstorm.md",
+      "templateId": "cmd-brainstorm",
+      "hash": "3c05c3c885bb70cc8b7448a73eb2234d8865b4a7408be2ad1b7db7738cd1a19b"
+    },
+    {
+      "path": ".claude/commands/autopilot.md",
+      "templateId": "cmd-autopilot",
+      "hash": "d8d11546c6ed3faa6a2a3fe529bd57d91cb605171fc54d181ef59f2deedb0690"
+    },
+    {
+      "path": ".claude/commands/design-audit.md",
+      "templateId": "cmd-design-audit",
+      "hash": "f008741710bd00f2d8d44d4a46943b7eaba9c027168e214f82065b531d094a78"
+    },
+    {
+      "path": "CLAUDE.reins.md",
+      "templateId": "claude-md",
+      "hash": "292803bdad42362bd38256359920becea0f0cac0aab5adf5360424ee9f75c3f2"
+    },
+    {
+      "path": "AGENTS.md",
+      "templateId": "agents-md",
+      "hash": "fbbc1a63f5c5a791754ddc9d629b9703485b177188e8164ff959a6aeb1754635"
+    },
+    {
+      "path": "docs/sdd-workflow.md",
+      "templateId": "docs-sdd",
+      "hash": "af211a3e467f35527eebf347fc555c975d61a9ade340f41ae755ef822ff1f885"
+    },
+    {
+      "path": "specs/_template/discovery.md",
+      "templateId": "spec-discovery",
+      "hash": "d412971768b9c3634e1b24fe964126a603eb903378d320dbc12c2eef47c7f90e"
+    },
+    {
+      "path": "specs/_template/requirements.md",
+      "templateId": "spec-requirements",
+      "hash": "afb244f066410a529a069e87d51cebec8cc8332fcd33ee242aa07504b15c27da"
+    },
+    {
+      "path": "specs/_template/design.md",
+      "templateId": "spec-design",
+      "hash": "20902f0dc453f1a8424dfcd4a556f9655e026d8b7a72354fb2e87a6c638a660b"
+    },
+    {
+      "path": "specs/_template/tasks.md",
+      "templateId": "spec-tasks",
+      "hash": "f21bad81f7ff7b82a1a853e6e45b1cdbed8aca92df376387aa39caadde10435a"
+    },
+    {
+      "path": ".claude/agents/spec_author.md",
+      "templateId": "agent-spec-author",
+      "hash": "f34aae206acd70c95e3a71e5f0311110e41e477ffbf64b380f130e3ba0fc923b"
+    },
+    {
+      "path": ".claude/commands/new-spec.md",
+      "templateId": "cmd-new-spec",
+      "hash": "18f0b09167f6cdf93a18e5ef4fa23c24b112e643103758cdab086b9eeda70a89"
+    },
+    {
+      "path": ".claude/commands/approve-spec.md",
+      "templateId": "cmd-approve-spec",
+      "hash": "43b39bf0873980c3e9493c80be39cc3b14f89b6f7025e550ff53c0d05d862b33"
+    },
+    {
+      "path": ".claude/commands/validate-discovery.md",
+      "templateId": "cmd-validate-discovery",
+      "hash": "2db92174bfb82fc60314cfaee8bc023fe28bbe909707666f5454bc9d9e45791d"
+    },
+    {
+      "path": ".claude/settings.json",
+      "templateId": "settings",
+      "hash": "7132ff8f178248afb8318a14a64d7a0fcb29fd9e27bcc1940e831cfdedca4ccb"
+    },
+    {
+      "path": "reins.config.json",
+      "templateId": "reins-config",
+      "hash": "272d766778442c7b64af99b8bf5faf270497552647efb49c33f6664f355b0937"
+    },
+    {
+      "path": "feature_list.json",
+      "templateId": "feature-list",
+      "hash": "bb5797b12dd7c3fe9c26fdd84f35ddd48ef1102035269e65f92d016a6d510707"
+    }
+  ]
+}

@@ -13,19 +13,19 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, Inbox, MoreHorizontal, SearchX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { SpinnerLabel } from "@/components/ui/spinner-label";
+import { TableStateBody } from "@/components/ui/table-state-body";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NewInvoiceDialog } from "./components/new-invoice-dialog";
 import { Invoice } from "@/types/invoice.types";
@@ -48,28 +48,27 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePrintInvoice } from "@/hooks/use-print-invoice";
 import { useAuthStore } from "@/store/auth";
 import { can } from "@/lib/auth/can";
+import { mapError } from "@/lib/error-messages";
 import { PERMISSIONS } from "@/lib/auth/permissions";
-import { TablePageSize } from "@/components/ui/table-page-size";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
   ListVisibilityControl,
   type VisibilityScope,
 } from "@/components/ui/list-visibility-control";
 
-const getColumnLabel = (id: string): string => {
-  const map: Record<string, string> = {
-    id: "No. Factura",
-    ncf: "NCF",
-    client_name: "Cliente",
-    description: "Descripcion",
-    amount: "Monto",
-    monto_exento: "Monto Exento",
-    monto_gravado: "Monto Gravado",
-    itbis: "ITBIS",
-    created_at: "Fecha de Creacion",
-    user_name: "Usuario",
-  };
-  return map[id] || id;
+const columnLabels: Record<string, string> = {
+  id: "No. Factura",
+  ncf: "NCF",
+  client_name: "Cliente",
+  description: "Descripcion",
+  amount: "Monto",
+  monto_exento: "Monto Exento",
+  monto_gravado: "Monto Gravado",
+  itbis: "ITBIS",
+  created_at: "Fecha de Creacion",
+  user_name: "Usuario",
 };
 
 const getDateTime = (value: unknown): number => {
@@ -85,7 +84,9 @@ export default function InvoicesPage() {
   const isMobile = useIsMobile();
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
-  const { data: invoices, isLoading } = useInvoices(currentUser?.id || "");
+  const { data: invoices, isLoading, isError, error, refetch } = useInvoices(
+    currentUser?.id || "",
+  );
 
   React.useEffect(() => {
     if (currentUser?.type === "ADMIN") {
@@ -355,48 +356,24 @@ export default function InvoicesPage() {
           />
         }
       />
-      <div
-        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
-      >
-        <Input
-          aria-label="Buscar facturas"
-          placeholder="Buscar facturas…"
-          value={(table.getColumn("id")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("id")?.setFilterValue(event.target.value)
-          }
-          className="h-11 rounded-2xl border-border/70 bg-background/80"
+      <TableToolbar
+        table={table}
+        columnLabels={columnLabels}
+        isMobile={isMobile}
+        searchValue={(table.getColumn("id")?.getFilterValue() as string) ?? ""}
+        onSearchChange={(event) =>
+          table.getColumn("id")?.setFilterValue(event.target.value)
+        }
+        searchPlaceholder="Buscar facturas…"
+        searchAriaLabel="Buscar facturas"
+      />
+      {isError ? (
+        <ErrorState
+          title="Algo salió mal"
+          description={mapError(error)}
+          onRetry={refetch}
         />
-
-        <div className="w-full sm:w-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
-                Columnas <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {getColumnLabel(column.id)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      ) : (
       <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
@@ -418,16 +395,46 @@ export default function InvoicesPage() {
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24">
-                  <div className="flex justify-center items-center h-full">
-                    <SpinnerLabel label="Cargando..." />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            <TableStateBody
+              isLoading={isLoading}
+              isEmpty={table.getRowModel().rows?.length === 0}
+              colSpan={table.getVisibleLeafColumns().length}
+              loadingRows={table.getState().pagination.pageSize}
+              empty={
+                invoices.length === 0 ? (
+                  <EmptyState
+                    icon={Inbox}
+                    title="Sin facturas"
+                    description="Registra la primera para verla aquí."
+                    action={
+                      <NewInvoiceDialog
+                        onSuccess={() =>
+                          queryClient.invalidateQueries({
+                            queryKey: ["invoices"],
+                          })
+                        }
+                      />
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    icon={SearchX}
+                    title="Sin resultados"
+                    description="Ajusta o limpia el filtro."
+                    action={
+                      <Button
+                        onClick={() =>
+                          table.getColumn("id")?.setFilterValue("")
+                        }
+                      >
+                        Limpiar búsqueda
+                      </Button>
+                    }
+                  />
+                )
+              }
+            >
+              {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
@@ -441,51 +448,23 @@ export default function InvoicesPage() {
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No se encontraron facturas.
-                </TableCell>
-              </TableRow>
-            )}
+              ))}
+            </TableStateBody>
           </TableBody>
         </Table>
-        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
-          <ListVisibilityControl
-            role={currentUser?.type}
-            value={visibilityScope}
-            onChange={setVisibilityScope}
-          />
-          <TablePageSize table={table} />
-          <div className="text-muted-foreground flex-1 text-sm">
-            {table.getFilteredRowModel().rows.length} filas
-          </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          table={table}
+          totalFiltered={table.getFilteredRowModel().rows.length}
+          visibilityControl={
+            <ListVisibilityControl
+              role={currentUser?.type}
+              value={visibilityScope}
+              onChange={setVisibilityScope}
+            />
+          }
+        />
       </div>
+      )}
       {selectedInvoice && <PrintContainer invoice={selectedInvoice} />}
     </div>
   );

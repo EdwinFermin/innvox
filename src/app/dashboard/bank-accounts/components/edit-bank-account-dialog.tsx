@@ -24,13 +24,8 @@ import { Branch } from "@/types/branch.types";
 import { BankAccount, Currency } from "@/types/bank-account.types";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogClose } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -185,18 +180,28 @@ export function EditBankAccountDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">
-            Editar cuenta financiera
-          </DialogTitle>
-        </DialogHeader>
-
-        <form
-          onSubmit={handleSubmit((values) => mutate(values as Values))}
-          className="space-y-5"
-        >
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Editar cuenta financiera"
+      contentClassName="max-w-2xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto"
+      onSubmit={handleSubmit((values) => mutate(values as Values))}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar cambios"
+      footer={
+        <div className="flex justify-end gap-2">
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancelar
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={!isValid || isPending}>
+            {isPending ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </div>
+      }
+    >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -421,19 +426,6 @@ export function EditBankAccountDialog({
               </div>
             </div>
           </div>
-
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancelar
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

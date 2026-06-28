@@ -8,15 +8,7 @@ import { z } from "zod";
 
 import { createClient } from "@/actions/clients";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 
 const newClientSchema = z.object({
@@ -58,26 +50,23 @@ export function NewClientDialog() {
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nuevo cliente"
+      description="Crea un registro comercial con su nombre y referencia interna para facturación."
+      contentClassName="max-h-[90vh] max-w-lg overflow-y-auto"
+      trigger={
         <Button variant="default" className="w-full rounded-2xl sm:w-auto">
           <PlusCircle className="mr-1" />
           Nuevo cliente
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Nuevo cliente
-          </DialogTitle>
-          <DialogDescription className="max-w-md leading-6">
-            Crea un registro comercial con su nombre y referencia interna para facturación.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar cliente"
+    >
             <div className="dashboard-form-card grid gap-4">
               <div className="dashboard-field">
                 <label htmlFor="name" className="dashboard-field-label">
@@ -107,24 +96,6 @@ export function NewClientDialog() {
                 )}
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando…" : "Guardar cliente"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

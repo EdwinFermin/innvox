@@ -15,18 +15,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpDown,
   Building2,
-  ChevronDown,
   CircleDollarSign,
   Landmark,
   MoreHorizontal,
   Search,
   Wallet,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
 import { deleteBankAccount, toggleBankAccountActive } from "@/actions/bank-accounts";
+import { ActiveFilterChip, FilterField, SelectFilter } from "@/components/filters";
 import { BankStatementSyncDialog } from "@/app/dashboard/bank-accounts/components/bank-statement-sync-dialog";
 import { GenerateAccountsQrDialog } from "@/app/dashboard/bank-accounts/components/generate-accounts-qr-dialog";
 import { NewBankAccountDialog } from "@/app/dashboard/bank-accounts/components/new-bank-account-dialog";
@@ -37,9 +36,10 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -47,13 +47,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -63,9 +56,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableColumnToggle } from "@/components/ui/table-column-toggle";
 import { TablePageSize } from "@/components/ui/table-page-size";
+import { TableStateBody } from "@/components/ui/table-state-body";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import { can } from "@/lib/auth/can";
+import { mapError } from "@/lib/error-messages";
 import { PERMISSIONS } from "@/lib/auth/permissions";
 import { getAccountBranchNames, isSafeAccountImageSrc } from "@/lib/bank-accounts";
 import { cn } from "@/lib/utils";
@@ -75,16 +71,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
 import type { BankAccount, Currency } from "@/types/bank-account.types";
 
-const getColumnLabel = (id: string): string => {
-  const map: Record<string, string> = {
-    account_name: "Cuenta",
-    branchNames: "Sucursales",
-    currency: "Moneda",
-    current_balance: "Balance",
-    status: "Estado",
-  };
-
-  return map[id] || id;
+const columnLabels: Record<string, string> = {
+  account_name: "Cuenta",
+  branchNames: "Sucursales",
+  currency: "Moneda",
+  current_balance: "Balance",
+  status: "Estado",
 };
 
 const formatCurrency = (amount: number, currency: string): string => {
@@ -117,51 +109,6 @@ type BankAccountWithBranches = BankAccount & {
   branchNames: string[];
   searchText: string;
 };
-
-function FilterField({
-  label,
-  icon: Icon,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  htmlFor?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2 min-w-0">
-      <label
-        htmlFor={htmlFor}
-        className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-      >
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function ActiveFilterChip({
-  label,
-  onRemove,
-}: {
-  label: string;
-  onRemove: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onRemove}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
-      aria-label={`Quitar filtro ${label}`}
-    >
-      <span>{label}</span>
-      <X className="h-3.5 w-3.5 text-muted-foreground" />
-    </button>
-  );
-}
 
 function AccountsPageSkeleton() {
   return (
@@ -197,38 +144,6 @@ function AccountsPageSkeleton() {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function AccountsEmptyState({
-  hasFilters,
-  onReset,
-}: {
-  hasFilters: boolean;
-  onReset: () => void;
-}) {
-  return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/20 px-6 py-10 text-center">
-      <div className="rounded-full border border-border/70 bg-background p-4 shadow-sm">
-        <Landmark className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <h4 className="mt-4 text-lg font-semibold text-foreground">
-        {hasFilters ? "No hay cuentas con esos filtros" : "Todavia no hay cuentas financieras"}
-      </h4>
-      <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-        {hasFilters
-          ? "Prueba ajustando la busqueda, sucursal o estado para ver mas resultados."
-          : "Crea una cuenta bancaria o caja para empezar a gestionar balances, transferencias y cobertura por sucursal."}
-      </p>
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-        {hasFilters ? (
-          <Button variant="outline" onClick={onReset}>
-            Limpiar filtros
-          </Button>
-        ) : null}
-        <NewBankAccountDialog />
-      </div>
     </div>
   );
 }
@@ -502,6 +417,7 @@ export default function BankAccountsPage() {
     data: bankAccounts,
     isLoading,
     isError,
+    error,
     refetch,
   } = useBankAccounts(user?.id || "", {
     allowedBranchIds: user?.type === "USER" ? user?.branch_ids : undefined,
@@ -755,28 +671,11 @@ export default function BankAccountsPage() {
                 <Badge variant="secondary" className="h-9 w-fit px-3 text-sm">
                   {filteredAccounts.length} resultado{filteredAccounts.length === 1 ? "" : "s"}
                 </Badge>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-10 gap-2 rounded-full px-4">
-                      Columnas <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {table
-                      .getAllColumns()
-                      .filter((column) => column.getCanHide())
-                      .map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                        >
-                          {getColumnLabel(column.id)}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <TableColumnToggle
+                  table={table}
+                  columnLabels={columnLabels}
+                  className="w-auto"
+                />
               </div>
             </div>
 
@@ -798,70 +697,55 @@ export default function BankAccountsPage() {
               </FilterField>
 
               <FilterField label="Estado" icon={Wallet}>
-                <Select
+                <SelectFilter
                   value={statusFilter}
                   onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)}
-                >
-                  <SelectTrigger aria-label="Filtrar por estado" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
-                    <SelectValue placeholder="Estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="active">Activas</SelectItem>
-                    <SelectItem value="inactive">Inactivas</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: "active", label: "Activas" },
+                    { value: "inactive", label: "Inactivas" },
+                  ]}
+                  allLabel="Todas"
+                  ariaLabel="Filtrar por estado"
+                />
               </FilterField>
 
               <FilterField label="Tipo" icon={Landmark}>
-                <Select
+                <SelectFilter
                   value={typeFilter}
                   onValueChange={(value) => setTypeFilter(value as AccountTypeFilter)}
-                >
-                  <SelectTrigger aria-label="Filtrar por tipo de cuenta" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
-                    <SelectValue placeholder="Tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los tipos</SelectItem>
-                    <SelectItem value="bank">Cuenta bancaria</SelectItem>
-                    <SelectItem value="petty_cash">Caja</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: "bank", label: "Cuenta bancaria" },
+                    { value: "petty_cash", label: "Caja" },
+                  ]}
+                  allLabel="Todos los tipos"
+                  ariaLabel="Filtrar por tipo de cuenta"
+                />
               </FilterField>
 
               <FilterField label="Sucursal" icon={Building2}>
-                <Select
+                <SelectFilter
                   value={branchFilter}
                   onValueChange={(value) => setBranchFilter(value as BranchFilter)}
-                >
-                  <SelectTrigger aria-label="Filtrar por sucursal" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
-                    <SelectValue placeholder="Sucursal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las sucursales</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={branches.map((branch) => ({
+                    value: branch.id,
+                    label: branch.name,
+                  }))}
+                  allLabel="Todas las sucursales"
+                  ariaLabel="Filtrar por sucursal"
+                />
               </FilterField>
 
               <FilterField label="Moneda" icon={CircleDollarSign}>
-                <Select
+                <SelectFilter
                   value={currencyFilter}
                   onValueChange={(value) => setCurrencyFilter(value as CurrencyFilter)}
-                >
-                  <SelectTrigger aria-label="Filtrar por moneda" className="h-11 w-full rounded-2xl border-border/70 bg-muted data-[size=default]:h-11">
-                    <SelectValue placeholder="Moneda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las monedas</SelectItem>
-                    <SelectItem value="DOP">DOP</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: "DOP", label: "DOP" },
+                    { value: "USD", label: "USD" },
+                  ]}
+                  allLabel="Todas las monedas"
+                  ariaLabel="Filtrar por moneda"
+                />
               </FilterField>
             </div>
 
@@ -894,19 +778,34 @@ export default function BankAccountsPage() {
       <Card className="overflow-hidden rounded-[1.9rem] border-border/70 shadow-[0_20px_52px_-34px_rgba(15,23,42,0.24)]">
         <CardContent className="px-2 pt-0 pb-2">
           {isError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-400">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="font-semibold">No se pudieron cargar las cuentas</div>
-                  <div>Intenta actualizar la lista nuevamente.</div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => refetch()}>
-                  Reintentar
-                </Button>
-              </div>
-            </div>
+            <ErrorState
+              title="Algo salió mal"
+              description={mapError(error)}
+              onRetry={refetch}
+            />
           ) : table.getRowModel().rows.length === 0 ? (
-            <AccountsEmptyState hasFilters={hasActiveFilters} onReset={resetFilters} />
+            <EmptyState
+              icon={Landmark}
+              title={
+                hasActiveFilters
+                  ? "No hay cuentas con esos filtros"
+                  : "Todavia no hay cuentas financieras"
+              }
+              description={
+                hasActiveFilters
+                  ? "Prueba ajustando la busqueda, sucursal o estado para ver mas resultados."
+                  : "Crea una cuenta bancaria o caja para empezar a gestionar balances, transferencias y cobertura por sucursal."
+              }
+              action={
+                hasActiveFilters ? (
+                  <Button variant="outline" onClick={resetFilters}>
+                    Limpiar filtros
+                  </Button>
+                ) : (
+                  <NewBankAccountDialog />
+                )
+              }
+            />
           ) : isMobile ? (
             <div className="space-y-4">
               {table.getRowModel().rows.map((row) => (
@@ -1061,21 +960,37 @@ export default function BankAccountsPage() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className={cn(
-                        "align-top",
-                        !row.original.is_active && "bg-muted/20",
-                      )}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-4">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                  {/*
+                    Loading and empty are resolved upstream (the `if (isLoading)`
+                    early return and the Card-level isError/empty branches), so by
+                    the time the desktop table renders, data is present and
+                    non-empty. TableStateBody is a structural passthrough here
+                    (isLoading/isEmpty fixed false) to keep the body-layer
+                    contract consistent with the other seven pages (R18).
+                  */}
+                  <TableStateBody
+                    isLoading={false}
+                    isEmpty={false}
+                    colSpan={table.getVisibleLeafColumns().length}
+                    loadingRows={table.getState().pagination.pageSize}
+                    empty={null}
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className={cn(
+                          "align-top",
+                          !row.original.is_active && "bg-muted/20",
+                        )}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className="py-4">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableStateBody>
                 </TableBody>
               </Table>
               <div className="flex flex-col gap-3 border-t border-border/70 px-1 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-0">

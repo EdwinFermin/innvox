@@ -11,14 +11,8 @@ import { adjustBalance } from "@/actions/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { BankAccount } from "@/types/bank-account.types";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogClose } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -100,27 +94,30 @@ export function AdjustBalanceDialog({
   }).format(account.current_balance);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">
-            Ajustar balance
-          </DialogTitle>
-          <DialogDescription>
-            Cuenta:{" "}
-            <span className="font-medium">
-              {account.account_name}
-            </span>
-            {" \u00B7 "}
-            Balance actual:{" "}
-            <span className="font-medium">{formatBalance}</span>
-          </DialogDescription>
-        </DialogHeader>
-
-        <form
-          onSubmit={handleSubmit((values) => mutate(values as Values))}
-          className="space-y-4"
-        >
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Ajustar balance"
+      description={`Cuenta: ${account.account_name} \u00B7 Balance actual: ${formatBalance}`}
+      contentClassName="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto"
+      onSubmit={handleSubmit((values) => mutate(values as Values))}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Aplicar ajuste"
+      submittingLabel="Guardando..."
+      footer={
+        <div className="flex justify-end gap-2">
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancelar
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={!isValid || isPending}>
+            {isPending ? "Guardando..." : "Aplicar ajuste"}
+          </Button>
+        </div>
+      }
+    >
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Nuevo balance
@@ -153,19 +150,6 @@ export function AdjustBalanceDialog({
               </p>
             ) : null}
           </div>
-
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancelar
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Aplicar ajuste"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

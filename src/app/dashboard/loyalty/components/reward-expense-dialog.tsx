@@ -3,7 +3,6 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Gift } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,14 +10,8 @@ import { z } from "zod";
 import { completeLoyaltyReward } from "@/actions/loyalty";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -139,20 +132,38 @@ export function RewardExpenseDialog({
   if (!client) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dashboard-dialog-content max-w-lg">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="flex items-center gap-2 text-2xl font-semibold tracking-[-0.03em]">
-            <Gift className="h-5 w-5" />
-            Crear gasto de recompensa
-          </DialogTitle>
-          <DialogDescription className="leading-6">
-            {client.name} completó 10 tokens. Registra el gasto antes de reiniciar la tarjeta.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Crear gasto de recompensa"
+      description={`${client.name} completó 10 tokens. Registra el gasto antes de reiniciar la tarjeta.`}
+      contentClassName="dashboard-dialog-content max-w-lg"
+      onSubmit={onSubmit}
+      isSubmitting={rewardMutation.isPending}
+      canSubmit={isValid}
+      submitLabel="Crear gasto y reiniciar"
+      submittingLabel="Procesando..."
+      footer={
+        <DialogFooter className="gap-2 border-t border-border/60 bg-muted/15 px-6 py-4 sm:px-7">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-2xl"
+            disabled={rewardMutation.isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            className="rounded-2xl"
+            disabled={!isValid || rewardMutation.isPending}
+          >
+            {rewardMutation.isPending ? "Procesando..." : "Crear gasto y reiniciar"}
+          </Button>
+        </DialogFooter>
+      }
+    >
             <div className="dashboard-form-card grid gap-4">
               <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
                 <div className="font-medium">{description}</div>
@@ -203,28 +214,6 @@ export function RewardExpenseDialog({
                 )}
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="gap-2 border-t border-border/60 bg-muted/15 px-6 py-4 sm:px-7">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl"
-              disabled={rewardMutation.isPending}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              className="rounded-2xl"
-              disabled={!isValid || rewardMutation.isPending}
-            >
-              {rewardMutation.isPending ? "Procesando..." : "Crear gasto y reiniciar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

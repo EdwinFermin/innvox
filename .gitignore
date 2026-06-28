@@ -47,3 +47,8 @@ next-env.d.ts
 
 # supabase
 /supabase/.temp/
+
+# >>> reins >>>
+# Backups Reins makes of files it had to replace
+.reins-backup/
+# <<< reins <<<

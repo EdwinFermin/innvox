@@ -1,0 +1,17 @@
+name: reins verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci || npm install
+      - name: Reins verification gate
+        run: npx --yes @fermin-dev/reins@0.9.0 verify --hook CI

@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "rules": {
+    "oneFeatureInProgress": true,
+    "requireTestsToClose": true,
+    "validStates": [
+      "pending",
+      "analyzing",
+      "needs_clarification",
+      "spec_ready",
+      "approved",
+      "in_progress",
+      "done",
+      "blocked"
+    ]
+  },
+  "features": [
+    {
+      "slug": "error-boundaries",
+      "title": "Add error boundaries with a reusable ErrorState",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T15:16:49.869Z",
+      "updatedAt": "2026-06-27T19:05:00.000Z"
+    },
+    {
+      "slug": "friendly-error-messages",
+      "title": "Normalize server/DB errors into user-friendly Spanish messages",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T15:16:49.940Z",
+      "updatedAt": "2026-06-27T19:20:00.000Z"
+    },
+    {
+      "slug": "hydration-mobile-fix",
+      "title": "Fix useIsMobile SSR/hydration mismatch",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T15:16:50.012Z",
+      "updatedAt": "2026-06-27T19:30:00.000Z"
+    },
+    {
+      "slug": "loading-skeletons",
+      "title": "Standardize page-level loading skeletons on reference pages",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T15:16:50.083Z",
+      "updatedAt": "2026-06-27T19:42:00.000Z"
+    },
+    {
+      "slug": "empty-states",
+      "title": "Designed reusable EmptyState on reference pages",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T15:16:50.155Z",
+      "updatedAt": "2026-06-27T19:55:00.000Z"
+    },
+    {
+      "slug": "page-header-consistency",
+      "title": "Standardize page headers across the app",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T15:16:50.225Z",
+      "updatedAt": "2026-06-27T20:05:00.000Z"
+    },
+    {
+      "slug": "query-error-feedback",
+      "title": "Surface query errors with inline retry on reference pages",
+      "state": "done",
+      "dependsOn": [
+        "error-boundaries",
+        "friendly-error-messages"
+      ],
+      "createdAt": "2026-06-27T15:16:50.296Z",
+      "updatedAt": "2026-06-27T20:25:00.000Z"
+    },
+    {
+      "slug": "motion-polish",
+      "title": "Apply docs/motion.md-compliant micro-interactions on reference pages",
+      "state": "done",
+      "dependsOn": [
+        "empty-states"
+      ],
+      "createdAt": "2026-06-27T15:16:50.367Z",
+      "updatedAt": "2026-06-27T20:40:00.000Z"
+    },
+    {
+      "slug": "breadcrumb-labels",
+      "title": "Fix breadcrumb label map and add missing route translations",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T22:48:50.071Z",
+      "updatedAt": "2026-06-28T04:15:00.000Z"
+    },
+    {
+      "slug": "nav-cleanup",
+      "title": "Consolidate sidebar: single Settings path, consistent role navs, tidy groups",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T22:48:50.307Z",
+      "updatedAt": "2026-06-28T04:40:00.000Z"
+    },
+    {
+      "slug": "dashboard-focus",
+      "title": "Simplify dashboard home: de-duplicate metrics, drop low-value blocks, fix misleading trend badges",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T22:48:50.535Z",
+      "updatedAt": "2026-06-28T05:10:00.000Z"
+    },
+    {
+      "slug": "table-states",
+      "title": "Standardize loading/empty/error across list pages with a shared wrapper",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T22:48:50.763Z",
+      "updatedAt": "2026-06-28T05:45:00.000Z"
+    },
+    {
+      "slug": "table-toolbar",
+      "title": "Extract shared column-visibility, page-size, and column-label toolbar",
+      "state": "done",
+      "dependsOn": [
+        "table-states"
+      ],
+      "createdAt": "2026-06-27T22:48:50.997Z",
+      "updatedAt": "2026-06-28T06:30:00.000Z"
+    },
+    {
+      "slug": "table-filters",
+      "title": "Consistent search and filters across high-traffic tables",
+      "state": "done",
+      "dependsOn": [
+        "table-states",
+        "table-toolbar"
+      ],
+      "createdAt": "2026-06-27T22:48:51.222Z",
+      "updatedAt": "2026-06-28T07:00:00.000Z"
+    },
+    {
+      "slug": "form-dialog",
+      "title": "Extract a shared form-dialog layout for create/edit dialogs",
+      "state": "done",
+      "dependsOn": [],
+      "createdAt": "2026-06-27T22:48:51.452Z",
+      "updatedAt": "2026-06-28T05:55:00.000Z"
+    },
+    {
+      "slug": "command-palette",
+      "title": "Global Cmd+K command palette for cross-module navigation and quick actions",
+      "state": "done",
+      "dependsOn": [
+        "nav-cleanup"
+      ],
+      "createdAt": "2026-06-27T22:48:51.680Z",
+      "updatedAt": "2026-06-28T07:30:00.000Z"
+    }
+  ]
+}

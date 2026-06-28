@@ -3,8 +3,7 @@
 import * as React from "react";
 import {
   Users,
-  LifeBuoy,
-  Send,
+  CircleUser,
   Settings2,
   LayoutDashboard,
   FileSpreadsheet,
@@ -17,7 +16,9 @@ import {
   CalendarDays,
   CalendarClock,
   Gift,
+  type LucideIcon,
 } from "lucide-react";
+import { type IconType } from "react-icons/lib";
 
 import {
   Sidebar,
@@ -44,318 +45,172 @@ import Link from "next/link";
 import Image from "next/image";
 import { SidebarSeparator } from "@/components/ui/sidebar";
 
-const data = {
-  navAdmin: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: LayoutDashboard,
-      isActive: true,
-    },
-    {
-      title: "Transacciones",
-      icon: HandCoins,
-      items: [
-        {
-          title: "Ingresos",
-          url: "/dashboard/transactions/incomes",
-        },
-        {
-          title: "Gastos",
-          url: "/dashboard/transactions/expenses",
-        },
-        {
-          title: "Cuentas por cobrar",
-          url: "/dashboard/receivables",
-        },
-        {
-          title: "Cuentas por pagar",
-          url: "/dashboard/payables",
-        },
-        {
-          title: "Link de pago",
-          url: "/dashboard/link-de-pago",
-        },
-        {
-          title: "Sincronizar Envios RD",
-          url: "/dashboard/sync-cuadres",
-        },
-      ],
-    },
-    {
-      title: "Facturación",
-      url: "/dashboard/invoices",
-      icon: FileSpreadsheet,
-      isActive: true,
-    },
-    {
-      title: "Clientes",
-      url: "/dashboard/clients",
-      icon: Users,
-      isActive: true,
-    },
-    {
-      title: "Cuentas financieras",
-      url: "/dashboard/bank-accounts",
-      icon: Landmark,
-      isActive: true,
-    },
-    {
-      title: "Costos operativos",
-      url: "/dashboard/costos-operativos",
-      icon: CalendarClock,
-      isActive: true,
-    },
-    {
-      title: "Fidelidad",
-      icon: Gift,
-      items: [
-        {
-          title: "Tarjetas",
-          url: "/dashboard/loyalty",
-        },
-        {
-          title: "Scanner",
-          url: "/dashboard/loyalty/scanner",
-        },
-      ],
-    },
-    {
-      title: "Reportes",
-      icon: BarChart,
-      items: [
-        {
-          title: "Utilidades",
-          url: "/dashboard/reports/profit",
-        },
-        {
-          title: "Cuadre del dia",
-          url: "/dashboard/reports/cuadre-del-dia",
-        },
-        {
-          title: "Formulario DGII",
-          url: "/dashboard/reports/formulario-dgii",
-        },
-      ],
-    },
-    {
-      title: "Parametros",
-      icon: Settings2,
-      items: [
-        {
-          title: "Tipos de ingresos",
-          url: "/dashboard/parameters/income-types",
-        },
-        {
-          title: "Tipos de gastos",
-          url: "/dashboard/parameters/expense-types",
-        },
-      ],
-    },
-    {
-      title: "Configuración",
-      icon: Settings,
-      items: [
-        {
-          title: "General",
-          url: "/dashboard/settings",
-        },
-        {
-          title: "Usuarios",
-          url: "/dashboard/users",
-        },
-        {
-          title: "Sucursales",
-          url: "/dashboard/branches",
-        },
-      ],
-    },
-  ],
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: LayoutDashboard,
-      isActive: true,
-    },
-    {
-      title: "Transacciones",
-      icon: HandCoins,
-      items: [
-        {
-          title: "Ingresos",
-          url: "/dashboard/transactions/incomes",
-        },
-        {
-          title: "Gastos",
-          url: "/dashboard/transactions/expenses",
-        },
-        {
-          title: "Cuentas por cobrar",
-          url: "/dashboard/receivables",
-        },
-        {
-          title: "Cuentas por pagar",
-          url: "/dashboard/payables",
-        },
-        {
-          title: "Link de pago",
-          url: "/dashboard/link-de-pago",
-        },
-        {
-          title: "Sincronizar Envios RD",
-          url: "/dashboard/sync-cuadres",
-        },
-      ],
-    },
-    {
-      title: "Facturación",
-      url: "/dashboard/invoices",
-      icon: FileSpreadsheet,
-      isActive: true,
-    },
-    {
-      title: "Clientes",
-      url: "/dashboard/clients",
-      icon: Users,
-      isActive: true,
-    },
-    {
-      title: "Fidelidad",
-      icon: Gift,
-      items: [
-        {
-          title: "Tarjetas",
-          url: "/dashboard/loyalty",
-        },
-        {
-          title: "Scanner",
-          url: "/dashboard/loyalty/scanner",
-        },
-      ],
-    },
-    {
-      title: "Reportes",
-      icon: BarChart,
-      items: [
-        {
-          title: "Cuadre del dia",
-          url: "/dashboard/reports/cuadre-del-dia",
-        },
-      ],
-    },
-  ],
-  navAccountant: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: LayoutDashboard,
-      isActive: true,
-    },
-    {
-      title: "Transacciones",
-      icon: HandCoins,
-      items: [
-        {
-          title: "Ingresos",
-          url: "/dashboard/transactions/incomes",
-        },
-        {
-          title: "Gastos",
-          url: "/dashboard/transactions/expenses",
-        },
-        {
-          title: "Cuentas por cobrar",
-          url: "/dashboard/receivables",
-        },
-        {
-          title: "Cuentas por pagar",
-          url: "/dashboard/payables",
-        },
-        {
-          title: "Link de pago",
-          url: "/dashboard/link-de-pago",
-        },
-        {
-          title: "Sincronizar Envios RD",
-          url: "/dashboard/sync-cuadres",
-        },
-      ],
-    },
-    {
-      title: "Facturación",
-      url: "/dashboard/invoices",
-      icon: FileSpreadsheet,
-      isActive: true,
-    },
-    {
-      title: "Clientes",
-      url: "/dashboard/clients",
-      icon: Users,
-      isActive: true,
-    },
-    {
-      title: "Cuentas financieras",
-      url: "/dashboard/bank-accounts",
-      icon: Landmark,
-      isActive: true,
-    },
-    {
-      title: "Costos operativos",
-      url: "/dashboard/costos-operativos",
-      icon: CalendarClock,
-      isActive: true,
-    },
-    {
-      title: "Reportes",
-      icon: BarChart,
-      items: [
-        {
-          title: "Utilidades",
-          url: "/dashboard/reports/profit",
-        },
-        {
-          title: "Cuadre del dia",
-          url: "/dashboard/reports/cuadre-del-dia",
-        },
-        {
-          title: "Formulario DGII",
-          url: "/dashboard/reports/formulario-dgii",
-        },
-      ],
-    },
-    {
-      title: "Parametros",
-      icon: Settings2,
-      items: [
-        {
-          title: "Tipos de ingresos",
-          url: "/dashboard/parameters/income-types",
-        },
-        {
-          title: "Tipos de gastos",
-          url: "/dashboard/parameters/expense-types",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Mi cuenta",
-      url: "/dashboard/account",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Configuracion",
-      url: "/dashboard/settings",
-      icon: Send,
-    },
-  ],
-};
+// Role identifier. Maps the runtime auth checks (canManageSettings / user?.type)
+// onto the visibility sets declared in masterNav. Exported so the command palette
+// consumes the same role-gated nav source as the sidebar (R23).
+export type NavRole = "admin" | "accountant" | "user";
+
+// Sub-item shape inside masterNav. The `roles` field is internal and is stripped
+// by filterNavForRole before the item reaches NavMain.
+interface MasterSubItem {
+  title: string;
+  url: string;
+  roles: NavRole[];
+}
+
+// Top-level item shape inside masterNav. `roles` is stripped before NavMain.
+interface MasterNavItem {
+  title: string;
+  url?: string;
+  icon: LucideIcon | IconType;
+  isActive?: boolean;
+  roles: NavRole[];
+  items?: MasterSubItem[];
+}
+
+// Single source of truth for the sidebar nav. Each top-level item and each
+// sub-item declares the roles that may see it, replacing the previously
+// duplicated navAdmin / navMain / navAccountant arrays.
+export const masterNav: MasterNavItem[] = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: LayoutDashboard,
+    isActive: true,
+    roles: ["admin", "accountant", "user"],
+  },
+  {
+    title: "Transacciones",
+    icon: HandCoins,
+    roles: ["admin", "accountant", "user"],
+    items: [
+      { title: "Ingresos", url: "/dashboard/transactions/incomes", roles: ["admin", "accountant", "user"] },
+      { title: "Gastos", url: "/dashboard/transactions/expenses", roles: ["admin", "accountant", "user"] },
+      { title: "Cuentas por cobrar", url: "/dashboard/receivables", roles: ["admin", "accountant", "user"] },
+      { title: "Cuentas por pagar", url: "/dashboard/payables", roles: ["admin", "accountant", "user"] },
+      { title: "Link de pago", url: "/dashboard/link-de-pago", roles: ["admin", "accountant", "user"] },
+      { title: "Sincronizar Envíos RD", url: "/dashboard/sync-cuadres", roles: ["admin", "accountant", "user"] },
+    ],
+  },
+  {
+    title: "Facturación",
+    url: "/dashboard/invoices",
+    icon: FileSpreadsheet,
+    isActive: true,
+    roles: ["admin", "accountant", "user"],
+  },
+  {
+    title: "Clientes",
+    url: "/dashboard/clients",
+    icon: Users,
+    isActive: true,
+    roles: ["admin", "accountant", "user"],
+  },
+  {
+    title: "Cuentas financieras",
+    url: "/dashboard/bank-accounts",
+    icon: Landmark,
+    isActive: true,
+    roles: ["admin", "accountant"],
+  },
+  {
+    title: "Costos operativos",
+    url: "/dashboard/costos-operativos",
+    icon: CalendarClock,
+    isActive: true,
+    roles: ["admin", "accountant"],
+  },
+  {
+    title: "Fidelidad",
+    icon: Gift,
+    roles: ["admin", "user"],
+    items: [
+      { title: "Tarjetas", url: "/dashboard/loyalty", roles: ["admin", "user"] },
+      { title: "Scanner", url: "/dashboard/loyalty/scanner", roles: ["admin", "user"] },
+    ],
+  },
+  {
+    title: "Reportes",
+    icon: BarChart,
+    roles: ["admin", "accountant", "user"],
+    items: [
+      { title: "Utilidades", url: "/dashboard/reports/profit", roles: ["admin", "accountant"] },
+      { title: "Cuadre del día", url: "/dashboard/reports/cuadre-del-dia", roles: ["admin", "accountant", "user"] },
+      { title: "Formulario DGII", url: "/dashboard/reports/formulario-dgii", roles: ["admin", "accountant"] },
+    ],
+  },
+  {
+    title: "Parámetros",
+    icon: Settings2,
+    roles: ["admin", "accountant"],
+    items: [
+      { title: "Tipos de ingresos", url: "/dashboard/parameters/income-types", roles: ["admin", "accountant"] },
+      { title: "Tipos de gastos", url: "/dashboard/parameters/expense-types", roles: ["admin", "accountant"] },
+    ],
+  },
+  {
+    title: "Configuración",
+    icon: Settings,
+    roles: ["admin"],
+    items: [
+      { title: "General", url: "/dashboard/settings", roles: ["admin"] },
+      { title: "Usuarios", url: "/dashboard/users", roles: ["admin"] },
+      { title: "Sucursales", url: "/dashboard/branches", roles: ["admin"] },
+    ],
+  },
+];
+
+// Shape NavMain expects — the masterNav shape with the internal `roles` field removed.
+interface NavItem {
+  title: string;
+  url?: string;
+  icon: LucideIcon | IconType;
+  isActive?: boolean;
+  items?: { title: string; url: string }[];
+}
+
+// Pure: filters masterNav for a single role and returns items in NavMain's prop
+// shape. Keeps items whose roles include the role, filters sub-items the same way,
+// drops groups left with zero sub-items (R17), and strips the internal `roles` field.
+export function filterNavForRole(items: MasterNavItem[], role: NavRole): NavItem[] {
+  const result: NavItem[] = [];
+  for (const item of items) {
+    if (!item.roles.includes(role)) continue;
+    // Explicitly rebuild each item so the internal `roles` field never leaks
+    // into NavMain's prop shape (R28).
+    const base: NavItem = {
+      title: item.title,
+      url: item.url,
+      icon: item.icon,
+      isActive: item.isActive,
+    };
+    if (!item.items) {
+      result.push(base);
+      continue;
+    }
+    const filteredSubs = item.items
+      .filter((sub) => sub.roles.includes(role))
+      .map((sub) => ({ title: sub.title, url: sub.url }));
+    if (filteredSubs.length === 0) continue; // drop empty groups (R17)
+    result.push({ ...base, items: filteredSubs });
+  }
+  return result;
+}
+
+// Secondary nav: single "Mi cuenta" entry. Settings now lives solely in the main
+// nav's Configuración group (admin only), so no runtime filter is needed here.
+const navSecondary = [
+  { title: "Mi cuenta", url: "/dashboard/account", icon: CircleUser },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();
   const canManageSettings = can(user?.type, PERMISSIONS.settingsManage);
+  const resolvedRole: NavRole = canManageSettings
+    ? "admin"
+    : user?.type === "ACCOUNTANT"
+      ? "accountant"
+      : "user";
   const quickActions = [
     {
       title: "Nuevo ingreso",
@@ -372,7 +227,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       iconClassName: "bg-destructive/10 text-destructive",
     },
     {
-      title: "Cuadre del dia",
+      title: "Cuadre del día",
       description: "Revisar cierre diario",
       url: "/dashboard/reports/cuadre-del-dia",
       icon: CalendarDays,
@@ -411,7 +266,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="px-1 pb-3">
         <SidebarGroup className="px-2">
           <SidebarGroupLabel className="px-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sidebar-foreground/45">
-            Acciones rapidas
+            Acciones rápidas
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="rounded-[1.25rem] border border-sidebar-border/70 bg-sidebar/80 p-2 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.28)]">
@@ -442,8 +297,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
-        <NavMain items={canManageSettings ? data.navAdmin : user?.type === "ACCOUNTANT" ? data.navAccountant : data.navMain} />
-        <NavSecondary items={canManageSettings ? data.navSecondary : data.navSecondary.filter((item) => item.url !== "/dashboard/settings")} className="mt-auto" />
+        <NavMain items={filterNavForRole(masterNav, resolvedRole)} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border/70 px-3 py-3">
         <NavUser user={user} />

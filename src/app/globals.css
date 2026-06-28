@@ -299,3 +299,20 @@ input[type="date"] {
     display: none !important;
   }
 }
+
+/*
+ * Reduced-motion safeguard (motion-polish R1).
+ * Placed last — after every @layer block and the @media print rules — so it
+ * overrides layer-scoped animation utilities, including those from
+ * tw-animate-css, without a specificity hack beyond !important.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

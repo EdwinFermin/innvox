@@ -3,10 +3,12 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Printer, RefreshCcw } from "lucide-react";
+import { Building2, Inbox, Printer, RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   Card,
   CardContent,
@@ -29,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useBankAccounts } from "@/hooks/use-bank-accounts";
 import { useDailyCloseReport, type DailyCloseMovementRow } from "@/hooks/use-daily-close-report";
 import { useExpenses } from "@/hooks/use-expenses";
@@ -37,6 +40,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { usePrintDailyClose } from "@/hooks/use-print-daily-close";
 import { useAuthStore } from "@/store/auth";
 import type { Currency } from "@/types/bank-account.types";
+import { mapError } from "@/lib/error-messages";
 import { formatDateOnly, getDateInputValue, getTodayDateKey } from "@/utils/dates";
 
 function formatMoney(currency: Currency, amount: number) {
@@ -70,12 +74,27 @@ export default function DailyCloseReportPage() {
   const { user } = useAuthStore();
   const allowedBranchIds = user?.type === "USER" ? user.branch_ids : undefined;
 
-  const { data: branches, isLoading: isBranchesLoading } = useBranches(
-    user?.id || "",
-    allowedBranchIds,
-  );
-  const { data: incomes, isLoading: isIncomesLoading } = useIncomes(user?.id || "");
-  const { data: expenses, isLoading: isExpensesLoading } = useExpenses(user?.id || "");
+  const {
+    data: branches,
+    isLoading: isBranchesLoading,
+    isError: isBranchesError,
+    error: branchesError,
+    refetch: refetchBranches,
+  } = useBranches(user?.id || "", allowedBranchIds);
+  const {
+    data: incomes,
+    isLoading: isIncomesLoading,
+    isError: isIncomesError,
+    error: incomesError,
+    refetch: refetchIncomes,
+  } = useIncomes(user?.id || "");
+  const {
+    data: expenses,
+    isLoading: isExpensesLoading,
+    isError: isExpensesError,
+    error: expensesError,
+    refetch: refetchExpenses,
+  } = useExpenses(user?.id || "");
 
   const [selectedDate, setSelectedDate] = React.useState("");
   const [selectedBranchId, setSelectedBranchId] = React.useState("");
@@ -141,6 +160,24 @@ export default function DailyCloseReportPage() {
   );
 
   const isLoading = isBranchesLoading || isIncomesLoading || isExpensesLoading;
+  const isError = isBranchesError || isIncomesError || isExpensesError;
+  // Settle-once flag: matches the payables page so both sibling surfaces share
+  // one coherent entrance vocabulary (motion-polish R3/R4). Flips true the first
+  // time loading completes and never resets, so the entrance plays once per mount.
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  React.useEffect(() => {
+    if (!isLoading) setIsLoaded(true);
+  }, [isLoading]);
+  const settleClass = isLoaded
+    ? "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-200"
+    : "";
+  // First truthy error in the spec's listed hook order (branches → incomes → expenses).
+  const firstError = branchesError ?? incomesError ?? expensesError;
+  const retryAll = () => {
+    refetchBranches();
+    refetchIncomes();
+    refetchExpenses();
+  };
 
   return (
     <div className="dashboard-grid w-full">
@@ -197,15 +234,26 @@ export default function DailyCloseReportPage() {
         </CardContent>
       </Card>
 
-      {!isLoading && !branches.length ? (
+      {!isLoading && !isError && !branches.length ? (
         <Card>
-          <CardContent className="py-10 text-sm text-muted-foreground">
-            No hay sucursales disponibles para generar el cuadre del día.
+          <CardContent className="py-10">
+            <EmptyState
+              icon={Building2}
+              title="Sin sucursales"
+              description="No hay sucursales disponibles para generar el cuadre del día."
+            />
           </CardContent>
         </Card>
       ) : null}
 
-      <Card className="overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)]">
+      {isError ? (
+        <ErrorState
+          title="Algo salió mal"
+          description={mapError(firstError)}
+          onRetry={retryAll}
+        />
+      ) : (
+      <Card className={`overflow-hidden rounded-[1.4rem] border-border/70 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.24)] ${settleClass}`}>
         <CardHeader>
           <CardTitle>Movimientos del día</CardTitle>
           <CardDescription>
@@ -224,7 +272,9 @@ export default function DailyCloseReportPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {report.movementRows.length ? (
+              {isLoading ? (
+                <TableSkeleton rows={8} columns={5} />
+              ) : report.movementRows.length ? (
                 report.movementRows.map((movement) => (
                   <TableRow key={movement.id}>
                     <TableCell>
@@ -254,10 +304,12 @@ export default function DailyCloseReportPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    {isLoading
-                      ? "Cargando movimientos..."
-                      : "Sin movimientos en la fecha seleccionada."}
+                  <TableCell colSpan={5}>
+                    <EmptyState
+                      icon={Inbox}
+                      title="Sin movimientos"
+                      description="No hay ingresos ni gastos para la fecha y sucursal seleccionadas."
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -265,6 +317,7 @@ export default function DailyCloseReportPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       <PrintContainer {...printPayload} />
     </div>

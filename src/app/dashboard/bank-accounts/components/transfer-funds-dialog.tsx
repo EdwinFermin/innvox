@@ -15,14 +15,8 @@ import { transferFunds } from "@/actions/bank-accounts";
 import { useAuthStore } from "@/store/auth";
 import { BankAccount } from "@/types/bank-account.types";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogClose } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -188,24 +182,30 @@ export function TransferFundsDialog({
   const formatBalance = formatCurrency(account.current_balance, account.currency);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-2xl">
-            Mover fondos
-          </DialogTitle>
-          <DialogDescription>
-            Desde: <span className="font-medium">{account.account_name}</span>
-            {" \u00B7 "}
-            Balance disponible:{" "}
-            <span className="font-medium">{formatBalance}</span>
-          </DialogDescription>
-        </DialogHeader>
-
-        <form
-          onSubmit={handleSubmit((values) => mutate(values as Values))}
-          className="space-y-4"
-        >
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Mover fondos"
+      description={`Desde: ${account.account_name} \u00B7 Balance disponible: ${formatBalance}`}
+      contentClassName="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto"
+      onSubmit={handleSubmit((values) => mutate(values as Values))}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Mover"
+      submittingLabel="Moviendo..."
+      footer={
+        <div className="flex justify-end gap-2">
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancelar
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={!isValid || isPending}>
+            {isPending ? "Moviendo..." : "Mover"}
+          </Button>
+        </div>
+      }
+    >
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Cuenta destino
@@ -336,19 +336,6 @@ export function TransferFundsDialog({
               </p>
             ) : null}
           </div>
-
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancelar
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Moviendo..." : "Mover"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

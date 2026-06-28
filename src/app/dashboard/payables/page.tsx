@@ -14,21 +14,22 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, Inbox, MoreHorizontal, SearchX, Wallet } from "lucide-react";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ActiveFilterChip, FilterField, SelectFilter } from "@/components/filters";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -37,15 +38,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SpinnerLabel } from "@/components/ui/spinner-label";
+import { TableStateBody } from "@/components/ui/table-state-body";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
 import { usePayables } from "@/hooks/use-payables";
 import { Payable } from "@/types/payable.types";
 import { NewPayableDialog } from "./components/new-payable-dialog";
 import { can } from "@/lib/auth/can";
+import { mapError } from "@/lib/error-messages";
 import { PERMISSIONS } from "@/lib/auth/permissions";
-import { TablePageSize } from "@/components/ui/table-page-size";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { useUsers } from "@/hooks/use-users";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
@@ -55,24 +58,33 @@ import {
 import { deletePayable } from "@/actions/payables";
 import { formatDateOnly, parseDateOnly } from "@/utils/dates";
 
-const getColumnLabel = (id: string): string => {
-  const map: Record<string, string> = {
-    id: "ID",
-    name: "Nombre",
-    amount: "Monto",
-    due_date: "Vencimiento",
-    status: "Estado",
-    description: "Descripción",
-    created_by: "Creado por",
-    created_at: "Fecha de creación",
-  };
-  return map[id] || id;
+const columnLabels: Record<string, string> = {
+  id: "ID",
+  name: "Nombre",
+  amount: "Monto",
+  due_date: "Vencimiento",
+  status: "Estado",
+  description: "Descripción",
+  created_by: "Creado por",
+  created_at: "Fecha de creación",
 };
 
 const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
   currency: "DOP",
 });
+
+// Status values confirmed present in migrations/dialogs (R38); "vencido" is
+// intentionally excluded as it appears nowhere in the codebase.
+const statusFilterOptions = [
+  { value: "pendiente", label: "Pendiente" },
+  { value: "pagado", label: "Pagado" },
+  { value: "parcial", label: "Parcial" },
+];
+
+const statusFilterLabelByValue: Record<string, string> = Object.fromEntries(
+  statusFilterOptions.map((option) => [option.value, option.label]),
+);
 
 const getDateTime = (value: unknown): number => {
   return parseDateOnly(value as string | Date | null | undefined)?.getTime() ?? 0;
@@ -203,7 +215,7 @@ const getColumns = (
                   toast.success("Cuenta por pagar eliminada");
                   queryClient.invalidateQueries({ queryKey: ["payables"] });
                 } catch (error) {
-                  toast.error("Error al eliminar la cuenta");
+                  toast.error(mapError(error));
                   throw error;
                 }
               }}
@@ -228,9 +240,24 @@ export default function PayablesPage() {
   const [visibilityScope, setVisibilityScope] =
     React.useState<VisibilityScope>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
-  const { data: payables, isLoading } = usePayables(user?.id || "");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  // Single dialog state shared between the header trigger and the empty-state
+  // action so only one NewPayableDialog instance lives in the tree (R10).
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const { data: payables, isLoading, isError, error, refetch } = usePayables(user?.id || "");
   const { data: users } = useUsers();
   const queryClient = useQueryClient();
+
+  // Settle-once flag: flips true the first time data finishes loading and never
+  // resets, so the content-settle entrance (motion-polish R2) plays exactly once
+  // per mount and not on filter/sort/refetch re-renders.
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  React.useEffect(() => {
+    if (!isLoading) setIsLoaded(true);
+  }, [isLoading]);
+  const settleClass = isLoaded
+    ? "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-200"
+    : "";
 
   React.useEffect(() => {
     if (user?.type === "ADMIN") {
@@ -256,8 +283,35 @@ export default function PayablesPage() {
         ? payables
         : payables.filter((payable) => payable.created_by === user?.id);
 
-    return visiblePayables.filter((payable) => matchesSearch(payable, searchQuery));
-  }, [payables, searchQuery, user?.id, visibilityScope]);
+    return visiblePayables.filter((payable) => {
+      if (!matchesSearch(payable, searchQuery)) return false;
+      if (
+        statusFilter !== "all" &&
+        (payable.status ?? "").toLowerCase() !== statusFilter
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [payables, searchQuery, statusFilter, user?.id, visibilityScope]);
+
+  const resetFilters = React.useCallback(() => {
+    setStatusFilter("all");
+  }, []);
+
+  const activeFilterChips = React.useMemo(() => {
+    const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+
+    if (statusFilter !== "all") {
+      chips.push({
+        key: "status",
+        label: `Estado: ${statusFilterLabelByValue[statusFilter] ?? statusFilter}`,
+        onRemove: () => setStatusFilter("all"),
+      });
+    }
+
+    return chips;
+  }, [statusFilter]);
 
   const payablesSummary = React.useMemo(() => {
     const total = filteredPayables.reduce((acc, payable) => acc + Number(payable.amount || 0), 0);
@@ -315,49 +369,57 @@ export default function PayablesPage() {
             tone: "neutral",
           },
         ]}
-        actions={<NewPayableDialog />}
+        actions={<NewPayableDialog open={dialogOpen} onOpenChange={setDialogOpen} />}
       />
-      <div
-        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
-      >
-        <Input
-          aria-label="Buscar cuentas por pagar"
-          placeholder="Buscar por ID, nombre, descripcion o monto…"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          className="h-11 rounded-2xl border-border/70 bg-background/80"
-        />
-
-        <div className="w-full sm:w-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
-                Columnas <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {getColumnLabel(column.id)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      <TableToolbar
+        table={table}
+        columnLabels={columnLabels}
+        isMobile={isMobile}
+        searchValue={searchQuery}
+        onSearchChange={(event) => setSearchQuery(event.target.value)}
+        searchPlaceholder="Buscar por ID, nombre, descripcion o monto…"
+        searchAriaLabel="Buscar cuentas por pagar"
+        filters={
+          <FilterField label="Estado" icon={Wallet}>
+            <SelectFilter
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              options={statusFilterOptions}
+              allLabel="Todas"
+              ariaLabel="Filtrar por estado"
+            />
+          </FilterField>
+        }
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        {activeFilterChips.length > 0 ? (
+          <>
+            {activeFilterChips.map((chip) => (
+              <ActiveFilterChip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="h-9 rounded-full px-4 text-muted-foreground"
+            >
+              Limpiar todo
+            </Button>
+          </>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            Sin filtros activos. Mostrando todas las cuentas por pagar.
+          </div>
+        )}
       </div>
-      <div className="dashboard-table-frame">
+      {isError ? (
+        <ErrorState
+          title="Algo salió mal"
+          description={mapError(error)}
+          onRetry={refetch}
+        />
+      ) : (
+      <div className={`dashboard-table-frame ${settleClass}`}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -378,16 +440,38 @@ export default function PayablesPage() {
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24">
-                  <div className="flex justify-center items-center h-full">
-                    <SpinnerLabel label="Cargando..." />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            <TableStateBody
+              isLoading={isLoading}
+              isEmpty={table.getRowModel().rows?.length === 0}
+              colSpan={table.getVisibleLeafColumns().length}
+              loadingRows={table.getState().pagination.pageSize}
+              empty={
+                payables.length === 0 ? (
+                  <EmptyState
+                    icon={Inbox}
+                    title="Sin cuentas por pagar"
+                    description="Registra la primera para verla aquí."
+                    action={
+                      <Button onClick={() => setDialogOpen(true)}>
+                        Nueva cuenta por pagar
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    icon={SearchX}
+                    title="Sin resultados"
+                    description="Ajusta o limpia el filtro."
+                    action={
+                      <Button onClick={() => setSearchQuery("")}>
+                        Limpiar búsqueda
+                      </Button>
+                    }
+                  />
+                )
+              }
+            >
+              {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
@@ -401,51 +485,23 @@ export default function PayablesPage() {
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No se encontraron cuentas por pagar.
-                </TableCell>
-              </TableRow>
-            )}
+              ))}
+            </TableStateBody>
           </TableBody>
         </Table>
-        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
-          <ListVisibilityControl
-            role={user?.type}
-            value={visibilityScope}
-            onChange={setVisibilityScope}
-          />
-          <TablePageSize table={table} />
-          <div className="text-muted-foreground flex-1 text-sm">
-            {table.getFilteredRowModel().rows.length} filas
-          </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          table={table}
+          totalFiltered={table.getFilteredRowModel().rows.length}
+          visibilityControl={
+            <ListVisibilityControl
+              role={user?.type}
+              value={visibilityScope}
+              onChange={setVisibilityScope}
+            />
+          }
+        />
       </div>
+      )}
     </div>
   );
 }

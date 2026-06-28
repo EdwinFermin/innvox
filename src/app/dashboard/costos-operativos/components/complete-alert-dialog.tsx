@@ -11,13 +11,7 @@ import { completeAlert } from "@/actions/operating-costs";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -197,19 +191,38 @@ export function CompleteAlertDialog({ alert, open, onOpenChange }: Props) {
   const canEditAmount = alert.allows_custom_amount;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] gap-0 overflow-y-auto sm:max-w-xl">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Completar pago
-          </DialogTitle>
-          <DialogDescription className="max-w-2xl leading-6">
-            Genera el gasto automáticamente al completar esta alerta de costo operativo.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Completar pago"
+      description="Genera el gasto automáticamente al completar esta alerta de costo operativo."
+      contentClassName="dashboard-dialog-content max-h-[90vh] gap-0 overflow-y-auto sm:max-w-xl"
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Completar y generar gasto"
+      footer={
+        <div className="border-t border-border/60 bg-muted/15 px-6 py-4 sm:px-7">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => onOpenChange(false)} disabled={isBusy}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="rounded-2xl"
+              disabled={isBusy}
+              onClick={() => mutateSkip()}
+            >
+              {isSkipping ? "Procesando…" : "Completar sin gasto"}
+            </Button>
+            <Button type="submit" className="rounded-2xl" disabled={!isValid || isBusy}>
+              {isPending ? "Procesando…" : "Completar y generar gasto"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
             <div className="dashboard-form-card grid gap-4">
               <div className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3">
                 <div className="text-sm font-medium">{alert.operating_cost_name}</div>
@@ -325,29 +338,6 @@ export function CompleteAlertDialog({ alert, open, onOpenChange }: Props) {
                 </div>
               ) : null}
             </div>
-          </div>
-
-          <div className="border-t border-border/60 bg-muted/15 px-6 py-4 sm:px-7">
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="outline" className="rounded-2xl" onClick={() => onOpenChange(false)} disabled={isBusy}>
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-2xl"
-                disabled={isBusy}
-                onClick={() => mutateSkip()}
-              >
-                {isSkipping ? "Procesando…" : "Completar sin gasto"}
-              </Button>
-              <Button type="submit" className="rounded-2xl" disabled={!isValid || isBusy}>
-                {isPending ? "Procesando…" : "Completar y generar gasto"}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

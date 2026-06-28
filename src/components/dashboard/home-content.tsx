@@ -6,7 +6,6 @@ import { BusinessWidgets } from "@/components/dashboard/business-widgets";
 import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
 import { DashboardHomeLoading } from "@/components/dashboard/dashboard-loading";
 import { OperatingCostAlertsBanner } from "@/components/dashboard/operating-cost-alerts-banner";
-import { SectionCards } from "@/components/dashboard/section-cards";
 
 export function DashboardHomeContent() {
   const [mounted, setMounted] = React.useState(false);
@@ -24,7 +23,6 @@ export function DashboardHomeContent() {
       <div className="dashboard-grid py-1 md:gap-6 md:py-2">
         <DashboardHero />
         <OperatingCostAlertsBanner />
-        <SectionCards />
         <div>
           <ChartAreaInteractive />
         </div>

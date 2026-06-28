@@ -9,15 +9,7 @@ import { z } from "zod";
 
 import { updateBranchSyncSettings } from "@/actions/branches";
 import { BankAccountOptionContent } from "@/components/bank-account-option-content";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import {
   Select,
   SelectContent,
@@ -118,19 +110,17 @@ export function BranchSyncSettingsDialog({
   const onSubmit = handleSubmit((values) => mutate(values));
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">
-            Configuración de sincronización
-          </DialogTitle>
-          <DialogDescription className="max-w-md leading-6">
-            Define la cuenta de caja por defecto y la clave de Envios RD para {branch.name}.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Configuración de sincronización"
+      description={`Define la cuenta de caja por defecto y la clave de Envios RD para ${branch.name}.`}
+      contentClassName="max-h-[90vh] max-w-lg overflow-y-auto"
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isDirty}
+      submitLabel="Guardar"
+    >
             <div className="dashboard-form-card grid gap-4">
               <div className="dashboard-field">
                 <label className="dashboard-field-label">Cuenta de caja por defecto</label>
@@ -186,29 +176,6 @@ export function BranchSyncSettingsDialog({
                 </p>
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="default"
-              className="rounded-2xl"
-              disabled={!isDirty || isPending}
-            >
-              {isPending ? "Guardando…" : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

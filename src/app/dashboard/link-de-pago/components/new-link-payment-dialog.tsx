@@ -12,15 +12,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { createLinkPayment } from "@/actions/link-payments";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -91,8 +83,13 @@ export function NewLinkPaymentDialog() {
   const onSubmit = handleSubmit((values) => mutate(values as NewLinkPaymentValues));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Nuevo link de pago"
+      description="Crea un link pendiente por sucursal, define el monto y deja lista la URL interna para compartir o generar QR."
+      contentClassName="max-h-[90vh] max-w-lg w-[calc(100vw-2rem)] overflow-y-auto"
+      trigger={
         <Button
           className="w-full rounded-2xl sm:w-auto"
           onClick={() => {
@@ -103,18 +100,13 @@ export function NewLinkPaymentDialog() {
           <PlusCircle className="mr-1" />
           Nuevo link de pago
         </Button>
-      </DialogTrigger>
-
-      <DialogContent className="dashboard-dialog-content max-h-[90vh] max-w-lg w-[calc(100vw-2rem)] overflow-y-auto">
-        <DialogHeader className="dashboard-dialog-header">
-          <DialogTitle className="text-2xl font-semibold tracking-[-0.03em]">Nuevo link de pago</DialogTitle>
-          <DialogDescription className="max-w-md leading-6">
-            Crea un link pendiente por sucursal, define el monto y deja lista la URL interna para compartir o generar QR.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit}>
-          <div className="dashboard-dialog-body">
+      }
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      canSubmit={isValid}
+      submitLabel="Guardar link"
+      submittingLabel="Guardando..."
+    >
             <div className="dashboard-form-card space-y-4">
               <div className="dashboard-field">
                 <label className="dashboard-field-label">Sucursal</label>
@@ -178,18 +170,6 @@ export function NewLinkPaymentDialog() {
                 )}
               </div>
             </div>
-          </div>
-
-          <DialogFooter className="dashboard-dialog-footer">
-            <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setOpen(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-2xl" disabled={!isValid || isPending}>
-              {isPending ? "Guardando..." : "Guardar link"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

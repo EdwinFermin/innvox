@@ -14,30 +14,36 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  Building2,
+  Inbox,
+  MoreHorizontal,
+  SearchX,
+  Tags,
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import {
+  ActiveFilterChip,
+  DateRangeFilter,
+  FilterField,
+  SelectFilter,
+} from "@/components/filters";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -46,7 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SpinnerLabel } from "@/components/ui/spinner-label";
+import { TableStateBody } from "@/components/ui/table-state-body";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/store/auth";
 import { useIncomes } from "@/hooks/use-incomes";
@@ -58,8 +64,10 @@ import { BankAccount } from "@/types/bank-account.types";
 import { useBranches } from "@/hooks/use-branches";
 import { useIncomeTypes } from "@/hooks/use-income-types";
 import { can } from "@/lib/auth/can";
+import { mapError } from "@/lib/error-messages";
 import { PERMISSIONS } from "@/lib/auth/permissions";
-import { TablePageSize } from "@/components/ui/table-page-size";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { useUsers } from "@/hooks/use-users";
 import { DashboardPageHeader } from "@/components/ui/dashboard-page-header";
 import {
@@ -69,24 +77,20 @@ import {
 import { deleteIncome } from "@/actions/incomes";
 import {
   extractDateOnlyKey,
-  getDateInputValue,
   getTodayDateKey,
   parseDateOnly,
 } from "@/utils/dates";
 
-const getColumnLabel = (id: string): string => {
-  const map: Record<string, string> = {
-    friendly_id: "Codigo",
-    branch_id: "Sucursal",
-    income_type_id: "Tipo",
-    bank_account_id: "Cuenta",
-    amount: "Monto",
-    date: "Fecha",
-    description: "Descripción",
-    created_by: "Creado por",
-    created_at: "Fecha de creación",
-  };
-  return map[id] || id;
+const columnLabels: Record<string, string> = {
+  friendly_id: "Codigo",
+  branch_id: "Sucursal",
+  income_type_id: "Tipo",
+  bank_account_id: "Cuenta",
+  amount: "Monto",
+  date: "Fecha",
+  description: "Descripción",
+  created_by: "Creado por",
+  created_at: "Fecha de creación",
 };
 
 const currencyFormatter = new Intl.NumberFormat("es-DO", {
@@ -303,10 +307,9 @@ export default function IncomesPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [openDialog, setOpenDialog] = React.useState(false);
 
-  const hasSearch = searchTerm.trim().length > 0;
-  const { data: incomes, isLoading } = useIncomes(
+  const { data: incomes, isLoading, isError, error, refetch } = useIncomes(
     user?.id || "",
-    hasSearch ? {} : { startDate, endDate },
+    { startDate, endDate },
   );
   const { data: branches } = useBranches(
     user?.id || "",
@@ -372,10 +375,8 @@ export default function IncomesPage() {
 
       const dateKey = normalizeDateKey(income.date);
       if (!dateKey) return false;
-      if (!normalizedSearch) {
-        if (startDate && dateKey < startDate) return false;
-        if (endDate && dateKey > endDate) return false;
-      }
+      if (startDate && dateKey < startDate) return false;
+      if (endDate && dateKey > endDate) return false;
       if (branchFilter !== "ALL" && income.branch_id !== branchFilter)
         return false;
       if (typeFilter !== "ALL" && income.income_type_id !== typeFilter)
@@ -411,6 +412,69 @@ export default function IncomesPage() {
       }, {}),
     [branches],
   );
+
+  const branchFilterOptions = React.useMemo(
+    () =>
+      branches.map((branch) => ({
+        value: branch.id,
+        label: `${branch.name} (${branch.code})`,
+      })),
+    [branches],
+  );
+
+  const typeFilterOptions = React.useMemo(
+    () => incomeTypes.map((type) => ({ value: type.id, label: type.name })),
+    [incomeTypes],
+  );
+
+  const resetFilters = React.useCallback(() => {
+    const today = getTodayDateKey();
+    setStartDate(today);
+    setEndDate(today);
+    setBranchFilter("ALL");
+    setTypeFilter("ALL");
+  }, []);
+
+  const activeFilterChips = React.useMemo(() => {
+    const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+    const today = getTodayDateKey();
+
+    if (startDate !== today) {
+      chips.push({
+        key: "startDate",
+        label: `Desde: ${startDate}`,
+        onRemove: () => setStartDate(today),
+      });
+    }
+
+    if (endDate !== today) {
+      chips.push({
+        key: "endDate",
+        label: `Hasta: ${endDate}`,
+        onRemove: () => setEndDate(today),
+      });
+    }
+
+    if (branchFilter !== "ALL") {
+      chips.push({
+        key: "branch",
+        label: `Sucursal: ${branchNameById[branchFilter] ?? branchFilter}`,
+        onRemove: () => setBranchFilter("ALL"),
+      });
+    }
+
+    if (typeFilter !== "ALL") {
+      const typeName =
+        incomeTypes.find((type) => type.id === typeFilter)?.name ?? typeFilter;
+      chips.push({
+        key: "type",
+        label: `Tipo: ${typeName}`,
+        onRemove: () => setTypeFilter("ALL"),
+      });
+    }
+
+    return chips;
+  }, [branchFilter, branchNameById, endDate, incomeTypes, startDate, typeFilter]);
 
   const incomeTypeNameById = React.useMemo(
     () =>
@@ -524,109 +588,72 @@ export default function IncomesPage() {
         ]}
         actions={<NewIncomeDialog openOnMount={openDialog} />}
       />
-      <div
-        className={`dashboard-panel grid w-full gap-4 p-4 ${isMobile ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto]"}`}
-      >
-        <Input
-          aria-label="Buscar ingresos"
-          placeholder="Buscar por ID, descripcion o monto…"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          className="h-11 rounded-2xl border-border/70 bg-background/80"
+      <TableToolbar
+        table={table}
+        columnLabels={columnLabels}
+        isMobile={isMobile}
+        searchValue={searchTerm}
+        onSearchChange={(event) => setSearchTerm(event.target.value)}
+        searchPlaceholder="Buscar por ID, descripcion o monto…"
+        searchAriaLabel="Buscar ingresos"
+        filters={
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <DateRangeFilter
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+            <FilterField label="Sucursal" icon={Building2}>
+              <SelectFilter
+                value={branchFilter === "ALL" ? "all" : branchFilter}
+                onValueChange={(value) => setBranchFilter(value === "all" ? "ALL" : value)}
+                options={branchFilterOptions}
+                allLabel="Todas"
+                ariaLabel="Filtrar por sucursal"
+              />
+            </FilterField>
+            <FilterField label="Tipo de ingreso" icon={Tags}>
+              <SelectFilter
+                value={typeFilter === "ALL" ? "all" : typeFilter}
+                onValueChange={(value) => setTypeFilter(value === "all" ? "ALL" : value)}
+                options={typeFilterOptions}
+                allLabel="Todos"
+                ariaLabel="Filtrar por tipo de ingreso"
+              />
+            </FilterField>
+          </div>
+        }
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        {activeFilterChips.length > 0 ? (
+          <>
+            {activeFilterChips.map((chip) => (
+              <ActiveFilterChip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="h-9 rounded-full px-4 text-muted-foreground"
+            >
+              Limpiar todo
+            </Button>
+          </>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            Sin filtros activos. Mostrando los ingresos del día.
+          </div>
+        )}
+      </div>
+
+      {isError ? (
+        <ErrorState
+          title="Algo salió mal"
+          description={mapError(error)}
+          onRetry={refetch}
         />
-
-        <div className="w-full sm:w-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 w-full rounded-2xl border-border/70 bg-background/80">
-                Columnas <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {getColumnLabel(column.id)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      <div className="dashboard-panel grid gap-3 p-4 sm:grid-cols-4">
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-foreground">Desde</label>
-          <input
-            className="h-11 w-full rounded-2xl border border-input bg-background px-3"
-            type="date"
-            value={getDateInputValue(startDate)}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-foreground">Hasta</label>
-          <input
-            className="h-11 w-full rounded-2xl border border-input bg-background px-3"
-            type="date"
-            value={getDateInputValue(endDate)}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-foreground">
-            Sucursal
-          </label>
-          <Select
-            value={branchFilter}
-            onValueChange={(val) => setBranchFilter(val)}
-          >
-            <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background px-3 text-sm data-[size=default]:h-11">
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Todas</SelectItem>
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name} ({branch.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-foreground">
-            Tipo de ingreso
-          </label>
-          <Select
-            value={typeFilter}
-            onValueChange={(val) => setTypeFilter(val)}
-          >
-            <SelectTrigger className="h-11 w-full rounded-2xl border-border/70 bg-background px-3 text-sm data-[size=default]:h-11">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Todos</SelectItem>
-              {incomeTypes.map((type) => (
-                <SelectItem key={type.id} value={type.id}>
-                  {type.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
+      ) : (
       <div className="dashboard-table-frame">
         <Table>
           <TableHeader>
@@ -648,16 +675,34 @@ export default function IncomesPage() {
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24">
-                  <div className="flex justify-center items-center h-full">
-                    <SpinnerLabel label="Cargando..." />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            <TableStateBody
+              isLoading={isLoading}
+              isEmpty={table.getRowModel().rows?.length === 0}
+              colSpan={table.getVisibleLeafColumns().length}
+              loadingRows={table.getState().pagination.pageSize}
+              empty={
+                incomes.length === 0 ? (
+                  <EmptyState
+                    icon={Inbox}
+                    title="Sin ingresos"
+                    description="Registra el primero para verlo aquí."
+                    action={<NewIncomeDialog />}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={SearchX}
+                    title="Sin resultados"
+                    description="Ajusta o limpia el filtro."
+                    action={
+                      <Button onClick={() => setSearchTerm("")}>
+                        Limpiar búsqueda
+                      </Button>
+                    }
+                  />
+                )
+              }
+            >
+              {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
@@ -671,51 +716,23 @@ export default function IncomesPage() {
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No se encontraron ingresos.
-                </TableCell>
-              </TableRow>
-            )}
+              ))}
+            </TableStateBody>
           </TableBody>
         </Table>
-        <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
-          <ListVisibilityControl
-            role={user?.type}
-            value={visibilityScope}
-            onChange={setVisibilityScope}
-          />
-          <TablePageSize table={table} />
-          <div className="text-muted-foreground flex-1 text-sm">
-            {table.getFilteredRowModel().rows.length} filas
-          </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          table={table}
+          totalFiltered={table.getFilteredRowModel().rows.length}
+          visibilityControl={
+            <ListVisibilityControl
+              role={user?.type}
+              value={visibilityScope}
+              onChange={setVisibilityScope}
+            />
+          }
+        />
       </div>
+      )}
     </div>
   );
 }
